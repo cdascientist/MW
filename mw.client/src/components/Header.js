@@ -1,8 +1,16 @@
+import React from 'react';
+
 export default function Header() {
-
     return (
-        <h1>This is the header</h1>   
-    )
-
-
+        <header style={{
+            backgroundColor: '#57b3c0',
+            padding: '1rem',
+            color: 'white',
+            textAlign: 'center',
+            borderRadius: '8px',
+            marginBottom: '1rem'
+        }}>
+            <h1>Mountain West</h1>
+        </header>
+    );
 }
