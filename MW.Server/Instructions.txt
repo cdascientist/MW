@@ -1,0 +1,4 @@
+﻿cd mw.client
+
+# Install the dependencies	
+npm install react-router-dom
