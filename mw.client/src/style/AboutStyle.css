@@ -129,10 +129,17 @@
 @media (max-width: 768px) {
     .flat-panel {
         width: 90%;
-        height: 80%;
-        top: 40px;
+        height: 87.75%; /* Increased from 65% by adding 35% more (65% * 1.35 = 87.75%) */
+        top: 20px;
         left: 5%;
         padding: 15px;
+        overflow-y: auto; /* Make the entire panel scrollable */
+    }
+
+    .panel-content {
+        height: auto; /* Let content determine height */
+        max-height: none; /* Remove max-height */
+        overflow-y: visible; /* Content doesn't need its own scroll */
     }
 
     .nav-button {
@@ -143,6 +150,6 @@
     .buttons-row {
         flex-direction: column;
         gap: 10px;
+        margin-bottom: 15px; /* Add some space at the bottom */
     }
 }
-/* This is the missing closing bracket */
