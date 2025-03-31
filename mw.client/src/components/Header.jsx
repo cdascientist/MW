@@ -10,7 +10,7 @@ export default function Header() {
             borderRadius: '8px',
             marginBottom: '1rem'
         }}>
-            <h1>Mountain West Header</h1>
+            <h1></h1>
         </header>
     );
 }

@@ -1,0 +1,86 @@
+/* LiveChatStyle.css */
+
+/* Import base styles from AboutStyle.css */
+@import './AboutStyle.css';
+
+/* Chat panel content modifications */
+.chat-panel-content {
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 80px);
+    overflow: hidden;
+    padding: 0;
+}
+
+/* Main chat container */
+.chat-container {
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(87, 179, 192, 0.2);
+    background-color: rgba(255, 255, 255, 0.05);
+    margin-bottom: 20px;
+}
+
+    /* Ensure iframe takes up the full width */
+    .chat-container iframe {
+        width: 100%;
+        height: 500px; /* Default height for desktop */
+        border: none;
+        display: block;
+    }
+
+/* Button container below chat */
+.chat-buttons-container {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: auto;
+    margin-bottom: 10px;
+    padding: 0 15px;
+}
+
+    /* Navigation buttons */
+    .chat-buttons-container .nav-button {
+        flex: 1;
+        max-width: 200px;
+        text-align: center;
+    }
+
+/* Media queries for mobile devices */
+@media (max-width: 768px) {
+    .chat-container {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+        .chat-container iframe {
+            height: 470px; /* 35% taller for mobile */
+        }
+
+    .chat-buttons-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+        .chat-buttons-container .nav-button {
+            max-width: 100%;
+        }
+
+    .flat-panel {
+        padding: 15px;
+    }
+
+    .panel-content {
+        padding-right: 0;
+    }
+}
+
+/* For very small screens */
+@media (max-height: 600px) {
+    .chat-container iframe {
+        height: 350px;
+    }
+}

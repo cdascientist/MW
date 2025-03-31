@@ -47,13 +47,10 @@ export default function About() {
                 designed to maximize your productivity and workflow efficiency.
             </p>
             
-            <!-- Navigation buttons -->
-            <div class="buttons-row">
+            <!-- Navigation button -->
+            <div class="button-container">
                 <button class="nav-button" id="home-button">
                     Back to Home
-                </button>
-                <button class="nav-button chat-button" id="chat-button">
-                    Open Live Chat
                 </button>
             </div>
         `;
@@ -71,19 +68,11 @@ export default function About() {
         const headerRoot = createRoot(headerContainer);
         headerRoot.render(<Header />);
 
-        // Add event listener to the home button
+        // Add event listener to the button
         const homeButton = document.getElementById('home-button');
         if (homeButton) {
             homeButton.addEventListener('click', () => {
                 navigate('/');
-            });
-        }
-
-        // Add event listener to the chat button
-        const chatButton = document.getElementById('chat-button');
-        if (chatButton) {
-            chatButton.addEventListener('click', () => {
-                navigate('/chat');
             });
         }
 
