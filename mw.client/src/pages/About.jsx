@@ -1,99 +1,154 @@
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
 import "../style/AboutStyle.css";
 import Header from '../components/Header';
-import { createRoot } from 'react-dom/client';
 
+// This would be a proper React component
 export default function About() {
     const navigate = useNavigate();
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [userData, setUserData] = useState(null);
 
     useEffect(() => {
-        // Create the overlay container
-        const overlay = document.createElement('div');
-        overlay.className = 'ui-overlay';
+        // Check for existing login
+        const savedLoginStatus = localStorage.getItem('mw_isLoggedIn');
+        const savedUserData = localStorage.getItem('mw_userData');
 
-        // Create the flat panel
-        const panel = document.createElement('div');
-        panel.className = 'flat-panel';
+        if (savedLoginStatus === 'true' && savedUserData) {
+            try {
+                const parsedUserData = JSON.parse(savedUserData);
+                setUserData(parsedUserData);
+                setIsLoggedIn(true);
+            } catch (error) {
+                console.error('Failed to parse saved user data:', error);
+                localStorage.removeItem('mw_isLoggedIn');
+                localStorage.removeItem('mw_userData');
+            }
+        }
+    }, []);
 
-        // Create the panel header
-        const panelHeader = document.createElement('div');
-        panelHeader.className = 'panel-header';
-        panelHeader.innerHTML = '<h2 class="panel-title"></h2>';
-        panel.appendChild(panelHeader);
+    const handleGoogleLoginSuccess = (credentialResponse) => {
+        if (credentialResponse.credential) {
+            const decodedToken = decodeJwtResponse(credentialResponse.credential);
+            setUserData(decodedToken);
+            setIsLoggedIn(true);
+            localStorage.setItem('mw_isLoggedIn', 'true');
+            localStorage.setItem('mw_userData', JSON.stringify(decodedToken));
+        }
+    };
 
-        // Create a container for the Header component
-        const headerContainer = document.createElement('div');
-        headerContainer.className = 'header-in-panel';
-        headerContainer.id = 'header-mount-point';
-        panel.appendChild(headerContainer);
+    const handleGoogleLoginError = () => {
+        console.error('Google login failed');
+    };
 
-        // Create the content section
-        const contentSection = document.createElement('div');
-        contentSection.className = 'panel-content';
-        contentSection.innerHTML = `
-            <!-- Section title -->
-            <h3 class="panel-section-title">Home Page</h3>
-            
-            <!-- Panel content -->
-            <p class="panel-text">
-                Welcome to the Mountain West application! This panel is 
-                positioned in the upper left corner with 80% transparency 
-                and rounded corners, taking up 75% of the screen.
-            </p>
-            
-            <p class="panel-text">
-                The interface features advanced visualization capabilities
-                designed to maximize your productivity and workflow efficiency.
-            </p>
-            
-            <!-- Navigation buttons -->
-            <div class="buttons-row">
-                <button class="nav-button" id="home-button">
-                    Back to Home
-                </button>
-                <button class="nav-button chat-button" id="chat-button">
-                    Open Live Chat
-                </button>
+    const handleLogout = () => {
+        setUserData(null);
+        setIsLoggedIn(false);
+        localStorage.removeItem('mw_isLoggedIn');
+        localStorage.removeItem('mw_userData');
+    };
+
+    const decodeJwtResponse = (token) => {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(
+                atob(base64)
+                    .split('')
+                    .map(function (c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    })
+                    .join('')
+            );
+
+            return JSON.parse(jsonPayload);
+        } catch (error) {
+            console.error('Failed to decode JWT token:', error);
+            return { name: 'User', email: '' };
+        }
+    };
+
+    return (
+        <div className="ui-overlay">
+            <div className="flat-panel">
+                <div className="panel-header">
+                    <h2 className="panel-title">Mountain West</h2>
+                </div>
+
+                <div className="header-in-panel">
+                    <Header />
+                </div>
+
+                <div className="panel-content">
+                    {isLoggedIn && userData ? (
+                        <>
+                            <h3 className="panel-section-title">Welcome, {userData.name}!</h3>
+
+                            <div className="user-profile">
+                                {userData.picture && (
+                                    <img src={userData.picture} alt="Profile" className="profile-picture" />
+                                )}
+                                <div className="user-info">
+                                    <p className="panel-text">Email: {userData.email || 'Not available'}</p>
+                                </div>
+                            </div>
+
+                            <p className="panel-text">
+                                You're now logged in to the Mountain West application. This secure area allows
+                                you to access all features of our platform.
+                            </p>
+
+                            <p className="panel-text">
+                                The interface features advanced visualization capabilities
+                                designed to maximize your productivity and workflow efficiency.
+                            </p>
+
+                            <div className="buttons-row">
+                                <button className="nav-button" onClick={handleLogout}>
+                                    Logout
+                                </button>
+                                <button className="nav-button" onClick={() => navigate('/')}>
+                                    Back to Home
+                                </button>
+                                <button className="nav-button chat-button" onClick={() => navigate('/chat')}>
+                                    Open Live Chat
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <h3 className="panel-section-title">Login Required</h3>
+
+                            <p className="panel-text">
+                                Welcome to the Mountain West application! Please sign in with your
+                                Google account to access all features.
+                            </p>
+
+                            <div className="login-container">
+                                <GoogleLogin
+                                    onSuccess={handleGoogleLoginSuccess}
+                                    onError={handleGoogleLoginError}
+                                    useOneTap
+                                    width="300px"
+                                    theme="filled_blue"
+                                    text="signin_with"
+                                    shape="rectangular"
+                                    size="large"
+                                    logo_alignment="center"
+                                    type="standard"
+                                />
+                            </div>
+
+                            <div className="buttons-row">
+                                <button className="nav-button" onClick={() => navigate('/')}>
+                                    Back to Home
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
-        `;
-
-        // Append content section to panel
-        panel.appendChild(contentSection);
-
-        // Append panel to overlay
-        overlay.appendChild(panel);
-
-        // Append overlay to body
-        document.body.appendChild(overlay);
-
-        // Render Header into the container
-        const headerRoot = createRoot(headerContainer);
-        headerRoot.render(<Header />);
-
-        // Add event listener to the home button
-        const homeButton = document.getElementById('home-button');
-        if (homeButton) {
-            homeButton.addEventListener('click', () => {
-                navigate('/');
-            });
-        }
-
-        // Add event listener to the chat button
-        const chatButton = document.getElementById('chat-button');
-        if (chatButton) {
-            chatButton.addEventListener('click', () => {
-                navigate('/chat');
-            });
-        }
-
-        // Cleanup on unmount
-        return () => {
-            headerRoot.unmount();
-            document.body.removeChild(overlay);
-        };
-    }, [navigate]);
-
-    // Return null because the UI is created outside React's control
-    return null;
+        </div>
+    );
 }

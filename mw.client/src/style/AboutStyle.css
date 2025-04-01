@@ -125,21 +125,119 @@
         background-color: rgba(255, 165, 0, 0.3);
     }
 
+/* Google login container */
+.login-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    max-width: 400px;
+    min-height: 100px;
+    border: 1px solid rgba(87, 179, 192, 0.3);
+}
+
+/* Special styling for Google button container */
+#google-login-container {
+    position: relative;
+}
+
+    /* Fallback button styling */
+    #google-login-container button {
+        background-color: #4285F4;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 16px;
+        cursor: pointer;
+        display: block;
+        margin: 0 auto;
+    }
+
+        #google-login-container button:hover {
+            background-color: #357ae8;
+        }
+
+/* Debug indicator */
+.google-oauth-debug {
+    position: absolute;
+    bottom: -30px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 12px;
+    color: #ff6b6b;
+}
+
+/* User profile section */
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background-color: rgba(87, 179, 192, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.profile-picture {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 2px solid #57b3c0;
+    object-fit: cover;
+}
+
+.user-info {
+    flex: 1;
+}
+
+    .user-info .panel-text {
+        margin-bottom: 5px;
+    }
+
+/* Error message styling */
+.error-message {
+    color: #ff6b6b;
+    background-color: rgba(255, 107, 107, 0.1);
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin: 10px 0;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* Custom logout button styling */
+#logout-button {
+    background-color: rgba(255, 99, 71, 0.2);
+    color: #ff6347;
+    border: 1px solid rgba(255, 99, 71, 0.4);
+}
+
+    #logout-button:hover {
+        background-color: rgba(255, 99, 71, 0.3);
+    }
+
 /* Media queries for mobile devices */
 @media (max-width: 768px) {
     .flat-panel {
         width: 90%;
-        height: 87.75%; /* Increased from 65% by adding 35% more (65% * 1.35 = 87.75%) */
+        height: 87.75%;
         top: 20px;
         left: 5%;
         padding: 15px;
-        overflow-y: auto; /* Make the entire panel scrollable */
+        overflow-y: auto;
     }
 
     .panel-content {
-        height: auto; /* Let content determine height */
-        max-height: none; /* Remove max-height */
-        overflow-y: visible; /* Content doesn't need its own scroll */
+        height: auto;
+        max-height: none;
+        overflow-y: visible;
     }
 
     .nav-button {
@@ -150,6 +248,82 @@
     .buttons-row {
         flex-direction: column;
         gap: 10px;
-        margin-bottom: 15px; /* Add some space at the bottom */
+        margin-bottom: 15px;
     }
+
+    .user-profile {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px 10px;
+    }
+
+    .profile-picture {
+        margin-bottom: 10px;
+    }
+
+    .login-container {
+        padding: 15px;
+        margin: 15px auto;
+    }
+}
+/* Add this to your AboutStyle.css file */
+
+/* Google button styling */
+.google-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    color: #444;
+    border-radius: 5px;
+    border: thin solid #888;
+    box-shadow: 1px 1px 1px grey;
+    white-space: nowrap;
+    width: 240px;
+    height: 50px;
+    margin: 20px auto;
+    padding: 0 15px;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: 'Roboto', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+    .google-button:hover {
+        cursor: pointer;
+        background-color: #f5f5f5;
+    }
+
+    .google-button:active {
+        background-color: #e5e5e5;
+    }
+
+.google-logo {
+    width: 22px;
+    height: 22px;
+    margin-right: 12px;
+}
+
+.profile-placeholder {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background-color: #57b3c0;
+    opacity: 0.5;
+    margin-right: 15px;
+}
+
+.login-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    max-width: 400px;
+    min-height: 100px;
+    border: 1px solid rgba(87, 179, 192, 0.3);
 }
