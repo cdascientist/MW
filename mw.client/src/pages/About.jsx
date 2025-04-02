@@ -100,38 +100,55 @@ export default function About() {
         }
     };
 
-    // Render and handle the Google Sign-In button
     const handleGoogleButtonClick = () => {
-        if (window.google && window.google.accounts && window.google.accounts.id) {
-            // Initialize Google Sign-In
-            window.google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                callback: window.handleGoogleSignIn,
-                auto_select: false,
-                cancel_on_tap_outside: true
-            });
-
-            // Display the One Tap UI
-            window.google.accounts.id.prompt((notification) => {
-                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                    console.log('One Tap UI was not displayed or was skipped');
-                    // Render the standard Sign-In button as fallback
-                    window.google.accounts.id.renderButton(
-                        document.getElementById('google-signin-container'),
-                        {
-                            theme: 'filled_blue',
-                            size: 'large',
-                            width: 280,
-                            text: 'signin_with',
-                            shape: 'rectangular'
-                        }
-                    );
-                }
-            });
-        } else {
+        if (!googleAuthLoaded || !window.google || !window.google.accounts || !window.google.accounts.id) {
             console.error('Google Sign-In API not loaded yet');
             alert('Google Sign-In is still loading. Please try again in a moment.');
+            return;
         }
+
+        // Initialize Google Sign-In
+        window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: window.handleGoogleSignIn,
+            auto_select: false,
+            cancel_on_tap_outside: true
+        });
+
+        // Create a hidden div for Google's button rendering (if needed)
+        let hiddenButtonContainer = document.getElementById('hidden-google-button');
+        if (!hiddenButtonContainer) {
+            hiddenButtonContainer = document.createElement('div');
+            hiddenButtonContainer.id = 'hidden-google-button';
+            hiddenButtonContainer.style.position = 'absolute';
+            hiddenButtonContainer.style.opacity = '0';
+            hiddenButtonContainer.style.pointerEvents = 'none';
+            hiddenButtonContainer.style.zIndex = '-1';
+            document.body.appendChild(hiddenButtonContainer);
+        }
+
+        // First attempt: try to show the prompt directly
+        window.google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                console.log('Prompt not displayed or skipped. Trying fallback method...');
+
+                // Fallback: render the Google button and auto-click it
+                window.google.accounts.id.renderButton(
+                    hiddenButtonContainer,
+                    { theme: 'filled_blue', size: 'large', type: 'standard' }
+                );
+
+                // Wait a tiny bit for the button to render, then click it
+                setTimeout(() => {
+                    const googleButton = hiddenButtonContainer.querySelector('div[role="button"]');
+                    if (googleButton) {
+                        googleButton.click();
+                    } else {
+                        console.error('Failed to find the rendered Google button');
+                    }
+                }, 100);
+            }
+        });
     };
 
     // Use DOM manipulation for panel and Google button
@@ -194,12 +211,11 @@ export default function About() {
                     Google account to access all features.
                 </p>
                 
-                <div class="login-container">
+                <div class="login-container" style="margin-top: 25%;">
                     <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 12px 20px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px;">
                         <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" style="width: 18px; height: 18px;"/>
                         Sign in with Google
                     </button>
-                    <div id="google-signin-container" style="margin-top: 15px;"></div>
                 </div>
                 
                 <div class="buttons-row">
@@ -239,6 +255,12 @@ export default function About() {
             // Remove the overlay
             if (document.body.contains(overlay)) {
                 document.body.removeChild(overlay);
+            }
+
+            // Remove the hidden button container if it exists
+            const hiddenContainer = document.getElementById('hidden-google-button');
+            if (hiddenContainer) {
+                document.body.removeChild(hiddenContainer);
             }
         };
     }, [isLoggedIn, userData, navigate, handleLogout, handleGoogleButtonClick, googleAuthLoaded]);
