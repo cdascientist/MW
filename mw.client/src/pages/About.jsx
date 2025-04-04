@@ -153,82 +153,323 @@ export default function About() {
 
     // Use DOM manipulation for panel and Google button
     useEffect(() => {
-        // Create the panel DOM structure
+        // Check if we're on a mobile device
+        const isMobile = window.innerWidth <= 768;
+
+        // ====================================
+        // PANEL STRUCTURE SETUP
+        // ====================================
         const overlay = document.createElement('div');
         overlay.className = 'ui-overlay';
-        overlay.style.zIndex = '9999'; // Set high z-index but lower than Google's overlays
+        overlay.style.zIndex = '9999';
 
         const panel = document.createElement('div');
         panel.className = 'flat-panel';
 
-        const panelHeader = document.createElement('div');
-        panelHeader.className = 'panel-header';
-        panelHeader.innerHTML = '<h2 class="panel-title">Mountain West</h2>';
-        panel.appendChild(panelHeader);
+        // ====================================
+        // DESKTOP STYLING
+        // ====================================
+        if (!isMobile) {
+            // Panel header styling (Desktop)
+            const panelHeader = document.createElement('div');
+            panelHeader.className = 'panel-header';
+            panelHeader.innerHTML = '<h2 class="panel-title" style="font-size: 45px;">Mountain West</h2>';
+            panel.appendChild(panelHeader);
 
-        const headerDiv = document.createElement('div');
-        headerDiv.className = 'header-in-panel';
-        headerDiv.innerHTML = `<header style="background-color: transparent; padding: 0.5rem; color: #57b3c0; text-align: center;"><h1>Mountain West</h1></header>`;
-        panel.appendChild(headerDiv);
+            // Main header styling (Desktop)
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'header-in-panel';
+            headerDiv.innerHTML = `<header style="background-color: transparent; padding: 0.5rem; color: #57b3c0; text-align: center;"><h1 style="font-size: 55px;">Mountain West</h1></header>`;
+            panel.appendChild(headerDiv);
 
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'panel-content';
-
-        // Build content based on login state
-        if (isLoggedIn && userData) {
-            contentDiv.innerHTML = `
-                <h3 class="panel-section-title">Welcome, ${userData.name || 'User'}!</h3>
-                
-                <div class="user-profile">
-                    ${userData.picture ? `<img src="${userData.picture}" alt="Profile" class="profile-picture" />` : ''}
-                    <div class="user-info">
-                        <p class="panel-text">Email: ${userData.email || 'Not available'}</p>
-                    </div>
-                </div>
-                
-                <p class="panel-text">
-                    You're now logged in to the Mountain West application. This secure area allows
-                    you to access all features of our platform.
-                </p>
-                
-                <p class="panel-text">
-                    The interface features advanced visualization capabilities
-                    designed to maximize your productivity and workflow efficiency.
-                </p>
-                
-                <div class="buttons-row">
-                    <button id="logout-button" class="nav-button">Logout</button>
-                    <button id="home-button" class="nav-button">Back to Home</button>
-                    <button id="chat-button" class="nav-button chat-button">Open Live Chat</button>
-                </div>
+            // Top-right action buttons (Desktop)
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'action-buttons';
+            actionButtons.style.position = 'absolute';
+            actionButtons.style.top = '20px';
+            actionButtons.style.right = '20px';
+            actionButtons.style.display = 'flex';
+            actionButtons.style.gap = '15px';
+            actionButtons.style.zIndex = '20';
+            actionButtons.innerHTML = `
+                <button id="logout-button" class="nav-button" style="font-size: 30px; background-color: rgba(255, 99, 71, 0.2); color: #ff6347; border: 1px solid rgba(255, 99, 71, 0.4); padding: 10px 20px; border-radius: 6px;">Logout</button>
+                <button id="chat-button" class="nav-button chat-button" style="font-size: 30px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 10px 20px; border-radius: 6px;">Open Live Chat</button>
             `;
-        } else {
-            contentDiv.innerHTML = `
-                <h3 class="panel-section-title">Login Required</h3>
-                
-                <p class="panel-text">
-                    Welcome to the Mountain West application! Please sign in with your
-                    Google account to access all features.
-                </p>
-                
-                <div class="login-container" style="margin-top: 25%;">
-                    <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 12px 20px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+            panel.appendChild(actionButtons);
+
+            // ====================================
+            // DESKTOP CONTENT - LOGGED IN VIEW
+            // ====================================
+            if (isLoggedIn && userData) {
+                // Create container for user profile
+                const profileContainer = document.createElement('div');
+                profileContainer.style.display = 'flex';
+                profileContainer.style.flexDirection = 'column';
+                profileContainer.style.alignItems = 'flex-start';
+                profileContainer.style.padding = '30px';
+                profileContainer.style.marginTop = '30px';
+
+                // User profile photo
+                const userPhotoDiv = document.createElement('div');
+                userPhotoDiv.style.marginBottom = '15px';
+                userPhotoDiv.innerHTML = `
+                    ${userData.picture ?
+                        `<img src="${userData.picture}" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #57b3c0;" />` :
+                        '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #57b3c0; display: flex; align-items: center; justify-content: center; color: white; font-size: 32px;">' + (userData.name ? userData.name.charAt(0) : 'U') + '</div>'
+                    }
+                `;
+                profileContainer.appendChild(userPhotoDiv);
+
+                // User name and email
+                const userInfoDiv = document.createElement('div');
+                userInfoDiv.style.marginBottom = '30px';
+                userInfoDiv.innerHTML = `
+                    <h3 style="margin: 0; font-size: 32px; color: #57b3c0;">Welcome, ${userData.name || 'User'}!</h3>
+                    <p style="margin: 8px 0 0 0; font-size: 24px; color: #a7d3d8;">${userData.email || 'Not available'}</p>
+                `;
+                profileContainer.appendChild(userInfoDiv);
+
+                panel.appendChild(profileContainer);
+
+                // ===========================================
+                // AFTER LOGIN CONTENT STARTS HERE (DESKTOP)
+                // ===========================================
+                const contentContainer = document.createElement('div');
+                contentContainer.className = 'content-container';
+                contentContainer.style.padding = '0 30px 30px 30px';
+                contentContainer.style.display = 'flex';
+                contentContainer.style.flexDirection = 'column';
+                contentContainer.style.overflow = 'auto';
+
+                // Main content paragraphs - 35% larger on desktop
+                contentContainer.innerHTML = `
+                    <p style="font-size: 35px; margin-bottom: 30px; color: #a7d3d8;">
+                        You're now logged in to the Mountain West application. This secure area allows
+                        you to access all features of our platform.
+                    </p>
+                    
+                    <p style="font-size: 35px; color: #a7d3d8;">
+                        The interface features advanced visualization capabilities
+                        designed to maximize your productivity and workflow efficiency.
+                    </p>
+                `;
+                panel.appendChild(contentContainer);
+            }
+            // ====================================
+            // DESKTOP CONTENT - NOT LOGGED IN VIEW
+            // ====================================
+            else {
+                const contentContainer = document.createElement('div');
+                contentContainer.className = 'content-container';
+                contentContainer.style.padding = '30px';
+                contentContainer.style.marginTop = '30px';
+                contentContainer.style.display = 'flex';
+                contentContainer.style.flexDirection = 'column';
+                contentContainer.style.overflow = 'auto';
+
+                contentContainer.innerHTML = `
+                    <p style="font-size: 35px; line-height: 1.4; margin-bottom: 40px; color: #a7d3d8;">
+                        Mountain West provides compassionate care for those struggling with addiction. Our experienced team offers sober living environments, recovery support groups, and personalized treatment plans to help you achieve lasting sobriety. We believe in addressing all aspects of recovery, from in-house therapy to life skills development, creating a supportive community where your recovery journey begins with dignity and hope.
+                    </p>
+                `;
+                panel.appendChild(contentContainer);
+
+                // Google sign-in button for not logged in (Desktop)
+                const googleButtonContainer = document.createElement('div');
+                googleButtonContainer.id = 'google-button-container';
+                googleButtonContainer.style.position = 'absolute';
+                googleButtonContainer.style.left = '20px';
+                googleButtonContainer.style.top = '71%';
+                googleButtonContainer.style.zIndex = '10';
+                googleButtonContainer.innerHTML = `
+                    <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 12px 20px; border: none; border-radius: 4px; font-size: 30px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; width: 260px;">
+                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" style="width: 24px; height: 24px;"/>
+                        Sign in with Google
+                    </button>
+                `;
+                panel.appendChild(googleButtonContainer);
+            }
+
+            // Back to Start button (Desktop)
+            const homeButtonContainer = document.createElement('div');
+            homeButtonContainer.style.position = 'absolute';
+            homeButtonContainer.style.bottom = '30px';
+            homeButtonContainer.style.left = '30px';
+            homeButtonContainer.style.zIndex = '15';
+            homeButtonContainer.innerHTML = `
+                <button id="home-button" class="nav-button" style="width: 260px; font-size: 30px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 20px; border-radius: 6px;">Back to Start</button>
+            `;
+            panel.appendChild(homeButtonContainer);
+        }
+        // ====================================
+        // MOBILE STYLING
+        // ====================================
+        else {
+            // Panel header styling (Mobile)
+            const panelHeader = document.createElement('div');
+            panelHeader.className = 'panel-header';
+            panelHeader.innerHTML = '<h2 class="panel-title" style="font-size: 24px;">Mountain West</h2>';
+            panel.appendChild(panelHeader);
+
+            // Main header styling (Mobile)
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'header-in-panel';
+            headerDiv.innerHTML = `<header style="background-color: transparent; padding: 0.5rem; color: #57b3c0; text-align: center;"><h1 style="font-size: 28px;">Mountain West</h1></header>`;
+            panel.appendChild(headerDiv);
+
+            // Top-right action buttons (Mobile)
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'action-buttons';
+            actionButtons.style.position = 'absolute';
+            actionButtons.style.top = '10px';
+            actionButtons.style.right = '10px';
+            actionButtons.style.display = 'flex';
+            actionButtons.style.flexDirection = 'column';
+            actionButtons.style.gap = '8px';
+            actionButtons.style.zIndex = '20';
+            actionButtons.innerHTML = `
+                <button id="logout-button" class="nav-button" style="font-size: 14px; background-color: rgba(255, 99, 71, 0.2); color: #ff6347; border: 1px solid rgba(255, 99, 71, 0.4); padding: 6px 12px; border-radius: 4px;">Logout</button>
+                <button id="chat-button" class="nav-button chat-button" style="font-size: 14px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 6px 12px; border-radius: 4px;">Open Live Chat</button>
+            `;
+            panel.appendChild(actionButtons);
+
+            // ====================================
+            // MOBILE CONTENT - LOGGED IN VIEW
+            // ====================================
+            if (isLoggedIn && userData) {
+                // Create container for user profile
+                const profileContainer = document.createElement('div');
+                profileContainer.style.display = 'flex';
+                profileContainer.style.flexDirection = 'column';
+                profileContainer.style.alignItems = 'flex-start';
+                profileContainer.style.padding = '15px';
+                profileContainer.style.marginTop = '15px';
+
+                // User profile photo
+                const userPhotoDiv = document.createElement('div');
+                userPhotoDiv.style.marginBottom = '10px';
+                userPhotoDiv.style.alignSelf = 'center';
+                userPhotoDiv.innerHTML = `
+                    ${userData.picture ?
+                        `<img src="${userData.picture}" alt="Profile" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid #57b3c0;" />` :
+                        '<div style="width: 60px; height: 60px; border-radius: 50%; background-color: #57b3c0; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">' + (userData.name ? userData.name.charAt(0) : 'U') + '</div>'
+                    }
+                `;
+                profileContainer.appendChild(userPhotoDiv);
+
+                // User name and email
+                const userInfoDiv = document.createElement('div');
+                userInfoDiv.style.marginBottom = '20px';
+                userInfoDiv.style.textAlign = 'center';
+                userInfoDiv.style.width = '100%';
+                userInfoDiv.innerHTML = `
+                    <h3 style="margin: 0; font-size: 18px; color: #57b3c0;">Welcome, ${userData.name || 'User'}!</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 14px; color: #a7d3d8;">${userData.email || 'Not available'}</p>
+                `;
+                profileContainer.appendChild(userInfoDiv);
+
+                panel.appendChild(profileContainer);
+
+                // ===========================================
+                // AFTER LOGIN CONTENT STARTS HERE (MOBILE)
+                // ===========================================
+                const contentContainer = document.createElement('div');
+                contentContainer.className = 'content-container';
+                contentContainer.style.padding = '0 15px 15px 15px';
+                contentContainer.style.display = 'flex';
+                contentContainer.style.flexDirection = 'column';
+                contentContainer.style.overflow = 'auto';
+
+                // Main content paragraphs
+                contentContainer.innerHTML = `
+                    <p style="font-size: 16px; margin-bottom: 15px; color: #a7d3d8;">
+                        You're now logged in to the Mountain West application. This secure area allows
+                        you to access all features of our platform.
+                    </p>
+                    
+                    <p style="font-size: 16px; color: #a7d3d8;">
+                        The interface features advanced visualization capabilities
+                        designed to maximize your productivity and workflow efficiency.
+                    </p>
+                `;
+                panel.appendChild(contentContainer);
+            }
+            // ====================================
+            // MOBILE CONTENT - NOT LOGGED IN VIEW
+            // ====================================
+            else {
+                const contentContainer = document.createElement('div');
+                contentContainer.className = 'content-container';
+                contentContainer.style.padding = '15px';
+                contentContainer.style.marginTop = '15px';
+                contentContainer.style.display = 'flex';
+                contentContainer.style.flexDirection = 'column';
+                contentContainer.style.overflow = 'auto';
+
+                contentContainer.innerHTML = `
+                    <p style="font-size: 16px; line-height: 1.4; margin-bottom: 20px; color: #a7d3d8;">
+                        Mountain West provides compassionate care for those struggling with addiction. Our experienced team offers sober living environments, recovery support groups, and personalized treatment plans to help you achieve lasting sobriety. We believe in addressing all aspects of recovery, from in-house therapy to life skills development, creating a supportive community where your recovery journey begins with dignity and hope.
+                    </p>
+                `;
+                panel.appendChild(contentContainer);
+
+                // Google sign-in button for not logged in (Mobile)
+                const googleButtonContainer = document.createElement('div');
+                googleButtonContainer.id = 'google-button-container';
+                googleButtonContainer.style.position = 'absolute';
+                googleButtonContainer.style.left = '50%';
+                googleButtonContainer.style.transform = 'translateX(-50%)';
+                googleButtonContainer.style.top = '65%';
+                googleButtonContainer.style.zIndex = '10';
+                googleButtonContainer.innerHTML = `
+                    <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 8px 16px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 180px;">
                         <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" style="width: 18px; height: 18px;"/>
                         Sign in with Google
                     </button>
-                </div>
-                
-                <div class="buttons-row">
-                    <button id="home-button" class="nav-button">Back to Home</button>
-                </div>
+                `;
+                panel.appendChild(googleButtonContainer);
+            }
+
+            // Back to Start button (Mobile)
+            const homeButtonContainer = document.createElement('div');
+            homeButtonContainer.style.position = 'absolute';
+            homeButtonContainer.style.bottom = '15px';
+            homeButtonContainer.style.left = '50%';
+            homeButtonContainer.style.transform = 'translateX(-50%)';
+            homeButtonContainer.style.zIndex = '15';
+            homeButtonContainer.innerHTML = `
+                <button id="home-button" class="nav-button" style="width: 180px; font-size: 16px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 8px 16px; border-radius: 4px;">Back to Start</button>
             `;
+            panel.appendChild(homeButtonContainer);
         }
 
-        panel.appendChild(contentDiv);
         overlay.appendChild(panel);
         document.body.appendChild(overlay);
 
-        // Attach event listeners
+        // ====================================
+        // RESPONSIVE HANDLING
+        // ====================================
+        const handleResize = () => {
+            // Remove the current panel
+            if (document.body.contains(overlay)) {
+                document.body.removeChild(overlay);
+            }
+
+            // Re-render with the new device detection
+            setTimeout(() => {
+                // Use DOM manipulation for panel and Google button (this calls the current useEffect again)
+                const newIsMobile = window.innerWidth <= 768;
+                if (newIsMobile !== isMobile) {
+                    window.location.reload(); // Reload to apply the correct layout
+                }
+            }, 100);
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        // ====================================
+        // EVENT LISTENERS
+        // ====================================
         const homeButton = document.getElementById('home-button');
         if (homeButton) {
             homeButton.addEventListener('click', () => navigate('/'));
@@ -244,20 +485,21 @@ export default function About() {
             logoutButton.addEventListener('click', handleLogout);
         }
 
-        // Attach event listener to our Google button
         const googleButton = document.getElementById('google-login-button');
         if (googleButton) {
             googleButton.addEventListener('click', handleGoogleButtonClick);
         }
 
-        // Cleanup function
+        // ====================================
+        // CLEANUP FUNCTION
+        // ====================================
         return () => {
-            // Remove the overlay
+            window.removeEventListener('resize', handleResize);
+
             if (document.body.contains(overlay)) {
                 document.body.removeChild(overlay);
             }
 
-            // Remove the hidden button container if it exists
             const hiddenContainer = document.getElementById('hidden-google-button');
             if (hiddenContainer) {
                 document.body.removeChild(hiddenContainer);
