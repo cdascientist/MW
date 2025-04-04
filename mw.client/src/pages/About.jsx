@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import "../style/AboutStyle.css";
-import Header from '../components/Header';
+// Note: Header component import is present but not used in the component logic.
+// Consider removing if truly unused or integrating it if needed.
+// import Header from '../components/Header';
 
 export default function About() {
     const navigate = useNavigate();
@@ -173,6 +175,8 @@ export default function About() {
             // Panel header styling (Desktop)
             const panelHeader = document.createElement('div');
             panelHeader.className = 'panel-header';
+            // Panel header is only relevant when NOT logged in on desktop
+            panelHeader.style.visibility = isLoggedIn ? 'hidden' : 'visible';
             panelHeader.innerHTML = '<h2 class="panel-title" style="font-size: 45px;">Mountain West</h2>';
             panel.appendChild(panelHeader);
 
@@ -182,20 +186,22 @@ export default function About() {
             headerDiv.innerHTML = `<header style="background-color: transparent; padding: 0.5rem; color: #57b3c0; text-align: center;"><h1 style="font-size: 55px;">Mountain West</h1></header>`;
             panel.appendChild(headerDiv);
 
-            // Top-right action buttons (Desktop)
-            const actionButtons = document.createElement('div');
-            actionButtons.className = 'action-buttons';
-            actionButtons.style.position = 'absolute';
-            actionButtons.style.top = '20px';
-            actionButtons.style.right = '20px';
-            actionButtons.style.display = 'flex';
-            actionButtons.style.gap = '15px';
-            actionButtons.style.zIndex = '20';
-            actionButtons.innerHTML = `
-                <button id="logout-button" class="nav-button" style="font-size: 30px; background-color: rgba(255, 99, 71, 0.2); color: #ff6347; border: 1px solid rgba(255, 99, 71, 0.4); padding: 10px 20px; border-radius: 6px;">Logout</button>
-                <button id="chat-button" class="nav-button chat-button" style="font-size: 30px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 10px 20px; border-radius: 6px;">Open Live Chat</button>
-            `;
-            panel.appendChild(actionButtons);
+            // Top-right action buttons (Desktop) - ONLY IF LOGGED IN
+            if (isLoggedIn) {
+                const actionButtons = document.createElement('div');
+                actionButtons.className = 'action-buttons';
+                actionButtons.style.position = 'absolute';
+                actionButtons.style.top = '20px';
+                actionButtons.style.right = '20px';
+                actionButtons.style.display = 'flex';
+                actionButtons.style.gap = '15px';
+                actionButtons.style.zIndex = '20';
+                actionButtons.innerHTML = `
+                    <button id="logout-button" class="nav-button" style="font-size: 30px; background-color: rgba(255, 99, 71, 0.2); color: #ff6347; border: 1px solid rgba(255, 99, 71, 0.4); padding: 10px 20px; border-radius: 6px;">Logout</button>
+                    <button id="chat-button" class="nav-button chat-button" style="font-size: 30px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 10px 20px; border-radius: 6px;">Open Live Chat</button>
+                `;
+                panel.appendChild(actionButtons);
+            }
 
             // ====================================
             // DESKTOP CONTENT - LOGGED IN VIEW
@@ -207,11 +213,15 @@ export default function About() {
                 profileContainer.style.flexDirection = 'column';
                 profileContainer.style.alignItems = 'flex-start';
                 profileContainer.style.padding = '30px';
-                profileContainer.style.marginTop = '30px';
+                profileContainer.style.marginTop = '100px'; // Pushed down
+                profileContainer.style.marginBottom = '20px';
+                profileContainer.style.width = 'calc(100% - 60px)';
+                profileContainer.style.position = 'relative';
 
                 // User profile photo
                 const userPhotoDiv = document.createElement('div');
                 userPhotoDiv.style.marginBottom = '15px';
+                userPhotoDiv.style.marginLeft = '35%'; // Push photo right
                 userPhotoDiv.innerHTML = `
                     ${userData.picture ?
                         `<img src="${userData.picture}" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #57b3c0;" />` :
@@ -223,6 +233,7 @@ export default function About() {
                 // User name and email
                 const userInfoDiv = document.createElement('div');
                 userInfoDiv.style.marginBottom = '30px';
+                userInfoDiv.style.marginLeft = '35%'; // Push text right
                 userInfoDiv.innerHTML = `
                     <h3 style="margin: 0; font-size: 32px; color: #57b3c0;">Welcome, ${userData.name || 'User'}!</h3>
                     <p style="margin: 8px 0 0 0; font-size: 24px; color: #a7d3d8;">${userData.email || 'Not available'}</p>
@@ -240,6 +251,9 @@ export default function About() {
                 contentContainer.style.display = 'flex';
                 contentContainer.style.flexDirection = 'column';
                 contentContainer.style.overflow = 'auto';
+                contentContainer.style.maxHeight = 'calc(100% - 300px)'; // Scrollable height
+                contentContainer.style.clear = 'both';
+                contentContainer.style.marginTop = '50px'; // Pushed content down
 
                 // Main content paragraphs - 35% larger on desktop
                 contentContainer.innerHTML = `
@@ -247,10 +261,16 @@ export default function About() {
                         You're now logged in to the Mountain West application. This secure area allows
                         you to access all features of our platform.
                     </p>
-                    
                     <p style="font-size: 35px; color: #a7d3d8;">
                         The interface features advanced visualization capabilities
                         designed to maximize your productivity and workflow efficiency.
+                    </p>
+                    <p style="font-size: 35px; color: #a7d3d8; margin-top: 30px;">
+                        Explore the various tools and resources available to you through the navigation menu.
+                        If you need assistance, the Live Chat option is available.
+                    </p>
+                    <p style="font-size: 35px; color: #a7d3d8; margin-top: 30px;">
+                        Your account provides personalized access to all Mountain West features and services.
                     </p>
                 `;
                 panel.appendChild(contentContainer);
@@ -266,6 +286,7 @@ export default function About() {
                 contentContainer.style.display = 'flex';
                 contentContainer.style.flexDirection = 'column';
                 contentContainer.style.overflow = 'auto';
+                contentContainer.style.maxHeight = 'calc(100% - 200px)'; // Scrollable height
 
                 contentContainer.innerHTML = `
                     <p style="font-size: 35px; line-height: 1.4; margin-bottom: 40px; color: #a7d3d8;">
@@ -279,7 +300,7 @@ export default function About() {
                 googleButtonContainer.id = 'google-button-container';
                 googleButtonContainer.style.position = 'absolute';
                 googleButtonContainer.style.left = '20px';
-                googleButtonContainer.style.top = '71%';
+                googleButtonContainer.style.top = '71%'; // Position on left side
                 googleButtonContainer.style.zIndex = '10';
                 googleButtonContainer.innerHTML = `
                     <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 12px 20px; border: none; border-radius: 4px; font-size: 30px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; width: 260px;">
@@ -308,6 +329,8 @@ export default function About() {
             // Panel header styling (Mobile)
             const panelHeader = document.createElement('div');
             panelHeader.className = 'panel-header';
+            // Panel header is only relevant when NOT logged in on mobile
+            panelHeader.style.visibility = isLoggedIn ? 'hidden' : 'visible';
             panelHeader.innerHTML = '<h2 class="panel-title" style="font-size: 24px;">Mountain West</h2>';
             panel.appendChild(panelHeader);
 
@@ -317,82 +340,94 @@ export default function About() {
             headerDiv.innerHTML = `<header style="background-color: transparent; padding: 0.5rem; color: #57b3c0; text-align: center;"><h1 style="font-size: 28px;">Mountain West</h1></header>`;
             panel.appendChild(headerDiv);
 
-            // Top-right action buttons (Mobile)
-            const actionButtons = document.createElement('div');
-            actionButtons.className = 'action-buttons';
-            actionButtons.style.position = 'absolute';
-            actionButtons.style.top = '10px';
-            actionButtons.style.right = '10px';
-            actionButtons.style.display = 'flex';
-            actionButtons.style.flexDirection = 'column';
-            actionButtons.style.gap = '8px';
-            actionButtons.style.zIndex = '20';
-            actionButtons.innerHTML = `
-                <button id="logout-button" class="nav-button" style="font-size: 14px; background-color: rgba(255, 99, 71, 0.2); color: #ff6347; border: 1px solid rgba(255, 99, 71, 0.4); padding: 6px 12px; border-radius: 4px;">Logout</button>
-                <button id="chat-button" class="nav-button chat-button" style="font-size: 14px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 6px 12px; border-radius: 4px;">Open Live Chat</button>
-            `;
-            panel.appendChild(actionButtons);
+            // Top-right action buttons (Mobile) - ONLY IF LOGGED IN
+            if (isLoggedIn) {
+                const actionButtons = document.createElement('div');
+                actionButtons.className = 'action-buttons';
+                actionButtons.style.position = 'absolute';
+                actionButtons.style.top = '10px';
+                actionButtons.style.right = '10px';
+                actionButtons.style.display = 'flex';
+                actionButtons.style.flexDirection = 'column';
+                actionButtons.style.gap = '8px';
+                actionButtons.style.zIndex = '20';
+                actionButtons.innerHTML = `
+                    <button id="logout-button" class="nav-button" style="font-size: 14px; background-color: rgba(255, 99, 71, 0.2); color: #ff6347; border: 1px solid rgba(255, 99, 71, 0.4); padding: 6px 12px; border-radius: 4px;">Logout</button>
+                    <button id="chat-button" class="nav-button chat-button" style="font-size: 14px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 6px 12px; border-radius: 4px;">Open Live Chat</button>
+                `;
+                panel.appendChild(actionButtons);
+            }
 
             // ====================================
             // MOBILE CONTENT - LOGGED IN VIEW
             // ====================================
             if (isLoggedIn && userData) {
-                // Create container for user profile
-                const profileContainer = document.createElement('div');
-                profileContainer.style.display = 'flex';
-                profileContainer.style.flexDirection = 'column';
-                profileContainer.style.alignItems = 'flex-start';
-                profileContainer.style.padding = '15px';
-                profileContainer.style.marginTop = '15px';
+                // User profile at the top
+                const profileSection = document.createElement('div');
+                profileSection.style.width = '100%';
+                profileSection.style.display = 'flex';
+                profileSection.style.flexDirection = 'column';
+                profileSection.style.alignItems = 'center';
+                profileSection.style.marginTop = '80px'; // Pushed down from top
+                profileSection.style.marginBottom = '10px';
+                profileSection.style.position = 'relative';
+                profileSection.style.zIndex = '10';
 
                 // User profile photo
                 const userPhotoDiv = document.createElement('div');
                 userPhotoDiv.style.marginBottom = '10px';
-                userPhotoDiv.style.alignSelf = 'center';
                 userPhotoDiv.innerHTML = `
                     ${userData.picture ?
-                        `<img src="${userData.picture}" alt="Profile" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid #57b3c0;" />` :
-                        '<div style="width: 60px; height: 60px; border-radius: 50%; background-color: #57b3c0; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">' + (userData.name ? userData.name.charAt(0) : 'U') + '</div>'
+                        `<img src="${userData.picture}" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #57b3c0;" />` :
+                        '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #57b3c0; display: flex; align-items: center; justify-content: center; color: white; font-size: 32px;">' + (userData.name ? userData.name.charAt(0) : 'U') + '</div>'
                     }
                 `;
-                profileContainer.appendChild(userPhotoDiv);
+                profileSection.appendChild(userPhotoDiv);
 
                 // User name and email
                 const userInfoDiv = document.createElement('div');
-                userInfoDiv.style.marginBottom = '20px';
-                userInfoDiv.style.textAlign = 'center';
                 userInfoDiv.style.width = '100%';
+                userInfoDiv.style.textAlign = 'center';
+                userInfoDiv.style.marginBottom = '20px';
                 userInfoDiv.innerHTML = `
-                    <h3 style="margin: 0; font-size: 18px; color: #57b3c0;">Welcome, ${userData.name || 'User'}!</h3>
-                    <p style="margin: 5px 0 0 0; font-size: 14px; color: #a7d3d8;">${userData.email || 'Not available'}</p>
+                    <h3 style="margin: 0; font-size: 20px; color: #57b3c0;">Welcome, ${userData.name || 'User'}!</h3>
+                    <p style="margin: 8px 0 0 0; font-size: 16px; color: #a7d3d8;">${userData.email || 'Not available'}</p>
                 `;
-                profileContainer.appendChild(userInfoDiv);
+                profileSection.appendChild(userInfoDiv);
 
-                panel.appendChild(profileContainer);
+                panel.appendChild(profileSection);
 
                 // ===========================================
                 // AFTER LOGIN CONTENT STARTS HERE (MOBILE)
                 // ===========================================
-                const contentContainer = document.createElement('div');
-                contentContainer.className = 'content-container';
-                contentContainer.style.padding = '0 15px 15px 15px';
-                contentContainer.style.display = 'flex';
-                contentContainer.style.flexDirection = 'column';
-                contentContainer.style.overflow = 'auto';
+                // Content area is now separate from profile
+                const contentArea = document.createElement('div');
+                contentArea.style.width = '100%';
+                contentArea.style.display = 'flex';
+                contentArea.style.flexDirection = 'column';
+                contentArea.style.position = 'relative';
+                contentArea.style.top = '120px'; // Adjusted positioning
+                contentArea.style.paddingBottom = '100px'; // Space for bottom button
 
                 // Main content paragraphs
-                contentContainer.innerHTML = `
-                    <p style="font-size: 16px; margin-bottom: 15px; color: #a7d3d8;">
+                contentArea.innerHTML = `
+                    <p style="font-size: 16px; margin: 0 15px 15px 15px; color: #a7d3d8;">
                         You're now logged in to the Mountain West application. This secure area allows
                         you to access all features of our platform.
                     </p>
-                    
-                    <p style="font-size: 16px; color: #a7d3d8;">
+                    <p style="font-size: 16px; margin: 0 15px 15px 15px; color: #a7d3d8;">
                         The interface features advanced visualization capabilities
                         designed to maximize your productivity and workflow efficiency.
                     </p>
+                    <p style="font-size: 16px; margin: 0 15px 15px 15px; color: #a7d3d8;">
+                        Explore the various tools and resources available to you through the navigation menu.
+                        If you need assistance, the Live Chat option is available.
+                    </p>
+                    <p style="font-size: 16px; margin: 0 15px 15px 15px; color: #a7d3d8;">
+                        Your account provides personalized access to all Mountain West features and services.
+                    </p>
                 `;
-                panel.appendChild(contentContainer);
+                panel.appendChild(contentArea);
             }
             // ====================================
             // MOBILE CONTENT - NOT LOGGED IN VIEW
@@ -404,7 +439,7 @@ export default function About() {
                 contentContainer.style.marginTop = '15px';
                 contentContainer.style.display = 'flex';
                 contentContainer.style.flexDirection = 'column';
-                contentContainer.style.overflow = 'auto';
+                contentContainer.style.width = 'calc(100% - 30px)';
 
                 contentContainer.innerHTML = `
                     <p style="font-size: 16px; line-height: 1.4; margin-bottom: 20px; color: #a7d3d8;">
@@ -416,11 +451,21 @@ export default function About() {
                 // Google sign-in button for not logged in (Mobile)
                 const googleButtonContainer = document.createElement('div');
                 googleButtonContainer.id = 'google-button-container';
-                googleButtonContainer.style.position = 'absolute';
+                googleButtonContainer.style.width = '100%';
+                googleButtonContainer.style.display = 'flex';
+                googleButtonContainer.style.justifyContent = 'center';
+                googleButtonContainer.style.position = 'fixed'; // Fixed position
                 googleButtonContainer.style.left = '50%';
                 googleButtonContainer.style.transform = 'translateX(-50%)';
-                googleButtonContainer.style.top = '65%';
                 googleButtonContainer.style.zIndex = '10';
+
+                /* START: Mobile Google Button Positioning */
+                // Adjust the 'bottom' value to move the button up or down
+                // It's positioned relative to the bottom of the viewport.
+                // Ensure it doesn't overlap with the "Back to Start" button below it.
+                googleButtonContainer.style.bottom = '110px'; // Pushed down, leaves space for home button below
+                /* END: Mobile Google Button Positioning */
+
                 googleButtonContainer.innerHTML = `
                     <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 8px 16px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 180px;">
                         <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" style="width: 18px; height: 18px;"/>
@@ -432,11 +477,14 @@ export default function About() {
 
             // Back to Start button (Mobile)
             const homeButtonContainer = document.createElement('div');
-            homeButtonContainer.style.position = 'absolute';
-            homeButtonContainer.style.bottom = '15px';
+            homeButtonContainer.style.position = 'fixed'; // Fixed position at bottom
+            homeButtonContainer.style.bottom = '60px'; // Positioned below the Google button
             homeButtonContainer.style.left = '50%';
             homeButtonContainer.style.transform = 'translateX(-50%)';
             homeButtonContainer.style.zIndex = '15';
+            homeButtonContainer.style.width = '100%';
+            homeButtonContainer.style.display = 'flex';
+            homeButtonContainer.style.justifyContent = 'center';
             homeButtonContainer.innerHTML = `
                 <button id="home-button" class="nav-button" style="width: 180px; font-size: 16px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 8px 16px; border-radius: 4px;">Back to Start</button>
             `;
@@ -447,22 +495,16 @@ export default function About() {
         document.body.appendChild(overlay);
 
         // ====================================
-        // RESPONSIVE HANDLING
+        // RESPONSIVE HANDLING (RELOAD RECOMMENDED FOR THIS STRUCTURE)
         // ====================================
+        let resizeTimeout;
         const handleResize = () => {
-            // Remove the current panel
-            if (document.body.contains(overlay)) {
-                document.body.removeChild(overlay);
-            }
-
-            // Re-render with the new device detection
-            setTimeout(() => {
-                // Use DOM manipulation for panel and Google button (this calls the current useEffect again)
-                const newIsMobile = window.innerWidth <= 768;
-                if (newIsMobile !== isMobile) {
-                    window.location.reload(); // Reload to apply the correct layout
-                }
-            }, 100);
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                // Simple reload on resize might be easiest given the direct DOM manipulation
+                // It ensures the correct desktop/mobile structure is built from scratch
+                window.location.reload();
+            }, 250); // Debounce resize event
         };
 
         window.addEventListener('resize', handleResize);
@@ -475,19 +517,25 @@ export default function About() {
             homeButton.addEventListener('click', () => navigate('/'));
         }
 
-        const chatButton = document.getElementById('chat-button');
-        if (chatButton) {
-            chatButton.addEventListener('click', () => navigate('/chat'));
+        // Only add listeners for chat/logout if they exist (i.e., user is logged in)
+        if (isLoggedIn) {
+            const chatButton = document.getElementById('chat-button');
+            if (chatButton) {
+                chatButton.addEventListener('click', () => navigate('/chat'));
+            }
+
+            const logoutButton = document.getElementById('logout-button');
+            if (logoutButton) {
+                logoutButton.addEventListener('click', handleLogout);
+            }
         }
 
-        const logoutButton = document.getElementById('logout-button');
-        if (logoutButton) {
-            logoutButton.addEventListener('click', handleLogout);
-        }
-
-        const googleButton = document.getElementById('google-login-button');
-        if (googleButton) {
-            googleButton.addEventListener('click', handleGoogleButtonClick);
+        // Only add listener for Google button if it exists (i.e., user is NOT logged in)
+        if (!isLoggedIn) {
+            const googleButton = document.getElementById('google-login-button');
+            if (googleButton) {
+                googleButton.addEventListener('click', handleGoogleButtonClick);
+            }
         }
 
         // ====================================
@@ -495,18 +543,20 @@ export default function About() {
         // ====================================
         return () => {
             window.removeEventListener('resize', handleResize);
+            clearTimeout(resizeTimeout); // Clear timeout on unmount
 
             if (document.body.contains(overlay)) {
                 document.body.removeChild(overlay);
             }
 
             const hiddenContainer = document.getElementById('hidden-google-button');
-            if (hiddenContainer) {
+            if (hiddenContainer && document.body.contains(hiddenContainer)) {
                 document.body.removeChild(hiddenContainer);
             }
         };
+        // Dependencies updated to reflect conditional logic and state changes
     }, [isLoggedIn, userData, navigate, handleLogout, handleGoogleButtonClick, googleAuthLoaded]);
 
-    // Return null as UI is created outside React's control
+    // Return null as UI is created entirely via direct DOM manipulation in useEffect
     return null;
 }
