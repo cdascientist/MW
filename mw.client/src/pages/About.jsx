@@ -1,6 +1,6 @@
 /**
  * About.jsx - Component for the About page with Google authentication
- * (Revision 5 - Mobile Popup Z-Index and Display Fix Attempt)
+ * (Revision 10 - Completely Fixed Mobile Layout with No Overlap)
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -116,6 +116,16 @@ export default function About() {
             if (customStyles && document.head.contains(customStyles)) {
                 document.head.removeChild(customStyles);
             }
+            const mobileFixStyles = document.getElementById('google-signin-mobile-fix');
+            if (mobileFixStyles && document.head.contains(mobileFixStyles)) {
+                document.head.removeChild(mobileFixStyles);
+            }
+
+            // Remove any mobile overlay if it exists
+            const mobileOverlay = document.getElementById('mobile-google-signin-overlay');
+            if (mobileOverlay && document.body.contains(mobileOverlay)) {
+                document.body.removeChild(mobileOverlay);
+            }
         };
     }, []); // <-- Empty dependency array ensures this runs only once
 
@@ -166,14 +176,14 @@ export default function About() {
                     width: 320px !important; /* Standard mobile width */
                     min-height: auto !important; /* Reset min-height for mobile */
                     /* *** MODIFIED Z-INDEX FOR MOBILE *** */
-                    z-index: 11000 !important;
+                    z-index: 2147483646 !important;
                 }
 
                 /* Styles for Google's overlay classes (may or may not be needed if backdrop is controlled programmatically) */
                  .Bgzgmd,
                  .VfPpkd-SJnn3d {
                      /* Ensure our backdrop is below the popup */
-                     z-index: 10990 !important; /* Needs to be lower than popup z-index */
+                     z-index: 2147483645 !important; /* Needs to be lower than popup z-index */
                      background-color: rgba(0,0,0,0.5) !important; /* Ensure dimming */
                      position: fixed !important;
                      top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
@@ -222,8 +232,232 @@ export default function About() {
         console.log("Injected Google Sign-In custom styles.");
     }, []);
 
+    // Function to handle Google Sign-In specifically for mobile
+    const handleMobileGoogleSignIn = useCallback(() => {
+        console.log("Handling mobile Google Sign-In with direct approach...");
 
-    // --- Function to perform the actual sign-in steps ---
+        // Remove any existing overlay first
+        const existingOverlay = document.getElementById('mobile-google-signin-overlay');
+        if (existingOverlay && document.body.contains(existingOverlay)) {
+            document.body.removeChild(existingOverlay);
+        }
+
+        // Create a full-screen overlay for mobile sign-in
+        const mobileSignInOverlay = document.createElement('div');
+        mobileSignInOverlay.id = 'mobile-google-signin-overlay';
+        mobileSignInOverlay.style.position = 'fixed';
+        mobileSignInOverlay.style.top = '0';
+        mobileSignInOverlay.style.left = '0';
+        mobileSignInOverlay.style.width = '100%';
+        mobileSignInOverlay.style.height = '100%';
+        mobileSignInOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        mobileSignInOverlay.style.zIndex = '999999';
+        mobileSignInOverlay.style.display = 'flex';
+        mobileSignInOverlay.style.flexDirection = 'column';
+        mobileSignInOverlay.style.alignItems = 'center';
+        mobileSignInOverlay.style.justifyContent = 'center';
+        mobileSignInOverlay.style.padding = '20px';
+
+        // Create a close button
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'Cancel';
+        closeButton.style.position = 'absolute';
+        closeButton.style.top = '20px';
+        closeButton.style.right = '20px';
+        closeButton.style.padding = '10px 20px';
+        closeButton.style.backgroundColor = 'rgba(255, 99, 71, 0.2)';
+        closeButton.style.color = '#ff6347';
+        closeButton.style.border = '1px solid rgba(255, 99, 71, 0.4)';
+        closeButton.style.borderRadius = '4px';
+        closeButton.style.fontSize = '16px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.style.zIndex = '1000000';
+
+        // Add close button to overlay
+        mobileSignInOverlay.appendChild(closeButton);
+
+        // Create a container for the Google sign-in button
+        const signInContainer = document.createElement('div');
+        signInContainer.id = 'google-signin-container';
+        signInContainer.style.backgroundColor = 'white';
+        signInContainer.style.borderRadius = '8px';
+        signInContainer.style.padding = '30px';
+        signInContainer.style.width = '90%';
+        signInContainer.style.maxWidth = '400px';
+        signInContainer.style.textAlign = 'center';
+        signInContainer.style.position = 'relative';
+
+        // Add title to the container
+        const title = document.createElement('h2');
+        title.textContent = 'Sign in with Google';
+        title.style.color = '#333';
+        title.style.marginBottom = '20px';
+        title.style.fontSize = '20px';
+        signInContainer.appendChild(title);
+
+        // Add the sign-in container to the overlay
+        mobileSignInOverlay.appendChild(signInContainer);
+
+        // Add the overlay to the document
+        document.body.appendChild(mobileSignInOverlay);
+
+        // Handle closing the overlay
+        closeButton.addEventListener('click', () => {
+            if (document.body.contains(mobileSignInOverlay)) {
+                document.body.removeChild(mobileSignInOverlay);
+            }
+            isAttemptingLogin.current = false;
+        });
+
+        // Initialize Google Sign-In
+        if (window.google?.accounts?.id) {
+            try {
+                // Initialize Google One Tap
+                window.google.accounts.id.initialize({
+                    client_id: GOOGLE_CLIENT_ID,
+                    callback: (response) => {
+                        // Remove the overlay first
+                        if (document.body.contains(mobileSignInOverlay)) {
+                            document.body.removeChild(mobileSignInOverlay);
+                        }
+
+                        // Then process the response
+                        window.handleGoogleSignIn(response);
+                    },
+                    cancel_on_tap_outside: false, // Don't cancel if tapped outside
+                    context: 'signin' // Explicitly set to signin mode
+                });
+
+                // Render the Google Sign-In button directly in the container
+                window.google.accounts.id.renderButton(
+                    signInContainer,
+                    {
+                        type: 'standard',
+                        theme: 'outline',
+                        size: 'large',
+                        text: 'signin_with',
+                        shape: 'rectangular',
+                        logo_alignment: 'center',
+                        width: 250
+                    }
+                );
+
+                // Also display the One Tap UI (this may or may not show depending on Google's policies)
+                window.google.accounts.id.prompt((notification) => {
+                    console.log("Mobile Google Sign-In prompt notification:", notification);
+                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                        console.log("One Tap UI not displayed or skipped on mobile. Using button only approach.");
+                        // One Tap isn't showing, but we still have the button in our custom UI
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error setting up Google Sign-In for mobile:", error);
+                const errorMessage = document.createElement('p');
+                errorMessage.textContent = "An error occurred while setting up Google Sign-In. Please try again.";
+                errorMessage.style.color = 'red';
+                errorMessage.style.marginTop = '15px';
+                signInContainer.appendChild(errorMessage);
+            }
+        } else {
+            console.error("Google Sign-In API not available after loading script");
+            const errorMessage = document.createElement('p');
+            errorMessage.textContent = "Google Sign-In is not available. Please try again later.";
+            errorMessage.style.color = 'red';
+            errorMessage.style.marginTop = '15px';
+            signInContainer.appendChild(errorMessage);
+        }
+    }, [GOOGLE_CLIENT_ID]);
+
+    // NEW FUNCTION to fix mobile Google Sign-In elements
+    const fixGoogleSignInMobile = useCallback(() => {
+        console.log("Applying mobile Google Sign-In fixes...");
+        // First, ensure the z-index is extremely high and overrides all other styles
+        const styleEl = document.createElement('style');
+        styleEl.id = 'google-signin-mobile-fix';
+        styleEl.innerHTML = `
+            /* Override for mobile Google Sign-In popup */
+            @media (max-width: 768px) {
+                /* Target ALL possible Google containers and iframes */
+                div[id^='credential_picker_container'],
+                div[id^='g_a11y_announcement'],
+                div[id^='g_id_onload'],
+                iframe[src*='accounts.google.com'],
+                .S9gUrf-YoZ4jf,
+                .nsm7Bb-HzV7m-LgbsSe,
+                .qwAkee.LCTIRd,
+                .whsOnd.zHQkBf,
+                .fxpqGc,
+                /* Additional generic selectors for Google's containers */
+                div[class*='google'],
+                div[class*='gsi'],
+                div[aria-modal='true'],
+                .gsi-material-button,
+                /* More general fallbacks */
+                div[role='dialog'] {
+                    position: fixed !important;
+                    top: 50% !important; /* Center vertically */
+                    left: 50% !important;
+                    transform: translate(-50%, -50%) !important;
+                    max-width: 95vw !important;
+                    width: 300px !important;
+                    height: auto !important;
+                    /* Extreme z-index to ensure visibility */
+                    z-index: 2147483647 !important; /* Maximum possible z-index */
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    /* Remove any animations that could cause issues */
+                    transition: none !important;
+                    animation: none !important;
+                    pointer-events: auto !important;
+                }
+                
+                /* Ensure content within any Google iframe is visible */
+                iframe[src*='accounts.google.com'] * {
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    display: block !important;
+                }
+
+                /* Custom backdrop with maximum z-index minus one */
+                #google-signin-backdrop {
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    bottom: 0 !important;
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    background-color: rgba(0, 0, 0, 0.7) !important;
+                    z-index: 2147483646 !important; /* Just below the popup */
+                    pointer-events: auto !important;
+                }
+            }
+        `;
+        document.head.appendChild(styleEl);
+
+        // Force visibility on any Google elements that might already exist
+        setTimeout(() => {
+            console.log("Applying visibility fixes to existing Google elements...");
+            const containers = document.querySelectorAll('div[id^="credential_picker_container"], iframe[src*="accounts.google.com"]');
+            containers.forEach(container => {
+                console.log("Found Google container to fix:", container);
+                container.style.display = 'block';
+                container.style.visibility = 'visible';
+                container.style.opacity = '1';
+                container.style.zIndex = '2147483647';
+                container.style.position = 'fixed';
+                container.style.top = '50%';
+                container.style.left = '50%';
+                container.style.transform = 'translate(-50%, -50%)';
+                container.style.pointerEvents = 'auto';
+            });
+        }, 300);
+    }, []);
+
+
+    // --- Function to perform the actual sign-in steps (Desktop version) ---
     const initiateGoogleSignInFlow = useCallback(() => {
         console.log("Initiating Google Sign-In Flow...");
         isAttemptingLogin.current = true;
@@ -242,7 +476,12 @@ export default function About() {
             // 2. Inject styles (applies both mobile and desktop rules)
             injectGoogleSignInStyles();
 
-            // 3. Create backdrop ONLY FOR MOBILE
+            // 3. ADDED: Apply mobile fixes specifically - but we don't need this for desktop
+            if (isMobile) {
+                fixGoogleSignInMobile();
+            }
+
+            // 4. Create backdrop ONLY FOR MOBILE
             let backdropElement = null;
             if (isMobile) {
                 // Ensure no duplicate backdrop exists first
@@ -251,11 +490,15 @@ export default function About() {
                     console.log("Creating backdrop for mobile.");
                     backdropElement = document.createElement('div');
                     backdropElement.id = 'google-signin-backdrop';
-                    backdropElement.style.position = 'fixed'; backdropElement.style.top = '0'; backdropElement.style.left = '0';
-                    backdropElement.style.right = '0'; backdropElement.style.bottom = '0';
-                    backdropElement.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                    backdropElement.style.position = 'fixed';
+                    backdropElement.style.top = '0';
+                    backdropElement.style.left = '0';
+                    backdropElement.style.right = '0';
+                    backdropElement.style.bottom = '0';
+                    backdropElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
                     // *** MODIFIED BACKDROP Z-INDEX FOR MOBILE ***
-                    backdropElement.style.zIndex = '10990'; // Lower than mobile popup z-index (11000)
+                    backdropElement.style.zIndex = '2147483646'; // Just below the maximum z-index
+                    backdropElement.style.pointerEvents = 'auto'; // Ensure backdrop captures clicks
                     document.body.appendChild(backdropElement);
                 } else {
                     console.log("Backdrop already exists for mobile.");
@@ -267,6 +510,7 @@ export default function About() {
 
             // Function to clean up UI artifacts (backdrop)
             const cleanupSignInUI = () => {
+                console.log("Cleaning up sign-in UI artifacts...");
                 isAttemptingLogin.current = false; // Reset attempt flag
                 const backdropToRemove = document.getElementById('google-signin-backdrop');
                 if (backdropToRemove && document.body.contains(backdropToRemove)) {
@@ -275,14 +519,37 @@ export default function About() {
                 }
             };
 
-            // 4. Show prompt
+            // 5. Show prompt with enhanced debugging
             window.google.accounts.id.prompt((notification) => {
-                if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
-                    console.log('Prompt not shown or dismissed. Reason:', notification.getNotDisplayedReason() || notification.getSkippedReason() || notification.getDismissedReason());
+                console.log("Google Sign-In prompt notification received:", notification);
+
+                if (notification.isNotDisplayed()) {
+                    console.log('Prompt not displayed. Reason:', notification.getNotDisplayedReason());
+                    // For mobile, try to force display on not_displayed
+                    if (isMobile) {
+                        console.log("Attempting to fix not displayed prompt on mobile...");
+                        fixGoogleSignInMobile(); // Apply fixes again
+                    }
                     cleanupSignInUI(); // Clean up backdrop if it exists
-                } else {
-                    console.log('Google Sign-In prompt displayed.');
-                    setTimeout(cleanupSignInUI, 15000); // Timeout ensures cleanup if prompt hangs
+                }
+                else if (notification.isSkippedMoment()) {
+                    console.log('Prompt skipped. Reason:', notification.getSkippedReason());
+                    cleanupSignInUI(); // Clean up backdrop if it exists
+                }
+                else if (notification.isDismissedMoment()) {
+                    console.log('Prompt dismissed. Reason:', notification.getDismissedReason());
+                    cleanupSignInUI(); // Clean up backdrop if it exists
+                }
+                else {
+                    console.log('Google Sign-In prompt displayed successfully.');
+                    // Set a timeout to clean up in case the sign-in process hangs
+                    setTimeout(() => {
+                        // Only clean up if still attempting login (not completed)
+                        if (isAttemptingLogin.current) {
+                            console.log("Sign-in timeout reached. Cleaning up UI.");
+                            cleanupSignInUI();
+                        }
+                    }, 60000); // Longer timeout to ensure user has time to complete sign-in
                 }
             });
 
@@ -295,10 +562,10 @@ export default function About() {
             }
             alert("An error occurred during Google Sign-In. Please try again.");
         }
-    }, [GOOGLE_CLIENT_ID, injectGoogleSignInStyles]);
+    }, [GOOGLE_CLIENT_ID, injectGoogleSignInStyles, fixGoogleSignInMobile]);
 
 
-    // Google Sign-In button click handler - WITH RETRY LOGIC
+    // Google Sign-In button click handler - WITH MOBILE SPECIFIC HANDLING
     const handleGoogleButtonClick = useCallback(() => {
         console.log("Google Sign-In button clicked.");
 
@@ -306,14 +573,26 @@ export default function About() {
             console.log("Login attempt already in progress. Ignoring click.");
             return;
         }
+
         if (retryTimeoutRef.current) {
             clearTimeout(retryTimeoutRef.current);
             retryTimeoutRef.current = null;
         }
 
+        const isMobile = window.innerWidth <= 768;
+
         if (googleAuthLoaded && window.google?.accounts?.id) {
             console.log("GSI library ready on first check.");
-            initiateGoogleSignInFlow();
+
+            isAttemptingLogin.current = true;
+
+            if (isMobile) {
+                // Use mobile-specific approach
+                handleMobileGoogleSignIn();
+            } else {
+                // Use desktop approach
+                initiateGoogleSignInFlow();
+            }
         } else {
             console.warn("GSI library not ready on first check. Scheduling retry in 500ms.");
             isAttemptingLogin.current = true;
@@ -322,7 +601,14 @@ export default function About() {
                 console.log("Executing GSI retry check...");
                 if (googleAuthLoaded && window.google?.accounts?.id) {
                     console.log("GSI library ready on retry check.");
-                    initiateGoogleSignInFlow();
+
+                    if (isMobile) {
+                        // Use mobile-specific approach
+                        handleMobileGoogleSignIn();
+                    } else {
+                        // Use desktop approach
+                        initiateGoogleSignInFlow();
+                    }
                 } else {
                     console.error("GSI library STILL not ready after 500ms retry.");
                     alert('Google Sign-In is still loading. Please try again in a moment.');
@@ -331,8 +617,7 @@ export default function About() {
                 retryTimeoutRef.current = null;
             }, 500);
         }
-
-    }, [googleAuthLoaded, initiateGoogleSignInFlow]);
+    }, [googleAuthLoaded, initiateGoogleSignInFlow, handleMobileGoogleSignIn]);
 
 
     // UI rendering with DOM manipulation - Main effect hook
@@ -481,8 +766,12 @@ export default function About() {
             if (isLoggedIn && userData) { // Mobile Logged In
                 const actionButtons = document.createElement('div');
                 actionButtons.className = 'action-buttons';
-                actionButtons.style.position = 'absolute'; actionButtons.style.top = '10px'; actionButtons.style.right = '10px';
-                actionButtons.style.display = 'flex'; actionButtons.style.flexDirection = 'column'; actionButtons.style.gap = '8px';
+                actionButtons.style.position = 'absolute';
+                actionButtons.style.top = '10px';
+                actionButtons.style.right = '10px';
+                actionButtons.style.display = 'flex';
+                actionButtons.style.flexDirection = 'column';
+                actionButtons.style.gap = '8px';
                 actionButtons.style.zIndex = '20';
                 actionButtons.innerHTML = `
                     <button id="logout-button" class="nav-button" style="font-size: 14px; background-color: rgba(255, 99, 71, 0.2); color: #ff6347; border: 1px solid rgba(255, 99, 71, 0.4); padding: 6px 12px; border-radius: 4px;">Logout</button>
@@ -490,10 +779,18 @@ export default function About() {
                 `;
                 panel.appendChild(actionButtons);
 
+                // User profile section (fixed position at top 20%)
                 const profileSection = document.createElement('div');
-                profileSection.style.width = '100%'; profileSection.style.display = 'flex'; profileSection.style.flexDirection = 'column';
-                profileSection.style.alignItems = 'center'; profileSection.style.marginTop = '80px';
-                profileSection.style.marginBottom = '10px'; profileSection.style.position = 'relative'; profileSection.style.zIndex = '10';
+                profileSection.style.position = 'absolute';
+                profileSection.style.top = '20%';
+                profileSection.style.left = '0';
+                profileSection.style.width = '100%';
+                profileSection.style.display = 'flex';
+                profileSection.style.flexDirection = 'column';
+                profileSection.style.alignItems = 'center';
+                profileSection.style.padding = '0 15px';
+                profileSection.style.zIndex = '11';
+                profileSection.style.backgroundColor = 'rgba(13, 20, 24, 0.7)'; // Match panel background for clean overlap prevention
 
                 const userPhotoDiv = document.createElement('div');
                 userPhotoDiv.style.marginBottom = '10px';
@@ -506,7 +803,9 @@ export default function About() {
                 profileSection.appendChild(userPhotoDiv);
 
                 const userInfoDiv = document.createElement('div');
-                userInfoDiv.style.width = '100%'; userInfoDiv.style.textAlign = 'center'; userInfoDiv.style.marginBottom = '20px';
+                userInfoDiv.style.width = '100%';
+                userInfoDiv.style.textAlign = 'center';
+                userInfoDiv.style.marginBottom = '20px';
                 userInfoDiv.innerHTML = `
                     <h3 style="margin: 0; font-size: 18px; color: #57b3c0;">Welcome, ${userData.name || 'User'}!</h3>
                     <p style="margin: 5px 0 0 0; font-size: 14px; color: #a7d3d8;">${userData.email || 'Not available'}</p>
@@ -514,16 +813,25 @@ export default function About() {
                 profileSection.appendChild(userInfoDiv);
                 panel.appendChild(profileSection);
 
-                const contentArea = document.createElement('div');
-                contentArea.style.width = 'calc(100% - 30px)';
-                contentArea.style.margin = '0 auto';
-                contentArea.style.display = 'flex'; contentArea.style.flexDirection = 'column';
-                contentArea.style.position = 'relative';
-                contentArea.style.marginTop = '20px';
-                contentArea.style.paddingBottom = '80px';
-                contentArea.style.overflowY = 'auto';
-                contentArea.style.maxHeight = 'calc(100vh - 350px)';
-                contentArea.innerHTML = `
+                // Calculate profile section height for proper content offset
+                const profileSectionHeight = 120; // Approximate height based on content (70px photo + 15px margin + 35px text)
+
+                // Content container (placed below profile with calculated offset)
+                const contentContainer = document.createElement('div');
+                contentContainer.style.position = 'absolute';
+                contentContainer.style.top = 'calc(20% + ' + profileSectionHeight + 'px)'; // Position below profile section
+                contentContainer.style.left = '0';
+                contentContainer.style.width = '100%';
+                contentContainer.style.height = 'calc(80% - ' + profileSectionHeight + 'px)'; // Adjusted height
+                contentContainer.style.display = 'flex';
+                contentContainer.style.flexDirection = 'column';
+                contentContainer.style.overflow = 'auto';
+                contentContainer.style.padding = '15px 15px 70px 15px'; // Add padding bottom for template button
+                contentContainer.style.zIndex = '10';
+                contentContainer.style.boxSizing = 'border-box';
+
+                // Content text
+                contentContainer.innerHTML = `
                     <p style="font-size: 16px; margin-bottom: 15px; color: #a7d3d8;">
                         You're now logged in to the Mountain West application. This secure area allows
                         you to access all features of our platform.
@@ -540,13 +848,18 @@ export default function About() {
                         Your account provides personalized access to all Mountain West features and services.
                     </p>
                 `;
-                panel.appendChild(contentArea);
+                panel.appendChild(contentContainer);
 
+                // Template button at the bottom
                 const templateButtonContainer = document.createElement('div');
-                templateButtonContainer.style.position = 'absolute'; templateButtonContainer.style.bottom = '20px';
-                templateButtonContainer.style.left = '0'; templateButtonContainer.style.width = '100%';
-                templateButtonContainer.style.display = 'flex'; templateButtonContainer.style.justifyContent = 'center';
+                templateButtonContainer.style.position = 'absolute';
+                templateButtonContainer.style.bottom = '20px';
+                templateButtonContainer.style.left = '0';
+                templateButtonContainer.style.width = '100%';
+                templateButtonContainer.style.display = 'flex';
+                templateButtonContainer.style.justifyContent = 'center';
                 templateButtonContainer.style.zIndex = '15';
+                templateButtonContainer.style.padding = '10px 0';
                 templateButtonContainer.innerHTML = `
                     <button id="template-button" class="nav-button chat-button" style="font-size: 14px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 8px 16px; border-radius: 4px;">Open Template Page</button>
                 `;
@@ -652,11 +965,22 @@ export default function About() {
             const backdrop = document.getElementById('google-signin-backdrop');
             if (backdrop && document.body.contains(backdrop)) document.body.removeChild(backdrop);
 
-            // Optionally remove injected styles (uncomment if needed)
-            // const customStyles = document.getElementById('google-signin-custom-styles');
-            // if(customStyles && document.head.contains(customStyles)){
-            //    document.head.removeChild(customStyles);
-            // }
+            // Remove mobile overlay if it exists
+            const mobileOverlay = document.getElementById('mobile-google-signin-overlay');
+            if (mobileOverlay && document.body.contains(mobileOverlay)) {
+                document.body.removeChild(mobileOverlay);
+            }
+
+            // Remove injected styles
+            const customStyles = document.getElementById('google-signin-custom-styles');
+            if (customStyles && document.head.contains(customStyles)) {
+                document.head.removeChild(customStyles);
+            }
+
+            const mobileFixStyles = document.getElementById('google-signin-mobile-fix');
+            if (mobileFixStyles && document.head.contains(mobileFixStyles)) {
+                document.head.removeChild(mobileFixStyles);
+            }
         };
         // Dependencies for the main UI effect
     }, [isLoggedIn, userData, navigate, handleLogout, handleGoogleButtonClick, googleAuthLoaded, initiateGoogleSignInFlow, injectGoogleSignInStyles]);
