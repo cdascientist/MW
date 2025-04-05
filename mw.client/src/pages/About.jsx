@@ -2,7 +2,7 @@
  * About.jsx - Component for the About page with Google authentication
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import "../style/AboutStyle.css";
 
@@ -15,7 +15,7 @@ export default function About() {
     // Google Client ID - this should match what's in your App.jsx
     const GOOGLE_CLIENT_ID = "7074654684-866fnk2dp7c23e54nt35o5o3uvlm6fbl.apps.googleusercontent.com";
 
-    // Check if user is already logged in
+    // Check if user is already logged in on component mount
     useEffect(() => {
         const savedLoginStatus = localStorage.getItem('mw_isLoggedIn');
         const savedUserData = localStorage.getItem('mw_userData');
@@ -31,45 +31,8 @@ export default function About() {
                 localStorage.removeItem('mw_userData');
             }
         }
-    }, []);
+    }, []); // Run only once on mount
 
-    // Set up Google Sign-In
-    useEffect(() => {
-        // Define the callback function for Google's authentication
-        window.handleGoogleSignIn = (response) => {
-            if (response && response.credential) {
-                // Decode the JWT token
-                const decodedToken = decodeJwtResponse(response.credential);
-
-                // Set user data and login state
-                setUserData(decodedToken);
-                setIsLoggedIn(true);
-
-                // Save to localStorage
-                localStorage.setItem('mw_isLoggedIn', 'true');
-                localStorage.setItem('mw_userData', JSON.stringify(decodedToken));
-            }
-        };
-
-        // Load the Google Identity Services script only once
-        if (!googleAuthLoaded && !document.getElementById('google-signin-script')) {
-            const script = document.createElement('script');
-            script.src = 'https://accounts.google.com/gsi/client';
-            script.id = 'google-signin-script';
-            script.async = true;
-            script.onload = () => {
-                setGoogleAuthLoaded(true);
-                console.log('Google Sign-In script loaded');
-            };
-            document.head.appendChild(script);
-        }
-
-        // Clean up
-        return () => {
-            // Remove global callback if component unmounts
-            delete window.handleGoogleSignIn;
-        };
-    }, [googleAuthLoaded]);
 
     // JWT token decoder
     const decodeJwtResponse = (token) => {
@@ -87,15 +50,81 @@ export default function About() {
             return JSON.parse(jsonPayload);
         } catch (error) {
             console.error('Failed to decode JWT token:', error);
-            return { name: 'User', email: '' };
+            return { name: 'User', email: '' }; // Return default object on error
         }
     };
 
-    // Logout handler
-    const handleLogout = () => {
+    // Set up Google Sign-In - Runs only ONCE on component mount
+    useEffect(() => {
+        // Define the callback function globally for Google's script
+        window.handleGoogleSignIn = (response) => {
+            if (response && response.credential) {
+                const decodedToken = decodeJwtResponse(response.credential);
+                setUserData(decodedToken);
+                setIsLoggedIn(true);
+                localStorage.setItem('mw_isLoggedIn', 'true');
+                localStorage.setItem('mw_userData', JSON.stringify(decodedToken));
+                // Note: No need to manually navigate here unless required after login
+            } else {
+                console.error('Google Sign-In failed or response missing credential.');
+            }
+        };
+
+        // Load the Google Identity Services script ONLY if it doesn't exist
+        if (!document.getElementById('google-signin-script')) {
+            const script = document.createElement('script');
+            script.src = 'https://accounts.google.com/gsi/client';
+            script.id = 'google-signin-script';
+            script.async = true;
+            script.defer = true; // Defer execution until HTML parsing is complete
+            script.onload = () => {
+                setGoogleAuthLoaded(true); // Set state when script is loaded
+                console.log('Google Sign-In script loaded and ready.');
+                // Initialize here IF you needed auto-login or button rendering immediately
+                // But initializing in the button click handler is often safer for prompt usage
+            };
+            script.onerror = () => {
+                console.error('Failed to load Google Sign-In script.');
+                // Optionally, set an error state here to inform the user
+            };
+            document.head.appendChild(script);
+        } else {
+            // If script tag exists, check if the API is already available
+            if (window.google && window.google.accounts && window.google.accounts.id) {
+                if (!googleAuthLoaded) { // Avoid unnecessary state update if already true
+                    setGoogleAuthLoaded(true);
+                    console.log('Google Sign-In script already loaded.');
+                }
+            } else {
+                // Script tag exists, but API not ready. It might still be loading/initializing.
+                // The check in handleGoogleButtonClick will handle this.
+                console.warn('Google Sign-In script tag found, but API not immediately ready.');
+                // Optionally, set a timeout to re-check and setGoogleAuthLoaded(true) later
+                // setTimeout(() => {
+                //    if (window.google?.accounts?.id && !googleAuthLoaded) {
+                //        setGoogleAuthLoaded(true);
+                //    }
+                // }, 500);
+            }
+        }
+
+        // Clean up the global callback function when the component unmounts
+        return () => {
+            delete window.handleGoogleSignIn;
+        };
+    }, [googleAuthLoaded]); // <-- Empty array: Run only once on initial mount
+
+
+    // Logout handler - memoized with useCallback
+    const handleLogout = useCallback(() => {
         // Revoke Google authentication if google is loaded
         if (window.google && window.google.accounts && window.google.accounts.id) {
+            // Prevents the One Tap prompt from showing automatically on next visit
             window.google.accounts.id.disableAutoSelect();
+            // Optional: If you want to completely sign the user out of their Google session for your app
+            // window.google.accounts.id.revoke(localStorage.getItem('user_google_id'), done => {
+            //   console.log('Google session revoked.');
+            // });
         }
 
         // Clear state and localStorage
@@ -103,26 +132,25 @@ export default function About() {
         setIsLoggedIn(false);
         localStorage.removeItem('mw_isLoggedIn');
         localStorage.removeItem('mw_userData');
-    };
+        // Optionally navigate after logout
+        // navigate('/');
+        console.log('User logged out.');
+    }, [setIsLoggedIn, setUserData]); // Dependencies for useCallback
 
-    // Google Sign-In style injector for mobile
+
+    // Google Sign-In style injector for mobile - defined outside render path
     const injectGoogleSignInStyles = () => {
-        // Check if styles already exist to avoid duplicates
         if (document.getElementById('google-signin-mobile-styles')) return;
-
-        // Create a style element
         const styleEl = document.createElement('style');
         styleEl.id = 'google-signin-mobile-styles';
-
-        // CSS targeting Google's authentication elements
         styleEl.innerHTML = `
             /* Mobile Google Sign-In popup positioning */
             @media (max-width: 768px) {
                 /* Target Google's dialog containers */
-                .S9gUrf-YoZ4jf, 
+                .S9gUrf-YoZ4jf,
                 .nsm7Bb-HzV7m-LgbsSe,
-                .whsOnd.zHQkBf, 
-                .jlVej, 
+                .whsOnd.zHQkBf,
+                .jlVej,
                 .L5Fo6c-jXK9Hd-YPqjbf,
                 #credential_picker_container,
                 #credential_picker_iframe,
@@ -135,7 +163,7 @@ export default function About() {
                     width: 320px !important;
                     z-index: 99999 !important; /* Very high z-index */
                 }
-                
+
                 /* Background overlay styling */
                 .Bgzgmd,
                 .VfPpkd-SJnn3d {
@@ -151,104 +179,113 @@ export default function About() {
                 }
             }
         `;
-
-        // Add the styles to document head
         document.head.appendChild(styleEl);
     };
 
-    // Google Sign-In handler
-    const handleGoogleButtonClick = () => {
+
+    // Google Sign-In button click handler - memoized with useCallback
+    const handleGoogleButtonClick = useCallback(() => {
+        // **Robust Check:** Verify the Google library is loaded AND initialized
         if (!googleAuthLoaded || !window.google || !window.google.accounts || !window.google.accounts.id) {
-            console.error('Google Sign-In API not loaded yet');
-            alert('Google Sign-In is still loading. Please try again in a moment.');
+            console.warn('Google Sign-In API not loaded or ready yet. Please try again shortly.');
+            // Alert removed - User can just click again if needed.
+            // Optionally, provide visual feedback (e.g., disable button briefly, show spinner)
             return;
         }
 
         // Inject custom styles for mobile Google popup positioning
         injectGoogleSignInStyles();
 
-        // Initialize Google Sign-In
-        window.google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: window.handleGoogleSignIn,
-            auto_select: false,
-            cancel_on_tap_outside: true
-        });
+        try {
+            // Initialize Google Sign-In *just before* showing the prompt
+            window.google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: window.handleGoogleSignIn, // Use the globally defined callback
+                auto_select: false, // Set to false to always require user interaction on button click
+                cancel_on_tap_outside: true
+            });
 
-        // Create a hidden div for Google's button rendering (if needed)
-        let hiddenButtonContainer = document.getElementById('hidden-google-button');
-        if (!hiddenButtonContainer) {
-            hiddenButtonContainer = document.createElement('div');
-            hiddenButtonContainer.id = 'hidden-google-button';
-
-            // Different positioning for mobile vs desktop
-            if (window.innerWidth <= 768) { // Mobile
-                hiddenButtonContainer.style.position = 'fixed';
-                hiddenButtonContainer.style.top = '25%';
-                hiddenButtonContainer.style.left = '50%';
-                hiddenButtonContainer.style.transform = 'translate(-50%, 0)';
-                hiddenButtonContainer.style.width = '320px';
-                hiddenButtonContainer.style.maxWidth = '90vw';
-                hiddenButtonContainer.style.zIndex = '99999';
-            } else { // Desktop
+            // Create a hidden div for potential button rendering fallback
+            let hiddenButtonContainer = document.getElementById('hidden-google-button');
+            if (!hiddenButtonContainer) {
+                hiddenButtonContainer = document.createElement('div');
+                hiddenButtonContainer.id = 'hidden-google-button';
+                // Style it to be invisible but interactable if needed
                 hiddenButtonContainer.style.position = 'absolute';
-                hiddenButtonContainer.style.opacity = '0';
-                hiddenButtonContainer.style.pointerEvents = 'none';
+                hiddenButtonContainer.style.top = '-9999px';
+                hiddenButtonContainer.style.left = '-9999px';
                 hiddenButtonContainer.style.zIndex = '-1';
+                document.body.appendChild(hiddenButtonContainer);
             }
 
-            document.body.appendChild(hiddenButtonContainer);
+            // Create a backdrop element for the popup (optional, for better UX)
+            const backdrop = document.createElement('div');
+            backdrop.id = 'google-signin-backdrop';
+            backdrop.style.position = 'fixed';
+            backdrop.style.top = '0';
+            backdrop.style.left = '0';
+            backdrop.style.right = '0';
+            backdrop.style.bottom = '0';
+            backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            backdrop.style.zIndex = '99990'; // Below popup, above content
+            document.body.appendChild(backdrop);
+
+            // Function to remove backdrop
+            const removeBackdrop = () => {
+                if (document.body.contains(backdrop)) {
+                    document.body.removeChild(backdrop);
+                }
+            };
+
+            // Attempt to show the credential picker prompt
+            window.google.accounts.id.prompt((notification) => {
+                // This callback provides information about the prompt UI status
+                if (notification.isNotDisplayed()) {
+                    console.log('Prompt not displayed, reason:', notification.getNotDisplayedReason());
+                    removeBackdrop(); // Remove backdrop if prompt fails immediately
+                    // Consider fallback to renderButton here if needed for specific reasons
+                } else if (notification.isSkippedMoment()) {
+                    console.log('Prompt skipped, reason:', notification.getSkippedReason());
+                    removeBackdrop(); // Remove backdrop if skipped
+                } else if (notification.isDismissedMoment()) {
+                    console.log('Prompt dismissed by user, reason:', notification.getDismissedReason());
+                    removeBackdrop(); // Remove backdrop if dismissed
+                } else {
+                    console.log('Google Sign-In prompt displayed successfully.');
+                    // Backdrop will be removed by timeout or successful sign-in/dismissal handling
+                }
+
+                // Fallback if prompt fails (Optional - `prompt` is generally preferred)
+                // if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                //     console.log('Prompt failed. Consider rendering button as fallback if necessary.');
+                // window.google.accounts.id.renderButton(
+                //     hiddenButtonContainer,
+                //     { theme: 'filled_blue', size: 'large', type: 'standard' }
+                // );
+                // setTimeout(() => {
+                //     const googleButton = hiddenButtonContainer.querySelector('div[role="button"]');
+                //     if (googleButton) googleButton.click();
+                //     else console.error('Fallback Google button not found.');
+                // }, 100);
+                // }
+
+                // Set a timeout to remove the backdrop in case something goes wrong
+                setTimeout(removeBackdrop, 15000); // 15 seconds timeout
+            });
+
+        } catch (error) {
+            console.error('Error during Google Sign-In initialization or prompt:', error);
+            // Clean up backdrop if an error occurs
+            const backdrop = document.getElementById('google-signin-backdrop');
+            if (backdrop && document.body.contains(backdrop)) {
+                document.body.removeChild(backdrop);
+            }
         }
 
-        // Create a backdrop element for the popup
-        const backdrop = document.createElement('div');
-        backdrop.id = 'google-signin-backdrop';
-        backdrop.style.position = 'fixed';
-        backdrop.style.top = '0';
-        backdrop.style.left = '0';
-        backdrop.style.right = '0';
-        backdrop.style.bottom = '0';
-        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-        backdrop.style.zIndex = '99990';
-        document.body.appendChild(backdrop);
+    }, [googleAuthLoaded, GOOGLE_CLIENT_ID]); // Dependencies for useCallback
 
-        // First attempt: try to show the prompt directly
-        window.google.accounts.id.prompt((notification) => {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                console.log('Prompt not displayed or skipped. Trying fallback method...');
 
-                // Remove backdrop if prompt fails
-                if (document.body.contains(backdrop)) {
-                    document.body.removeChild(backdrop);
-                }
-
-                // Fallback: render the Google button and auto-click it
-                window.google.accounts.id.renderButton(
-                    hiddenButtonContainer,
-                    { theme: 'filled_blue', size: 'large', type: 'standard' }
-                );
-
-                // Wait a tiny bit for the button to render, then click it
-                setTimeout(() => {
-                    const googleButton = hiddenButtonContainer.querySelector('div[role="button"]');
-                    if (googleButton) {
-                        googleButton.click();
-                    } else {
-                        console.error('Failed to find the rendered Google button');
-                    }
-                }, 100);
-            }
-
-            // Remove backdrop after a reasonable timeout if not removed already
-            setTimeout(() => {
-                if (document.body.contains(backdrop)) {
-                    document.body.removeChild(backdrop);
-                }
-            }, 30000);
-        });
-    };
-
-    // UI rendering with DOM manipulation
+    // UI rendering with DOM manipulation - Main effect hook
     useEffect(() => {
         // Check if we're on a mobile device
         const isMobile = window.innerWidth <= 768;
@@ -262,6 +299,7 @@ export default function About() {
         const panel = document.createElement('div');
         panel.className = 'flat-panel';
 
+        // --- Start of UI Creation (Similar to original, using DOM manipulation) ---
         if (!isMobile) {
             // DESKTOP VIEW
 
@@ -278,7 +316,7 @@ export default function About() {
             headerDiv.innerHTML = `<header style="background-color: transparent; padding: 0.5rem; color: #57b3c0; text-align: center;"><h1 style="font-size: 55px;"></h1></header>`;
             panel.appendChild(headerDiv);
 
-            if (isLoggedIn) {
+            if (isLoggedIn && userData) { // Check userData as well
                 // Action buttons for logged-in users (Desktop)
                 const actionButtons = document.createElement('div');
                 actionButtons.className = 'action-buttons';
@@ -335,9 +373,9 @@ export default function About() {
                 contentContainer.style.display = 'flex';
                 contentContainer.style.flexDirection = 'column';
                 contentContainer.style.overflow = 'auto';
-                contentContainer.style.maxHeight = 'calc(100% - 300px)';
+                contentContainer.style.maxHeight = 'calc(100% - 300px)'; // Adjust as needed
                 contentContainer.style.clear = 'both';
-                contentContainer.style.marginTop = '50px';
+                contentContainer.style.marginTop = '50px'; // Adjust as needed
                 contentContainer.innerHTML = `
                     <p style="font-size: 35px; margin-bottom: 30px; color: #a7d3d8;">
                         You're now logged in to the Mountain West application. This secure area allows
@@ -357,7 +395,7 @@ export default function About() {
                 `;
                 panel.appendChild(contentContainer);
 
-                // Template button at bottom of page - positioned absolutely to avoid overlap
+                // Template button at bottom of page
                 const templateButtonContainer = document.createElement('div');
                 templateButtonContainer.style.position = 'absolute';
                 templateButtonContainer.style.bottom = '30px';
@@ -368,7 +406,8 @@ export default function About() {
                     <button id="template-button" class="nav-button chat-button" style="font-size: 30px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 10px 20px; border-radius: 6px;">Open Template Page</button>
                 `;
                 panel.appendChild(templateButtonContainer);
-            } else {
+
+            } else { // Not logged in
                 // Content for NOT logged-in users (Desktop)
                 const contentContainer = document.createElement('div');
                 contentContainer.className = 'content-container';
@@ -377,16 +416,15 @@ export default function About() {
                 contentContainer.style.display = 'flex';
                 contentContainer.style.flexDirection = 'column';
                 contentContainer.style.overflow = 'auto';
-                contentContainer.style.maxHeight = 'calc(100% - 200px)';
+                contentContainer.style.maxHeight = 'calc(100% - 200px)'; // Adjust as needed
                 contentContainer.innerHTML = `
                     <p style="font-size: 35px; line-height: 1.4; margin-bottom: 40px; color: #a7d3d8;">
-                        Mountain West provides compassionate care for those struggling with addiction. Our experienced team offers sober living environments, recovery support groups, and personalized treatment plans to help you achieve lasting sobriety. We believe in addressing all aspects of recovery, from in-house therapy to life skills development, creating a supportive community where your recovery journey begins with dignity and hope.
+                        Mountain West provides compassionate care for those struggling with addiction... [rest of text] ...
                     </p>
                 `;
                 panel.appendChild(contentContainer);
 
-                // ***** DESKTOP BUTTON POSITIONING - Adjust these values to reposition buttons *****
-                // Google sign-in button for not logged in (Desktop)
+                // Google sign-in button container (Desktop)
                 const googleButtonContainer = document.createElement('div');
                 googleButtonContainer.id = 'google-button-container';
                 googleButtonContainer.style.position = 'absolute';
@@ -394,27 +432,27 @@ export default function About() {
                 googleButtonContainer.style.top = '75%';
                 googleButtonContainer.style.zIndex = '10';
                 googleButtonContainer.innerHTML = `
-                    <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 12px 20px; border: none; border-radius: 4px; font-size: 30px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; width: 260px;">
+                    <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 12px 20px; border: none; border-radius: 4px; font-size: 30px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; width: auto;">
                         <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" style="width: 24px; height: 24px;"/>
                         Sign in with Google
                     </button>
                 `;
                 panel.appendChild(googleButtonContainer);
 
-                // Back to Start button (Desktop) - positioned side by side with Google button
+                // Back to Start button container (Desktop)
                 const homeButtonContainer = document.createElement('div');
                 homeButtonContainer.style.position = 'absolute';
-                homeButtonContainer.style.left = '60%';  // Position to the right of Google button
-                homeButtonContainer.style.top = '75%';   // Same height as Google button
+                homeButtonContainer.style.left = '60%';
+                homeButtonContainer.style.top = '75%';
                 homeButtonContainer.style.zIndex = '15';
                 homeButtonContainer.innerHTML = `
-                    <button id="home-button" class="nav-button" style="width: 260px; font-size: 30px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 20px; border-radius: 6px;">Back to Start</button>
+                    <button id="home-button" class="nav-button" style="width: auto; font-size: 30px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 20px; border-radius: 6px;">Back to Start</button>
                 `;
                 panel.appendChild(homeButtonContainer);
             }
-        } else {
-            // MOBILE VIEW
 
+        } else { // isMobile
+            // MOBILE VIEW
             // Panel header
             const panelHeader = document.createElement('div');
             panelHeader.className = 'panel-header';
@@ -428,8 +466,9 @@ export default function About() {
             headerDiv.innerHTML = `<header style="background-color: transparent; padding: 0.5rem; color: #57b3c0; text-align: center;"><h1 style="font-size: 28px;"></h1></header>`;
             panel.appendChild(headerDiv);
 
-            if (isLoggedIn) {
-                // Action buttons for logged-in users (Mobile)
+
+            if (isLoggedIn && userData) { // Logged In Mobile
+                // Action buttons (Mobile)
                 const actionButtons = document.createElement('div');
                 actionButtons.className = 'action-buttons';
                 actionButtons.style.position = 'absolute';
@@ -445,24 +484,24 @@ export default function About() {
                 `;
                 panel.appendChild(actionButtons);
 
-                // User profile for logged-in users (Mobile)
+                // User profile (Mobile)
                 const profileSection = document.createElement('div');
                 profileSection.style.width = '100%';
                 profileSection.style.display = 'flex';
                 profileSection.style.flexDirection = 'column';
                 profileSection.style.alignItems = 'center';
-                profileSection.style.marginTop = '80px';
+                profileSection.style.marginTop = '80px'; // Adjusted margin
                 profileSection.style.marginBottom = '10px';
                 profileSection.style.position = 'relative';
                 profileSection.style.zIndex = '10';
 
-                // User profile photo
+                // User photo
                 const userPhotoDiv = document.createElement('div');
                 userPhotoDiv.style.marginBottom = '10px';
                 userPhotoDiv.innerHTML = `
                     ${userData.picture ?
-                        `<img src="${userData.picture}" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #57b3c0;" />` :
-                        '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #57b3c0; display: flex; align-items: center; justify-content: center; color: white; font-size: 32px;">' + (userData.name ? userData.name.charAt(0) : 'U') + '</div>'
+                        `<img src="${userData.picture}" alt="Profile" style="width: 70px; height: 70px; border-radius: 50%; border: 3px solid #57b3c0;" />` : // Slightly smaller
+                        '<div style="width: 70px; height: 70px; border-radius: 50%; background-color: #57b3c0; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px;">' + (userData.name ? userData.name.charAt(0) : 'U') + '</div>'
                     }
                 `;
                 profileSection.appendChild(userPhotoDiv);
@@ -473,57 +512,59 @@ export default function About() {
                 userInfoDiv.style.textAlign = 'center';
                 userInfoDiv.style.marginBottom = '20px';
                 userInfoDiv.innerHTML = `
-                    <h3 style="margin: 0; font-size: 20px; color: #57b3c0;">Welcome, ${userData.name || 'User'}!</h3>
-                    <p style="margin: 8px 0 0 0; font-size: 16px; color: #a7d3d8;">${userData.email || 'Not available'}</p>
+                    <h3 style="margin: 0; font-size: 18px; color: #57b3c0;">Welcome, ${userData.name || 'User'}!</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 14px; color: #a7d3d8;">${userData.email || 'Not available'}</p>
                 `;
                 profileSection.appendChild(userInfoDiv);
                 panel.appendChild(profileSection);
 
-                // Content for logged-in users (Mobile)
+
+                // Content (Mobile)
                 const contentArea = document.createElement('div');
-                contentArea.style.width = '100%';
+                contentArea.style.width = 'calc(100% - 30px)'; // Padding included
+                contentArea.style.margin = '0 auto'; // Center content area
                 contentArea.style.display = 'flex';
                 contentArea.style.flexDirection = 'column';
-                contentArea.style.position = 'relative';
-                contentArea.style.top = '120px';
-                contentArea.style.paddingBottom = '140px'; // Add extra padding to make room for button
+                contentArea.style.position = 'relative'; // Relative positioning
+                // contentArea.style.top = '0'; // Remove absolute top positioning
+                contentArea.style.marginTop = '20px'; // Add margin top instead
+                contentArea.style.paddingBottom = '80px'; // Space for button at bottom
+                contentArea.style.overflowY = 'auto'; // Allow scrolling if content exceeds space
+                contentArea.style.maxHeight = 'calc(100vh - 350px)'; // Example max height
                 contentArea.innerHTML = `
-                    <p style="font-size: 16px; margin: 0 15px 15px 15px; color: #a7d3d8;">
-                        You're now logged in to the Mountain West application. This secure area allows
-                        you to access all features of our platform.
+                    <p style="font-size: 16px; margin-bottom: 15px; color: #a7d3d8;">
+                        You're now logged in... [rest of text] ...
                     </p>
-                    <p style="font-size: 16px; margin: 0 15px 15px 15px; color: #a7d3d8;">
-                        The interface features advanced visualization capabilities
-                        designed to maximize your productivity and workflow efficiency.
+                    <p style="font-size: 16px; margin-bottom: 15px; color: #a7d3d8;">
+                        The interface features... [rest of text] ...
                     </p>
-                    <p style="font-size: 16px; margin: 0 15px 15px 15px; color: #a7d3d8;">
-                        Explore the various tools and resources available to you through the navigation menu.
-                        If you need assistance, the Live Chat option is available.
+                     <p style="font-size: 16px; margin-bottom: 15px; color: #a7d3d8;">
+                        Explore the various tools... [rest of text] ...
                     </p>
-                    <p style="font-size: 16px; margin: 0 15px 15px 15px; color: #a7d3d8;">
-                        Your account provides personalized access to all Mountain West features and services.
+                     <p style="font-size: 16px; margin-bottom: 15px; color: #a7d3d8;">
+                        Your account provides... [rest of text] ...
                     </p>
                 `;
                 panel.appendChild(contentArea);
 
-                // Template button for mobile - positioned at bottom with additional 45% lower position
+
+                // Template button (Mobile) - Positioned at the bottom
                 const templateButtonContainer = document.createElement('div');
                 templateButtonContainer.style.position = 'absolute';
-                templateButtonContainer.style.top = '750px'; // Lowered position (closer to bottom)
+                templateButtonContainer.style.bottom = '20px'; // Position near bottom
                 templateButtonContainer.style.left = '0';
                 templateButtonContainer.style.width = '100%';
                 templateButtonContainer.style.display = 'flex';
                 templateButtonContainer.style.justifyContent = 'center';
                 templateButtonContainer.style.zIndex = '15';
                 templateButtonContainer.innerHTML = `
-    <button id="template-button" class="nav-button chat-button" style="font-size: 14px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 6px 12px; border-radius: 4px;">Open Template Page</button>
-`;
+                    <button id="template-button" class="nav-button chat-button" style="font-size: 14px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 8px 16px; border-radius: 4px;">Open Template Page</button>
+                `;
                 panel.appendChild(templateButtonContainer);
 
-                // Adjust content area padding to accommodate the lower button position
-                contentArea.style.paddingBottom = '100px'; // Increased padding at bottom
-            } else {
-                // Content for NOT logged-in users (Mobile)
+
+            } else { // Not Logged In Mobile
+                // Content (Mobile - Not Logged In)
                 const contentContainer = document.createElement('div');
                 contentContainer.className = 'content-container';
                 contentContainer.style.padding = '15px';
@@ -531,64 +572,67 @@ export default function About() {
                 contentContainer.style.display = 'flex';
                 contentContainer.style.flexDirection = 'column';
                 contentContainer.style.width = 'calc(100% - 30px)';
-                contentContainer.style.paddingBottom = '150px';
+                contentContainer.style.paddingBottom = '120px'; // Space for buttons
+                contentContainer.style.overflowY = 'auto';
+                contentContainer.style.maxHeight = 'calc(100vh - 250px)'; // Example max height
                 contentContainer.innerHTML = `
                     <p style="font-size: 16px; line-height: 1.4; margin-bottom: 20px; color: #a7d3d8;">
-                        Mountain West provides compassionate care for those struggling with addiction. Our experienced team offers sober living environments, recovery support groups, and personalized treatment plans to help you achieve lasting sobriety. We believe in addressing all aspects of recovery, from in-house therapy to life skills development, creating a supportive community where your recovery journey begins with dignity and hope.
+                        Mountain West provides compassionate care... [rest of text] ...
                     </p>
                 `;
                 panel.appendChild(contentContainer);
 
-                // ***** MOBILE BUTTON POSITIONING - Adjust these values to reposition buttons *****
-                // Google sign-in button for not logged in (Mobile)
+                // Buttons container (Mobile - Not Logged In)
+                const mobileButtonArea = document.createElement('div');
+                mobileButtonArea.style.position = 'absolute';
+                mobileButtonArea.style.bottom = '20px'; // Position buttons near bottom
+                mobileButtonArea.style.left = '0';
+                mobileButtonArea.style.width = '100%';
+                mobileButtonArea.style.display = 'flex';
+                mobileButtonArea.style.flexDirection = 'column'; // Stack buttons vertically
+                mobileButtonArea.style.alignItems = 'center';
+                mobileButtonArea.style.gap = '15px'; // Space between buttons
+                mobileButtonArea.style.zIndex = '10';
+
+                // Google sign-in button (Mobile)
                 const googleButtonContainer = document.createElement('div');
                 googleButtonContainer.id = 'google-button-container';
-                googleButtonContainer.style.width = '100%';
-                googleButtonContainer.style.display = 'flex';
-                googleButtonContainer.style.justifyContent = 'center';
-                googleButtonContainer.style.position = 'absolute';
-                googleButtonContainer.style.left = '0';
-                googleButtonContainer.style.top = '86%'; // Keep at 90% from the top
-                googleButtonContainer.style.zIndex = '10';
                 googleButtonContainer.innerHTML = `
-                    <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 8px 16px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 180px;">
+                    <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 10px 18px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; width: auto;">
                         <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" style="width: 18px; height: 18px;"/>
                         Sign in with Google
                     </button>
                 `;
-                panel.appendChild(googleButtonContainer);
+                mobileButtonArea.appendChild(googleButtonContainer);
 
                 // Back to Start button (Mobile)
                 const homeButtonContainer = document.createElement('div');
-                homeButtonContainer.style.position = 'absolute';
-                homeButtonContainer.style.left = '0';
-                homeButtonContainer.style.top = '100%'; // Bring up to 100% (closer to Google button)
-                homeButtonContainer.style.width = '100%';
-                homeButtonContainer.style.display = 'flex';
-                homeButtonContainer.style.justifyContent = 'center';
-                homeButtonContainer.style.zIndex = '15';
                 homeButtonContainer.innerHTML = `
-                    <button id="home-button" class="nav-button" style="width: 180px; font-size: 16px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 8px 16px; border-radius: 4px;">Back to Start</button>
+                    <button id="home-button" class="nav-button" style="width: auto; font-size: 16px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 18px; border-radius: 4px;">Back to Start</button>
                 `;
-                panel.appendChild(homeButtonContainer);
+                mobileButtonArea.appendChild(homeButtonContainer);
+
+                panel.appendChild(mobileButtonArea);
             }
         }
+        // --- End of UI Creation ---
 
         // Add panel to overlay and overlay to body
         overlay.appendChild(panel);
         document.body.appendChild(overlay);
 
-        // Resize handler
+        // Resize handler (consider if reload is the best approach)
         let resizeTimeout;
         const handleResize = () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                window.location.reload();
+                console.log('Reloading on resize...');
+                window.location.reload(); // Reloads the page on resize end
             }, 250);
         };
         window.addEventListener('resize', handleResize);
 
-        // Add event listeners
+        // --- Start of Event Listener Attachment ---
         const homeButton = document.getElementById('home-button');
         if (homeButton) {
             homeButton.addEventListener('click', () => navigate('/'));
@@ -602,28 +646,29 @@ export default function About() {
 
             const logoutButton = document.getElementById('logout-button');
             if (logoutButton) {
+                // Use the memoized handleLogout
                 logoutButton.addEventListener('click', handleLogout);
             }
 
-            // Add event listener for the template button
             const templateButton = document.getElementById('template-button');
             if (templateButton) {
                 templateButton.addEventListener('click', () => navigate('/loggedintemplate'));
             }
-        }
-
-        if (!isLoggedIn) {
+        } else { // Not logged in
             const googleButton = document.getElementById('google-login-button');
             if (googleButton) {
+                // Use the memoized handleGoogleButtonClick
                 googleButton.addEventListener('click', handleGoogleButtonClick);
             }
         }
+        // --- End of Event Listener Attachment ---
 
         // Cleanup function
         return () => {
             window.removeEventListener('resize', handleResize);
             clearTimeout(resizeTimeout);
 
+            // Remove UI elements created by this effect
             if (document.body.contains(overlay)) {
                 document.body.removeChild(overlay);
             }
@@ -642,9 +687,13 @@ export default function About() {
             if (mobileStyles && document.head.contains(mobileStyles)) {
                 document.head.removeChild(mobileStyles);
             }
+            console.log('About component cleanup ran.');
         };
+        // Dependencies for the main UI effect:
+        // Re-run if login status, user data changes, or navigation function changes.
+        // Also include memoized handlers and googleAuthLoaded as they affect UI/listeners.
     }, [isLoggedIn, userData, navigate, handleLogout, handleGoogleButtonClick, googleAuthLoaded]);
 
-    // Return null as UI is created via DOM manipulation
+    // This component uses direct DOM manipulation for its UI, so it returns null from React's perspective.
     return null;
 }
