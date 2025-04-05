@@ -1,9 +1,9 @@
 /**
  * About.jsx - Component for the About page with Google authentication
- * (Revision 2 - Primary fixes applied - Restored Full UI Code)
+ * (Revision 3 - Added Internal Retry Logic - Full Code)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react'; // Added useRef
 import { useNavigate } from 'react-router-dom';
 import "../style/AboutStyle.css";
 
@@ -12,6 +12,8 @@ export default function About() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userData, setUserData] = useState(null);
     const [googleAuthLoaded, setGoogleAuthLoaded] = useState(false); // Tracks script load event
+    const isAttemptingLogin = useRef(false); // Ref to prevent rapid clicks causing multiple attempts
+    const retryTimeoutRef = useRef(null); // Ref to hold the retry timeout ID
 
     // Google Client ID
     const GOOGLE_CLIENT_ID = "7074654684-866fnk2dp7c23e54nt35o5o3uvlm6fbl.apps.googleusercontent.com";
@@ -59,6 +61,7 @@ export default function About() {
     useEffect(() => {
         // Define the global callback function
         window.handleGoogleSignIn = (response) => {
+            isAttemptingLogin.current = false; // Reset attempt flag on callback
             if (response && response.credential) {
                 const decodedToken = decodeJwtResponse(response.credential);
                 setUserData(decodedToken);
@@ -67,6 +70,7 @@ export default function About() {
                 localStorage.setItem('mw_userData', JSON.stringify(decodedToken));
             } else {
                 console.error('Google Sign-In failed or response missing credential.');
+                // Maybe show an error to the user here as well
             }
         };
 
@@ -80,7 +84,6 @@ export default function About() {
             script.onload = () => {
                 setGoogleAuthLoaded(true); // Set state when script's onload fires
                 console.log('Google Sign-In script loaded via onload.');
-                // Check if API is ready *immediately* after onload (it might not be)
                 if (!window.google?.accounts?.id) {
                     console.warn('Google GSI script loaded, but window.google.accounts.id not immediately available.');
                 }
@@ -90,16 +93,14 @@ export default function About() {
             };
             document.head.appendChild(script);
         } else {
-            // If script tag exists, assume it might be loaded or loading.
-            // Check if the API object is ready now.
+            // If script tag exists, check if API is ready
             if (window.google?.accounts?.id) {
-                if (!googleAuthLoaded) { // Avoid redundant state updates
+                if (!googleAuthLoaded) {
                     setGoogleAuthLoaded(true);
                     console.log('Google Sign-In script already existed and API seems ready.');
                 }
             } else {
-                // Script exists but API not ready yet. Set loaded state optimistically.
-                // The check in handleGoogleButtonClick will be the final gatekeeper.
+                // Script exists but API not ready, set state optimistically
                 if (!googleAuthLoaded) {
                     setGoogleAuthLoaded(true);
                     console.log('Google Sign-In script already existed, setting loaded state optimistically (API might still be initializing).');
@@ -107,15 +108,23 @@ export default function About() {
             }
         }
 
-        // Cleanup global callback
+        // Cleanup global callback and timeout ref
         return () => {
             delete window.handleGoogleSignIn;
+            if (retryTimeoutRef.current) {
+                clearTimeout(retryTimeoutRef.current); // Clear timeout on unmount
+            }
         };
     }, []); // <-- Empty dependency array ensures this runs only once
 
 
     // Logout handler - memoized
     const handleLogout = useCallback(() => {
+        isAttemptingLogin.current = false; // Reset attempt flag on logout
+        if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current); // Clear any pending retry
+            retryTimeoutRef.current = null;
+        }
         if (window.google?.accounts?.id) {
             window.google.accounts.id.disableAutoSelect();
         }
@@ -128,7 +137,7 @@ export default function About() {
 
 
     // Google Sign-In style injector - no changes needed
-    const injectGoogleSignInStyles = () => {
+    const injectGoogleSignInStyles = useCallback(() => { // Wrapped in useCallback for consistency
         if (document.getElementById('google-signin-mobile-styles')) return;
         const styleEl = document.createElement('style');
         styleEl.id = 'google-signin-mobile-styles';
@@ -158,38 +167,28 @@ export default function About() {
             }
         `;
         document.head.appendChild(styleEl);
-    };
+    }, []);
 
 
-    // Google Sign-In button click handler - memoized
-    const handleGoogleButtonClick = useCallback(() => {
-        // **Robust Check:** Verify the script state AND the actual API object readiness
-        if (!googleAuthLoaded || !window.google?.accounts?.id) {
-            // Use console.warn instead of alert for less disruption
-            console.warn('Google Sign-In API not ready yet. Conditions:', {
-                googleAuthLoaded,
-                hasWindowGoogle: !!window.google,
-                hasGoogleAccounts: !!window.google?.accounts,
-                hasGoogleAccountsId: !!window.google?.accounts?.id
-            });
-            // Optionally, provide non-alert feedback (e.g., temporary message near button)
-            // alert('Google Sign-In is still initializing. Please try again shortly.'); // Re-enable if you prefer alert
-            return; // Stop if not ready
-        }
-
-        // Inject mobile styles
-        injectGoogleSignInStyles();
+    // --- Function to perform the actual sign-in steps ---
+    // This is separated to be callable from both initial check and retry
+    const initiateGoogleSignInFlow = useCallback(() => {
+        console.log("Initiating Google Sign-In Flow...");
+        isAttemptingLogin.current = true; // Mark as attempting
 
         try {
-            // Initialize Google Sign-In *just before* showing the prompt
+            // 1. Ensure initialization (redundant if called after initialize, but safe)
             window.google.accounts.id.initialize({
                 client_id: GOOGLE_CLIENT_ID,
-                callback: window.handleGoogleSignIn, // Use the globally defined callback
+                callback: window.handleGoogleSignIn,
                 auto_select: false,
                 cancel_on_tap_outside: true
             });
 
-            // Create backdrop element
+            // 2. Inject styles
+            injectGoogleSignInStyles();
+
+            // 3. Create backdrop
             const backdrop = document.createElement('div');
             backdrop.id = 'google-signin-backdrop';
             backdrop.style.position = 'fixed'; backdrop.style.top = '0'; backdrop.style.left = '0';
@@ -197,43 +196,83 @@ export default function About() {
             backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'; backdrop.style.zIndex = '99990';
             document.body.appendChild(backdrop);
 
-            // Function to remove backdrop
             const removeBackdrop = () => {
-                if (backdrop && document.body.contains(backdrop)) {
-                    document.body.removeChild(backdrop);
+                isAttemptingLogin.current = false; // Reset flag when flow ends/fails
+                const existingBackdrop = document.getElementById('google-signin-backdrop');
+                if (existingBackdrop && document.body.contains(existingBackdrop)) {
+                    document.body.removeChild(existingBackdrop);
                 }
             };
 
-            // Attempt to show the credential picker prompt
+            // 4. Show prompt
             window.google.accounts.id.prompt((notification) => {
                 if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
-                    console.log('Prompt dismissed, skipped, or not displayed. Reason:', notification.getNotDisplayedReason() || notification.getSkippedReason() || notification.getDismissedReason());
-                    removeBackdrop();
+                    console.log('Prompt not shown or dismissed. Reason:', notification.getNotDisplayedReason() || notification.getSkippedReason() || notification.getDismissedReason());
+                    removeBackdrop(); // Cleans up backdrop and resets isAttemptingLogin flag
                 } else {
                     console.log('Google Sign-In prompt displayed.');
+                    // Note: Successful sign-in will trigger state change and re-render,
+                    // which should run the cleanup in the main useEffect.
+                    // Timeout ensures cleanup if prompt hangs.
+                    setTimeout(removeBackdrop, 15000);
                 }
-                // Fallback timeout to remove backdrop
-                setTimeout(removeBackdrop, 15000);
+                // If prompt fails, isAttemptingLogin is reset by removeBackdrop
             });
 
-            // Optional: Fallback using hidden button (usually not needed with prompt)
-            // let hiddenButtonContainer = document.getElementById('hidden-google-button');
-            // ... create if not exists ...
-            // if (!hiddenButtonContainer) { /* create and append */ }
-            // window.google.accounts.id.renderButton(hiddenButtonContainer, { /* options */ });
-            // setTimeout(() => { hiddenButtonContainer.querySelector('div[role="button"]')?.click(); }, 100);
-
-
         } catch (error) {
-            console.error('Error during Google Sign-In initialization or prompt:', error);
-            // Clean up backdrop on error
-            const backdrop = document.getElementById('google-signin-backdrop');
-            if (backdrop && document.body.contains(backdrop)) {
-                document.body.removeChild(backdrop);
+            console.error('Error during Google Sign-In flow execution:', error);
+            isAttemptingLogin.current = false; // Reset flag on error
+            const existingBackdrop = document.getElementById('google-signin-backdrop');
+            if (existingBackdrop && document.body.contains(existingBackdrop)) {
+                document.body.removeChild(existingBackdrop);
             }
+            alert("An error occurred during Google Sign-In. Please try again.");
+        }
+    }, [GOOGLE_CLIENT_ID, injectGoogleSignInStyles]); // Added injectGoogleSignInStyles dependency
+
+
+    // Google Sign-In button click handler - NOW WITH RETRY LOGIC
+    const handleGoogleButtonClick = useCallback(() => {
+        console.log("Google Sign-In button clicked.");
+
+        // Prevent multiple simultaneous attempts
+        if (isAttemptingLogin.current) {
+            console.log("Login attempt already in progress. Ignoring click.");
+            return;
         }
 
-    }, [googleAuthLoaded, GOOGLE_CLIENT_ID]); // Dependencies: state + constant
+        // Clear any previous retry timeout just in case
+        if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+            retryTimeoutRef.current = null;
+        }
+
+        // Check 1: Is the library ready RIGHT NOW?
+        if (googleAuthLoaded && window.google?.accounts?.id) {
+            console.log("GSI library ready on first check.");
+            initiateGoogleSignInFlow(); // Proceed immediately
+        } else {
+            // Check 2: Library not ready immediately. Schedule a retry.
+            console.warn("GSI library not ready on first check. Scheduling retry in 500ms.");
+            isAttemptingLogin.current = true; // Mark as attempting (to handle retry)
+
+            retryTimeoutRef.current = setTimeout(() => {
+                console.log("Executing GSI retry check...");
+                // Check 3: Is the library ready AFTER the delay?
+                if (googleAuthLoaded && window.google?.accounts?.id) {
+                    console.log("GSI library ready on retry check.");
+                    initiateGoogleSignInFlow(); // Proceed after delay
+                } else {
+                    // Check 4: Still not ready after delay. Inform user.
+                    console.error("GSI library STILL not ready after 500ms retry.");
+                    alert('Google Sign-In is still loading. Please try again in a moment.');
+                    isAttemptingLogin.current = false; // Reset flag as attempt failed
+                }
+                retryTimeoutRef.current = null; // Clear the ref after execution
+            }, 500); // 500ms delay - adjust if needed
+        }
+
+    }, [googleAuthLoaded, initiateGoogleSignInFlow]); // Dependencies include the state and the memoized flow function
 
 
     // UI rendering with DOM manipulation - Main effect hook
@@ -468,33 +507,46 @@ export default function About() {
                 `;
                 panel.appendChild(contentContainer);
 
+                // ***** Configurable variable for adding extra space above the 'Back to Start' button on mobile *****
+                const backToStartButtonTopMarginMobile = '50px'; // Adjust this value (e.g., '10px', '30px') to push the button down more or less
+
                 const mobileButtonArea = document.createElement('div');
-                mobileButtonArea.style.position = 'absolute'; mobileButtonArea.style.bottom = '20px'; // Position buttons near bottom
-                mobileButtonArea.style.left = '0'; mobileButtonArea.style.width = '100%';
-                mobileButtonArea.style.display = 'flex'; mobileButtonArea.style.flexDirection = 'column'; // Stack buttons vertically
-                mobileButtonArea.style.alignItems = 'center'; mobileButtonArea.style.gap = '15px'; // Space between buttons
+                mobileButtonArea.style.position = 'absolute';
+                mobileButtonArea.style.bottom = '120px'; // Position buttons group near bottom (as per your snippet)
+                mobileButtonArea.style.left = '0';
+                mobileButtonArea.style.width = '100%';
+                mobileButtonArea.style.display = 'flex';
+                mobileButtonArea.style.flexDirection = 'column'; // Stack buttons vertically
+                mobileButtonArea.style.alignItems = 'center';
+                mobileButtonArea.style.gap = '15px'; // Base space between ALL items in the flex column
                 mobileButtonArea.style.zIndex = '10';
 
+                // Google Button Container (no changes)
                 const googleButtonContainer = document.createElement('div');
                 googleButtonContainer.id = 'google-button-container';
                 googleButtonContainer.innerHTML = `
-                    <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 10px 18px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; width: auto;">
-                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" style="width: 18px; height: 18px;"/>
-                        Sign in with Google
-                    </button>
-                `;
+                         <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 10px 18px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; width: auto;">
+                             <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" style="width: 18px; height: 18px;"/>
+                             Sign in with Google
+                         </button>
+                     `;
                 mobileButtonArea.appendChild(googleButtonContainer);
 
+                // Back to Start Button Container
                 const homeButtonContainer = document.createElement('div');
+                // Apply the configurable top margin HERE to push this specific button down
+                homeButtonContainer.style.marginTop = backToStartButtonTopMarginMobile;
                 homeButtonContainer.innerHTML = `
-                    <button id="home-button" class="nav-button" style="width: auto; font-size: 16px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 18px; border-radius: 4px;">Back to Start</button>
-                `;
+                         <button id="home-button" class="nav-button" style="width: auto; font-size: 16px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 18px; border-radius: 4px;">Back to Start</button>
+                     `;
                 mobileButtonArea.appendChild(homeButtonContainer);
 
+                // Add the whole button area to the panel
                 panel.appendChild(mobileButtonArea);
             }
         }
         // --- End of UI Creation ---
+
 
         // Add panel to overlay and overlay to body
         overlay.appendChild(panel);
@@ -503,22 +555,17 @@ export default function About() {
 
         // --- Start of Event Listener Attachment ---
         const homeButton = document.getElementById('home-button');
-        if (homeButton) {
-            homeButton.addEventListener('click', () => navigate('/'));
-        }
-
+        if (homeButton) homeButton.addEventListener('click', () => navigate('/'));
         if (isLoggedIn) {
             const chatButton = document.getElementById('chat-button');
             if (chatButton) chatButton.addEventListener('click', () => navigate('/chat'));
             const logoutButton = document.getElementById('logout-button');
-            if (logoutButton) logoutButton.addEventListener('click', handleLogout); // Use memoized handler
+            if (logoutButton) logoutButton.addEventListener('click', handleLogout);
             const templateButton = document.getElementById('template-button');
             if (templateButton) templateButton.addEventListener('click', () => navigate('/loggedintemplate'));
-        } else { // Not logged in
+        } else {
             const googleButton = document.getElementById('google-login-button');
-            if (googleButton) {
-                googleButton.addEventListener('click', handleGoogleButtonClick); // Use memoized handler
-            }
+            if (googleButton) googleButton.addEventListener('click', handleGoogleButtonClick);
         }
         // --- End of Event Listener Attachment ---
 
@@ -536,10 +583,7 @@ export default function About() {
         return () => {
             window.removeEventListener('resize', handleResize);
             clearTimeout(resizeTimeout);
-
-            if (document.body.contains(overlay)) {
-                document.body.removeChild(overlay);
-            }
+            if (document.body.contains(overlay)) document.body.removeChild(overlay);
             // Clean up other dynamically added elements
             const hiddenContainer = document.getElementById('hidden-google-button');
             if (hiddenContainer && document.body.contains(hiddenContainer)) document.body.removeChild(hiddenContainer);
@@ -549,7 +593,8 @@ export default function About() {
             if (mobileStyles && document.head.contains(mobileStyles)) document.head.removeChild(mobileStyles);
         };
         // Dependencies for the main UI effect
-    }, [isLoggedIn, userData, navigate, handleLogout, handleGoogleButtonClick, googleAuthLoaded]);
+    }, [isLoggedIn, userData, navigate, handleLogout, handleGoogleButtonClick, googleAuthLoaded, initiateGoogleSignInFlow]); // Added initiateGoogleSignInFlow
+
 
     // Return null as UI is created via DOM manipulation
     return null;
