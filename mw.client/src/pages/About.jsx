@@ -1,6 +1,6 @@
 /**
  * About.jsx - Component for the About page with Google authentication
- * (Revision 4 - Desktop Popup Styling: No Dimming, High Z-Index, Larger Size)
+ * (Revision 5 - Mobile Popup Z-Index and Display Fix Attempt)
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -140,27 +140,24 @@ export default function About() {
 
     // Google Sign-In style injector for BOTH mobile and desktop overrides
     const injectGoogleSignInStyles = useCallback(() => {
-        // Use a consistent ID for the style element
         const styleId = 'google-signin-custom-styles';
-        if (document.getElementById(styleId)) return; // Prevent duplicate styles
+        if (document.getElementById(styleId)) return;
 
         const styleEl = document.createElement('style');
         styleEl.id = styleId;
 
-        // Define CSS rules for mobile and desktop
         styleEl.innerHTML = `
             /* --- Mobile Styles (< 769px) --- */
             @media (max-width: 768px) {
                 /* Target Google's dialog containers for positioning */
-                .S9gUrf-YoZ4jf,
+                /* Using multiple selectors for robustness */
+                div[id^='credential_picker_container'], /* Container by ID */
+                iframe[src^="https://accounts.google.com/gsi/iframe/select"], /* Specific iframe */
+                .S9gUrf-YoZ4jf, /* Common classes observed */
                 .nsm7Bb-HzV7m-LgbsSe,
+                .qwAkee.LCTIRd, /* Another potential container */
                 .whsOnd.zHQkBf,
-                .jlVej,
-                .L5Fo6c-jXK9Hd-YPqjbf,
-                #credential_picker_container,
-                #credential_picker_iframe,
-                iframe[src^="https://accounts.google.com/gsi/iframe/select"], /* More specific iframe selector */
-                .g3VIld {
+                .fxpqGc {
                     position: fixed !important;
                     top: 25% !important; /* Position in top quarter of screen */
                     left: 50% !important;
@@ -168,23 +165,32 @@ export default function About() {
                     max-width: 90vw !important;
                     width: 320px !important; /* Standard mobile width */
                     min-height: auto !important; /* Reset min-height for mobile */
-                    z-index: 99999 !important; /* High z-index for mobile */
+                    /* *** MODIFIED Z-INDEX FOR MOBILE *** */
+                    z-index: 11000 !important;
                 }
 
-                /* Mobile background overlay styling (created programmatically) */
-                /* Styles for .Bgzgmd, .VfPpkd-SJnn3d (the overlay classes google uses) */
-                 /* We control the backdrop programmatically for mobile, so explicit CSS might not be needed */
-                 /* Or ensure our programmatically created one uses a specific ID/Class if we want to style it here */
+                /* Styles for Google's overlay classes (may or may not be needed if backdrop is controlled programmatically) */
+                 .Bgzgmd,
+                 .VfPpkd-SJnn3d {
+                     /* Ensure our backdrop is below the popup */
+                     z-index: 10990 !important; /* Needs to be lower than popup z-index */
+                     background-color: rgba(0,0,0,0.5) !important; /* Ensure dimming */
+                     position: fixed !important;
+                     top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+                     width: 100vw !important; height: 100vh !important;
+                 }
             }
 
             /* --- Desktop Styles (> 768px) --- */
             @media (min-width: 769px) {
                 /* Target Google's dialog containers for positioning, size, and z-index */
-                 .S9gUrf-YoZ4jf,
-                 .nsm7Bb-HzV7m-LgbsSe, /* This is often the main container */
-                 iframe[src^="https://accounts.google.com/gsi/iframe/select"], /* Target the specific iframe */
-                 #credential_picker_container /* Might be relevant */
-                  {
+                 div[id^='credential_picker_container'], /* Container by ID */
+                 iframe[src^="https://accounts.google.com/gsi/iframe/select"], /* Specific iframe */
+                 .S9gUrf-YoZ4jf, /* Common classes observed */
+                 .nsm7Bb-HzV7m-LgbsSe,
+                 .qwAkee.LCTIRd,
+                 .whsOnd.zHQkBf,
+                 .fxpqGc {
                     position: fixed !important;
                     top: 50% !important; /* Center vertically */
                     left: 50% !important; /* Center horizontally */
@@ -204,7 +210,7 @@ export default function About() {
                      border-radius: 8px; /* May or may not apply depending on Google's structure */
                 }
 
-                /* Ensure NO dimming/overlay on Desktop by targeting Google's overlay classes (if they exist) */
+                /* Ensure NO dimming/overlay on Desktop by targeting Google's overlay classes */
                  .Bgzgmd,
                  .VfPpkd-SJnn3d {
                      display: none !important; /* Hide Google's default overlay */
@@ -222,7 +228,6 @@ export default function About() {
         console.log("Initiating Google Sign-In Flow...");
         isAttemptingLogin.current = true;
 
-        // Determine if mobile based on window width
         const isMobile = window.innerWidth <= 768;
 
         try {
@@ -238,16 +243,24 @@ export default function About() {
             injectGoogleSignInStyles();
 
             // 3. Create backdrop ONLY FOR MOBILE
-            let backdropElement = null; // Keep track of the element if created
+            let backdropElement = null;
             if (isMobile) {
-                console.log("Creating backdrop for mobile.");
-                backdropElement = document.createElement('div');
-                backdropElement.id = 'google-signin-backdrop'; // Use ID for potential removal
-                backdropElement.style.position = 'fixed'; backdropElement.style.top = '0'; backdropElement.style.left = '0';
-                backdropElement.style.right = '0'; backdropElement.style.bottom = '0';
-                backdropElement.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-                backdropElement.style.zIndex = '99990'; // Below mobile popup
-                document.body.appendChild(backdropElement);
+                // Ensure no duplicate backdrop exists first
+                const existingBackdrop = document.getElementById('google-signin-backdrop');
+                if (!existingBackdrop) {
+                    console.log("Creating backdrop for mobile.");
+                    backdropElement = document.createElement('div');
+                    backdropElement.id = 'google-signin-backdrop';
+                    backdropElement.style.position = 'fixed'; backdropElement.style.top = '0'; backdropElement.style.left = '0';
+                    backdropElement.style.right = '0'; backdropElement.style.bottom = '0';
+                    backdropElement.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                    // *** MODIFIED BACKDROP Z-INDEX FOR MOBILE ***
+                    backdropElement.style.zIndex = '10990'; // Lower than mobile popup z-index (11000)
+                    document.body.appendChild(backdropElement);
+                } else {
+                    console.log("Backdrop already exists for mobile.");
+                    backdropElement = existingBackdrop; // Reference existing one for removal later
+                }
             } else {
                 console.log("Skipping backdrop creation for desktop.");
             }
@@ -255,10 +268,10 @@ export default function About() {
             // Function to clean up UI artifacts (backdrop)
             const cleanupSignInUI = () => {
                 isAttemptingLogin.current = false; // Reset attempt flag
-                const existingBackdrop = document.getElementById('google-signin-backdrop');
-                if (existingBackdrop && document.body.contains(existingBackdrop)) {
+                const backdropToRemove = document.getElementById('google-signin-backdrop');
+                if (backdropToRemove && document.body.contains(backdropToRemove)) {
                     console.log("Removing backdrop.");
-                    document.body.removeChild(existingBackdrop);
+                    document.body.removeChild(backdropToRemove);
                 }
             };
 
@@ -269,8 +282,7 @@ export default function About() {
                     cleanupSignInUI(); // Clean up backdrop if it exists
                 } else {
                     console.log('Google Sign-In prompt displayed.');
-                    // Set timeout to clean up backdrop just in case prompt hangs (mainly for mobile)
-                    setTimeout(cleanupSignInUI, 15000);
+                    setTimeout(cleanupSignInUI, 15000); // Timeout ensures cleanup if prompt hangs
                 }
             });
 
@@ -636,19 +648,18 @@ export default function About() {
             const hiddenContainer = document.getElementById('hidden-google-button');
             if (hiddenContainer && document.body.contains(hiddenContainer)) document.body.removeChild(hiddenContainer);
 
-            // Remove backdrop if it exists (e.g., mobile)
+            // Remove backdrop if it exists
             const backdrop = document.getElementById('google-signin-backdrop');
             if (backdrop && document.body.contains(backdrop)) document.body.removeChild(backdrop);
 
-            // Remove injected styles *IF* they should be removed on component unmount
-            // Note: Keeping them might be fine if this is the only place they're used.
+            // Optionally remove injected styles (uncomment if needed)
             // const customStyles = document.getElementById('google-signin-custom-styles');
             // if(customStyles && document.head.contains(customStyles)){
             //    document.head.removeChild(customStyles);
             // }
         };
         // Dependencies for the main UI effect
-    }, [isLoggedIn, userData, navigate, handleLogout, handleGoogleButtonClick, googleAuthLoaded, initiateGoogleSignInFlow, injectGoogleSignInStyles]); // Added initiateGoogleSignInFlow and injectGoogleSignInStyles
+    }, [isLoggedIn, userData, navigate, handleLogout, handleGoogleButtonClick, googleAuthLoaded, initiateGoogleSignInFlow, injectGoogleSignInStyles]);
 
 
     // Return null as UI is created via DOM manipulation
