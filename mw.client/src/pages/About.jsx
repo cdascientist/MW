@@ -440,7 +440,7 @@ export default function About() {
                 const leftButtonStack = document.createElement('div');
                 leftButtonStack.style.position = 'absolute';
                 leftButtonStack.style.left = '50px'; // Attach to left side
-                leftButtonStack.style.top = '79%';
+                leftButtonStack.style.top = '67%';
                 leftButtonStack.style.transform = 'translateY(-50%)';
                 leftButtonStack.style.display = 'flex';
                 leftButtonStack.style.flexDirection = 'column'; // Stack vertically

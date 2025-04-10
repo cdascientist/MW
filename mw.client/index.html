@@ -125,8 +125,8 @@
             transform-style: preserve-3d; /* Important for 3D children */
             animation: hud-3d 2s 4s ease-in-out forwards;
             pointer-events: none; /* Allow clicks to pass through */
-            /* <<< MODIFIED Z-INDEX: Place HUD below overlays/panels >>> */
-            z-index: 1; /* Explicitly set stacking context below high z-index panels */
+            /* MODIFIED Z-INDEX: Place HUD below overlays/panels */
+            z-index: 1; /* Lower z-index so panels appear above */
         }
 
         .circle {
@@ -406,7 +406,7 @@
             font-size: 1.6em;
             font-weight: bold;
             text-align: center;
-            z-index: 10; /* Above .blue elements within .hud */
+            z-index: 10; /* This is above .blue elements but below panels */
             pointer-events: all; /* Allow interaction with React app */
             overflow: hidden;
         }
@@ -660,6 +660,24 @@
             height: 30px;
             margin-right: 15px;
             vertical-align: middle;
+        }
+
+        /* ADDED: Ensure UI overlays appear above HUD */
+        .ui-overlay {
+            z-index: 900 !important; /* Force higher z-index */
+        }
+
+        /* ADDED: Ensure flat panels appear above HUD */
+        .flat-panel {
+            z-index: 901 !important; /* Force higher z-index than HUD */
+        }
+
+        /* ADDED: Ensure login forms and other important UI elements stay above HUD */
+        #dedicated-google-signin-container,
+        #google-signin-inner-container,
+        .login-container,
+        .google-button-container {
+            z-index: 950 !important; /* Force higher z-index than HUD and panels */
         }
 
 
