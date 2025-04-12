@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Mountain West HUD</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
@@ -12,7 +12,7 @@
             margin: 0;
             padding: 0;
             height: 100%;
-            overflow: hidden;
+            overflow: hidden; /* Prevent scrolling */
             font-family: "Open Sans", Arial, sans-serif;
             width: 100vw;
             height: 100vh;
@@ -21,7 +21,7 @@
             background: white;
             background-blend-mode: hard-light;
             perspective: 500px;
-            overflow: hidden;
+            position: fixed; /* Prevent scrolling by fixing position */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -72,7 +72,7 @@
             text-transform: uppercase;
             font-weight: 400;
             white-space: nowrap;
-            transition: transform 0.8s ease-in-out;
+            transition: transform 0.2s ease-in-out; /* Made much faster than original 0.8s */
             font-family: 'Open Sans', Arial, sans-serif;
             opacity: 0;
         }
@@ -96,9 +96,9 @@
             height: 50px;
             animation: spin 1s linear infinite;
             position: absolute;
-            bottom: 20%;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 50%; /* Center vertically */
+            left: 50%; /* Center horizontally */
+            transform: translate(-50%, -50%); /* Perfect centering */
         }
 
         /* HUD Styles - REVISED WITH LOWER Z-INDEX */
@@ -552,7 +552,7 @@
             transition: right .3s ease;
             z-index: 10000;
             border-left: 1px solid rgba(87,179,192,.3);
-            overflow-y: auto;
+            overflow-y: auto; /* Make sure the menu is scrollable */
             pointer-events: auto;
         }
 
@@ -696,8 +696,13 @@
             vertical-align: middle;
         }
 
+        /* Make Start Job Search link invisible */
+        .nav-item a[href*="mountainwestjobsearch.com"] {
+            /*  display: none;*/
+        }
+
         /* CRITICAL FIX: UI overlays with panel masking layer */
-        .ui-overlay {
+            .ui-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -1152,31 +1157,32 @@
 
                 setTimeout(() => {
                     console.log("Fading in words");
-                    mountain.style.transition = 'opacity 3.5s ease-out';
-                    west.style.transition = 'opacity 3.5s ease-out';
+                    mountain.style.transition = 'opacity 0.8s ease-out'; // Made much faster
+                    west.style.transition = 'opacity 0.8s ease-out'; // Made much faster
                     mountain.style.opacity = '1';
                     west.style.opacity = '1';
-                }, 500);
+                }, 200); // Made faster
 
                 setTimeout(() => {
                     console.log("Sliding words");
-                    mountain.style.transition = 'opacity 3.5s ease-out, transform 0.8s ease-in-out';
-                    west.style.transition = 'opacity 3.5s ease-out, transform 0.8s ease-in-out';
+                    mountain.style.transition = 'opacity 0.8s ease-out, transform 0.2s ease-in-out'; // Made much faster
+                    west.style.transition = 'opacity 0.8s ease-out, transform 0.2s ease-in-out'; // Made much faster
                     const screenWidth = window.innerWidth;
                     mountain.style.transform = `translateX(-${screenWidth + 500}px)`;
                     west.style.transform = `translateX(${screenWidth + 500}px)`;
-                }, 7000);
+                }, 1500); // Made much faster
 
                 setTimeout(() => {
                     console.log("Showing content");
                     overlay.style.opacity = '0';
                     overlay.style.pointerEvents = 'none';
-                }, 8000);
+                }, 2000); // Made much faster
 
                 setTimeout(() => {
                     overlay.style.display = 'none';
-                    document.body.style.overflow = 'auto';
-                }, 8500);
+                    // Keep overflow hidden to prevent page scrolling
+                    document.body.style.overflow = 'hidden';
+                }, 2500); // Made much faster
             }
 
             function preloadAssets() {
@@ -1186,20 +1192,20 @@
 
                 Promise.all(assetsToPreload)
                     .then(() => {
-                        setTimeout(startAnimation, 2000);
+                        setTimeout(startAnimation, 500); // Made much faster
                     })
                     .catch(err => {
                         console.error('Failed to preload some assets:', err);
-                        setTimeout(startAnimation, 3000);
+                        setTimeout(startAnimation, 800); // Made much faster
                     });
             }
 
-            setTimeout(preloadAssets, 100);
+            setTimeout(preloadAssets, 50); // Made faster
 
             function FontFaceObserver(family) {
                 this.load = function () {
                     return new Promise((resolve) => {
-                        setTimeout(resolve, 1500);
+                        setTimeout(resolve, 400); // Made much faster
                     });
                 };
             }

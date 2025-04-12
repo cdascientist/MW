@@ -1,6 +1,6 @@
 /**
  * About.jsx - Component for the About page with Google authentication
- * (Revision 14 - Added configurable content positioning variables)
+ * (Revision 15 - Made Start Job Search button visible after login and Back to Start button invisible)
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -437,9 +437,24 @@ export default function About() {
                 `;
                 panel.appendChild(contentContainer);
 
+                // MODIFIED: Added Job Search button to match the original markup but now making it visible
+                const jobSearchButtonContainer = document.createElement('div');
+                jobSearchButtonContainer.style.position = 'absolute';
+                jobSearchButtonContainer.style.bottom = '30px';
+                jobSearchButtonContainer.style.left = '50%';
+                jobSearchButtonContainer.style.transform = 'translateX(-50%)';
+                jobSearchButtonContainer.style.zIndex = '10';
+                jobSearchButtonContainer.innerHTML = `
+                    <a href="https://mountainwestjobsearch.com:5678/form/0c43de0f-bb48-4973-860a-fee3b1deb280" target="_blank" style="text-decoration: none;">
+                        <button id="job-search-button" class="nav-button" style="font-size: 30px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 20px; border-radius: 6px;">Start Job Search</button>
+                    </a>
+                `;
+                panel.appendChild(jobSearchButtonContainer);
+
                 const templateButtonContainer = document.createElement('div');
-                templateButtonContainer.style.position = 'absolute'; templateButtonContainer.style.bottom = '30px';
-                templateButtonContainer.style.left = '50%'; templateButtonContainer.style.transform = 'translateX(-50%)';
+                templateButtonContainer.style.position = 'absolute';
+                templateButtonContainer.style.bottom = '30px';
+                templateButtonContainer.style.right = '30px';
                 templateButtonContainer.style.zIndex = '10';
                 templateButtonContainer.innerHTML = `
                     <button id="template-button" class="nav-button chat-button" style="font-size: 30px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 10px 20px; border-radius: 6px;">Open Template Page</button>
@@ -491,10 +506,11 @@ export default function About() {
                 leftButtonStack.appendChild(googleButtonContainer);
                 googleButtonContainerRef.current = googleButtonContainer;
 
-                // Back to Start button configuration (desktop)
+                // MODIFIED: Made Back to Start button invisible but keeping it in DOM
                 const homeButtonContainer = document.createElement('div');
                 homeButtonContainer.style.width = '280px';
                 homeButtonContainer.style.top = '92px';
+                homeButtonContainer.style.display = 'none'; // Changed to none to make it invisible
                 homeButtonContainer.innerHTML = `
                     <button id="home-button" class="nav-button" style="width: 100%; font-size: 24px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 20px; border-radius: 6px;">Back to Start</button>
                 `;
@@ -605,20 +621,23 @@ export default function About() {
                 `;
                 panel.appendChild(contentContainer);
 
-                // Template button at the bottom
-                const templateButtonContainer = document.createElement('div');
-                templateButtonContainer.style.position = 'absolute';
-                templateButtonContainer.style.bottom = '20px';
-                templateButtonContainer.style.left = '0';
-                templateButtonContainer.style.width = '100%';
-                templateButtonContainer.style.display = 'flex';
-                templateButtonContainer.style.justifyContent = 'center';
-                templateButtonContainer.style.zIndex = '15';
-                templateButtonContainer.style.padding = '10px 0';
-                templateButtonContainer.innerHTML = `
-                    <button id="template-button" class="nav-button chat-button" style="font-size: 14px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 8px 16px; border-radius: 4px;">Open Template Page</button>
+                // MODIFIED: Added two buttons - Job Search and Template buttons positioned differently
+                const buttonsRow = document.createElement('div');
+                buttonsRow.style.position = 'absolute';
+                buttonsRow.style.bottom = '20px';
+                buttonsRow.style.left = '0';
+                buttonsRow.style.width = '100%';
+                buttonsRow.style.display = 'flex';
+                buttonsRow.style.justifyContent = 'space-around';
+                buttonsRow.style.zIndex = '15';
+                buttonsRow.style.padding = '10px 20px';
+                buttonsRow.innerHTML = `
+                    <a href="https://mountainwestjobsearch.com:5678/form/0c43de0f-bb48-4973-860a-fee3b1deb280" target="_blank" style="text-decoration: none; flex: 1; margin-right: 10px;">
+                        <button id="job-search-button" class="nav-button" style="width: 100%; font-size: 14px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 8px 12px; border-radius: 4px;">Start Job Search</button>
+                    </a>
+                    <button id="template-button" class="nav-button chat-button" style="flex: 1; font-size: 14px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 8px 12px; border-radius: 4px;">Open Template Page</button>
                 `;
-                panel.appendChild(templateButtonContainer);
+                panel.appendChild(buttonsRow);
 
             } else { // Mobile Logged Out
                 // *** SECTION WITH CONFIGURABLE CONTENT POSITIONING - MOBILE VIEW ***
@@ -669,9 +688,10 @@ export default function About() {
                 mobileButtonArea.appendChild(googleButtonContainer);
                 googleButtonContainerRef.current = googleButtonContainer;
 
-                // Back to Start button configuration (mobile)
+                // MODIFIED: Made Back to Start button invisible but keeping in DOM for mobile view
                 const homeButtonContainer = document.createElement('div');
                 homeButtonContainer.style.marginTop = '45px';
+                homeButtonContainer.style.display = 'none'; // Changed to none to make it invisible
                 homeButtonContainer.innerHTML = `
          <button id="home-button" class="nav-button" style="width: auto; font-size: 16px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 18px; border-radius: 4px;">Back to Start</button>
      `;
@@ -698,6 +718,8 @@ export default function About() {
             if (logoutButton) logoutButton.addEventListener('click', handleLogout);
             const templateButton = document.getElementById('template-button');
             if (templateButton) templateButton.addEventListener('click', () => navigate('/loggedintemplate'));
+
+            // MODIFIED: No need to attach event listener for jobSearchButton as it's using an <a> tag with href
         } else {
             // Desktop Google button
             const desktopGoogleButton = document.getElementById('google-login-button');
