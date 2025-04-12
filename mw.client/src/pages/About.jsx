@@ -1,6 +1,6 @@
 /**
  * About.jsx - Component for the About page with Google authentication
- * (Revision 15 - Made Start Job Search button visible after login and Back to Start button invisible)
+ * (Revision 17 - Expanded content height, replaced chat button with dashboard, updated config)
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -28,7 +28,14 @@ export default function About() {
             // Controls logged-out content section max height in desktop view
             contentMaxHeight: 'calc(100% - 200px)',
             // Controls position of button stack in desktop view
-            buttonStackTopPosition: '75%'
+            buttonStackTopPosition: '75%',
+            // ****** ADDED NEW CONFIGURABLE VARIABLES FOR DESKTOP ******
+            // Controls top position for the content section after login
+            loggedInContentTopPosition: '100px',
+            // Controls top position for user info section after login
+            userInfoTopPosition: '-120px',
+            // Controls the height of the content section (expanded)
+            loggedInContentHeight: 'calc(100% - 180px)'
         },
         mobile: {
             // Controls content container top margin in mobile view
@@ -363,6 +370,13 @@ export default function About() {
         const panel = document.createElement('div');
         panel.className = 'flat-panel';
 
+        // Make the side menu "Start Job Search" button visible when logged in
+        const jobSearchLink = document.querySelector('.nav-item a[href*="mountainwestjobsearch.com"]');
+        if (jobSearchLink) {
+            // Change display style based on login state - show when logged in, hide when not
+            jobSearchLink.style.display = isLoggedIn ? 'flex' : 'none';
+        }
+
         // --- Start of UI Creation (Full DOM manipulation logic included) ---
         if (!isMobile) {
             // DESKTOP VIEW
@@ -378,20 +392,24 @@ export default function About() {
             panel.appendChild(headerDiv);
 
             if (isLoggedIn && userData) {
-                // Desktop Logged In UI Elements
+                // ****** DESKTOP LOGGED IN UI WITH CONFIGURABLE POSITION VARIABLES ******
                 const actionButtons = document.createElement('div');
                 actionButtons.className = 'action-buttons';
                 actionButtons.style.position = 'absolute'; actionButtons.style.top = '20px'; actionButtons.style.right = '20px';
                 actionButtons.style.display = 'flex'; actionButtons.style.gap = '15px'; actionButtons.style.zIndex = '20';
+                // MODIFIED: Changed "Open Live Chat" to "Dashboard"
                 actionButtons.innerHTML = `
                     <button id="logout-button" class="nav-button" style="font-size: 30px; background-color: rgba(255, 99, 71, 0.2); color: #ff6347; border: 1px solid rgba(255, 99, 71, 0.4); padding: 10px 20px; border-radius: 6px;">Logout</button>
-                    <button id="chat-button" class="nav-button chat-button" style="font-size: 30px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 10px 20px; border-radius: 6px;">Open Live Chat</button>
+                    <button id="template-button" class="nav-button chat-button" style="font-size: 30px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 10px 20px; border-radius: 6px;">Dashboard</button>
                 `;
                 panel.appendChild(actionButtons);
 
                 const profileContainer = document.createElement('div');
                 profileContainer.style.display = 'flex'; profileContainer.style.flexDirection = 'column'; profileContainer.style.alignItems = 'flex-start';
-                profileContainer.style.padding = '30px'; profileContainer.style.marginTop = '100px'; profileContainer.style.marginBottom = '20px';
+                profileContainer.style.padding = '30px';
+                // Using configurable position for user info
+                profileContainer.style.marginTop = CONFIG.desktop.userInfoTopPosition;
+                profileContainer.style.marginBottom = '20px';
                 profileContainer.style.width = 'calc(100% - 60px)'; profileContainer.style.position = 'relative';
 
                 const userPhotoDiv = document.createElement('div');
@@ -416,8 +434,12 @@ export default function About() {
                 const contentContainer = document.createElement('div');
                 contentContainer.className = 'content-container';
                 contentContainer.style.padding = '0 30px 30px 30px'; contentContainer.style.display = 'flex'; contentContainer.style.flexDirection = 'column';
-                contentContainer.style.overflow = 'auto'; contentContainer.style.maxHeight = 'calc(100% - 300px)';
-                contentContainer.style.clear = 'both'; contentContainer.style.marginTop = '50px';
+                contentContainer.style.overflow = 'auto';
+                // UPDATED: Now using the configurable height variable
+                contentContainer.style.maxHeight = CONFIG.desktop.loggedInContentHeight;
+                contentContainer.style.clear = 'both';
+                // Using configurable position for content
+                contentContainer.style.marginTop = CONFIG.desktop.loggedInContentTopPosition;
                 contentContainer.innerHTML = `
                     <p style="font-size: 35px; margin-bottom: 30px; color: #a7d3d8;">
                         You're now logged in to the Mountain West application. This secure area allows
@@ -437,29 +459,7 @@ export default function About() {
                 `;
                 panel.appendChild(contentContainer);
 
-                // MODIFIED: Added Job Search button to match the original markup but now making it visible
-                const jobSearchButtonContainer = document.createElement('div');
-                jobSearchButtonContainer.style.position = 'absolute';
-                jobSearchButtonContainer.style.bottom = '30px';
-                jobSearchButtonContainer.style.left = '50%';
-                jobSearchButtonContainer.style.transform = 'translateX(-50%)';
-                jobSearchButtonContainer.style.zIndex = '10';
-                jobSearchButtonContainer.innerHTML = `
-                    <a href="https://mountainwestjobsearch.com:5678/form/0c43de0f-bb48-4973-860a-fee3b1deb280" target="_blank" style="text-decoration: none;">
-                        <button id="job-search-button" class="nav-button" style="font-size: 30px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 20px; border-radius: 6px;">Start Job Search</button>
-                    </a>
-                `;
-                panel.appendChild(jobSearchButtonContainer);
-
-                const templateButtonContainer = document.createElement('div');
-                templateButtonContainer.style.position = 'absolute';
-                templateButtonContainer.style.bottom = '30px';
-                templateButtonContainer.style.right = '30px';
-                templateButtonContainer.style.zIndex = '10';
-                templateButtonContainer.innerHTML = `
-                    <button id="template-button" class="nav-button chat-button" style="font-size: 30px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 10px 20px; border-radius: 6px;">Open Template Page</button>
-                `;
-                panel.appendChild(templateButtonContainer);
+                // REMOVED: Job Search and Template buttons are no longer added here
 
             } else { // Desktop Logged Out
                 // *** SECTION WITH CONFIGURABLE CONTENT POSITIONING - DESKTOP VIEW ***
@@ -544,9 +544,10 @@ export default function About() {
                 actionButtons.style.flexDirection = 'column';
                 actionButtons.style.gap = '8px';
                 actionButtons.style.zIndex = '20';
+                // MODIFIED: Changed "Open Live Chat" to "Dashboard" in mobile view
                 actionButtons.innerHTML = `
                     <button id="logout-button" class="nav-button" style="font-size: 14px; background-color: rgba(255, 99, 71, 0.2); color: #ff6347; border: 1px solid rgba(255, 99, 71, 0.4); padding: 6px 12px; border-radius: 4px;">Logout</button>
-                    <button id="chat-button" class="nav-button chat-button" style="font-size: 14px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 6px 12px; border-radius: 4px;">Open Live Chat</button>
+                    <button id="template-button" class="nav-button chat-button" style="font-size: 14px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 6px 12px; border-radius: 4px;">Dashboard</button>
                 `;
                 panel.appendChild(actionButtons);
 
@@ -621,23 +622,7 @@ export default function About() {
                 `;
                 panel.appendChild(contentContainer);
 
-                // MODIFIED: Added two buttons - Job Search and Template buttons positioned differently
-                const buttonsRow = document.createElement('div');
-                buttonsRow.style.position = 'absolute';
-                buttonsRow.style.bottom = '20px';
-                buttonsRow.style.left = '0';
-                buttonsRow.style.width = '100%';
-                buttonsRow.style.display = 'flex';
-                buttonsRow.style.justifyContent = 'space-around';
-                buttonsRow.style.zIndex = '15';
-                buttonsRow.style.padding = '10px 20px';
-                buttonsRow.innerHTML = `
-                    <a href="https://mountainwestjobsearch.com:5678/form/0c43de0f-bb48-4973-860a-fee3b1deb280" target="_blank" style="text-decoration: none; flex: 1; margin-right: 10px;">
-                        <button id="job-search-button" class="nav-button" style="width: 100%; font-size: 14px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 8px 12px; border-radius: 4px;">Start Job Search</button>
-                    </a>
-                    <button id="template-button" class="nav-button chat-button" style="flex: 1; font-size: 14px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 8px 12px; border-radius: 4px;">Open Template Page</button>
-                `;
-                panel.appendChild(buttonsRow);
+                // REMOVED: Job Search and Template buttons are no longer added here for mobile view
 
             } else { // Mobile Logged Out
                 // *** SECTION WITH CONFIGURABLE CONTENT POSITIONING - MOBILE VIEW ***
@@ -712,14 +697,12 @@ export default function About() {
         const homeButton = document.getElementById('home-button');
         if (homeButton) homeButton.addEventListener('click', () => navigate('/'));
         if (isLoggedIn) {
-            const chatButton = document.getElementById('chat-button');
-            if (chatButton) chatButton.addEventListener('click', () => navigate('/chat'));
-            const logoutButton = document.getElementById('logout-button');
-            if (logoutButton) logoutButton.addEventListener('click', handleLogout);
+            // MODIFIED: Changed chat button reference to template button (for Dashboard)
             const templateButton = document.getElementById('template-button');
             if (templateButton) templateButton.addEventListener('click', () => navigate('/loggedintemplate'));
 
-            // MODIFIED: No need to attach event listener for jobSearchButton as it's using an <a> tag with href
+            const logoutButton = document.getElementById('logout-button');
+            if (logoutButton) logoutButton.addEventListener('click', handleLogout);
         } else {
             // Desktop Google button
             const desktopGoogleButton = document.getElementById('google-login-button');
