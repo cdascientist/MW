@@ -635,10 +635,10 @@ export default function About() {
                 // Using the configurable max height
                 contentContainer.style.maxHeight = CONFIG.mobile.contentMaxHeight;
                 contentContainer.innerHTML = `
-                    <p style="font-size: 16px; line-height: 1.4; margin-bottom: 20px; color: #a7d3d8;">
-                        Mountain West provides compassionate care for those struggling with addiction. Our experienced team offers sober living environments, recovery support groups, and personalized treatment plans to help you achieve lasting sobriety. We believe in addressing all aspects of recovery, from in-house therapy to life skills development, creating a supportive community where your recovery journey begins with dignity and hope.
-                    </p>
-                `;
+        <p style="font-size: 16px; line-height: 1.4; margin-bottom: 20px; color: #a7d3d8;">
+            Mountain West provides compassionate care for those struggling with addiction. Our experienced team offers sober living environments, recovery support groups, and personalized treatment plans to help you achieve lasting sobriety. We believe in addressing all aspects of recovery, from in-house therapy to life skills development, creating a supportive community where your recovery journey begins with dignity and hope.
+        </p>
+    `;
                 panel.appendChild(contentContainer);
 
                 // **** MOBILE BUTTON AREA WITH CONFIGURABLE POSITIONING ****
@@ -657,15 +657,15 @@ export default function About() {
                 mobileButtonArea.style.gap = '15px';
                 mobileButtonArea.style.zIndex = '10';
 
-                // Google login button configuration (mobile)
+                // Google login button configuration (mobile) - UPDATED WITH UNIQUE ID
                 const googleButtonContainer = document.createElement('div');
-                googleButtonContainer.id = 'google-button-container';
+                googleButtonContainer.id = 'google-button-container-mobile'; // Unique ID for mobile container
                 googleButtonContainer.innerHTML = `
-                     <button id="google-login-button" style="background-color: #4285F4; color: white; padding: 10px 18px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; width: auto;">
-                         <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" style="width: 18px; height: 18px;"/>
-                         Sign in with Google
-                     </button>
-                 `;
+         <button id="google-login-button-mobile" style="background-color: #4285F4; color: white; padding: 10px 18px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; width: auto;">
+             <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" style="width: 18px; height: 18px;"/>
+             Sign in with Google
+         </button>
+     `;
                 mobileButtonArea.appendChild(googleButtonContainer);
                 googleButtonContainerRef.current = googleButtonContainer;
 
@@ -673,8 +673,8 @@ export default function About() {
                 const homeButtonContainer = document.createElement('div');
                 homeButtonContainer.style.marginTop = '45px';
                 homeButtonContainer.innerHTML = `
-                     <button id="home-button" class="nav-button" style="width: auto; font-size: 16px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 18px; border-radius: 4px;">Back to Start</button>
-                 `;
+         <button id="home-button" class="nav-button" style="width: auto; font-size: 16px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 18px; border-radius: 4px;">Back to Start</button>
+     `;
                 mobileButtonArea.appendChild(homeButtonContainer);
 
                 panel.appendChild(mobileButtonArea);
@@ -699,8 +699,20 @@ export default function About() {
             const templateButton = document.getElementById('template-button');
             if (templateButton) templateButton.addEventListener('click', () => navigate('/loggedintemplate'));
         } else {
-            const googleButton = document.getElementById('google-login-button');
-            if (googleButton) googleButton.addEventListener('click', handleGoogleButtonClick);
+            // Desktop Google button
+            const desktopGoogleButton = document.getElementById('google-login-button');
+            if (desktopGoogleButton) desktopGoogleButton.addEventListener('click', handleGoogleButtonClick);
+
+            // Mobile Google button - separate handler with explicit event prevention
+            const mobileGoogleButton = document.getElementById('google-login-button-mobile');
+            if (mobileGoogleButton) {
+                mobileGoogleButton.addEventListener('click', (e) => {
+                    e.preventDefault(); // Prevent any default action
+                    e.stopPropagation(); // Stop event bubbling
+                    console.log("Mobile Google button clicked!");
+                    handleGoogleButtonClick(); // Call the same handler function
+                });
+            }
         }
         // --- End of Event Listener Attachment ---
 

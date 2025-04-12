@@ -77,6 +77,30 @@
             opacity: 0;
         }
 
+        /* Loading spinner animation */
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loader {
+            border: 5px solid rgba(87, 179, 192, 0.1);
+            border-radius: 50%;
+            border-top: 5px solid #57b3c0;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
         /* HUD Styles - REVISED WITH LOWER Z-INDEX */
         div {
             position: absolute;
@@ -1089,32 +1113,96 @@
     </div>
 
     <script>
-        // Initialize preloader and animation (Original Script)
+        // Initialize preloader and animation (Modified as requested)
         document.addEventListener('DOMContentLoaded', () => {
             console.log("Preloading starting");
             const mountain = document.getElementById('mountain');
             const west = document.getElementById('west');
             const overlay = document.getElementById('intro-overlay');
-            if (!mountain || !west || !overlay) { console.error("Intro animation elements missing."); if (overlay) overlay.style.display = 'none'; return; }
-            mountain.style.left = '50%'; mountain.style.transform = 'translateX(-50%)'; mountain.style.top = '30%';
-            west.style.left = '50%'; west.style.transform = 'translateX(-50%)'; west.style.top = '55%';
-            const loadingIndicator = document.createElement('div'); loadingIndicator.style.position = 'absolute'; loadingIndicator.style.bottom = '20%'; loadingIndicator.style.left = '50%'; loadingIndicator.style.transform = 'translateX(-50%)'; loadingIndicator.style.color = '#555'; loadingIndicator.style.fontSize = '1.5rem'; loadingIndicator.textContent = 'Loading...'; overlay.appendChild(loadingIndicator);
+
+            if (!mountain || !west || !overlay) {
+                console.error("Intro animation elements missing.");
+                if (overlay) overlay.style.display = 'none';
+                return;
+            }
+
+            // Position mountain and west 15% higher
+            mountain.style.left = '50%';
+            mountain.style.transform = 'translateX(-50%)';
+            mountain.style.top = '15%'; // Changed from 30% to 15%
+
+            west.style.left = '50%';
+            west.style.transform = 'translateX(-50%)';
+            west.style.top = '40%'; // Changed from 55% to 40%
+
+            // Add circular loading animation instead of text
+            const loadingSpinner = document.createElement('div');
+            loadingSpinner.className = 'loader';
+            overlay.appendChild(loadingSpinner);
+
             const assetsToPreload = [];
+
             function startAnimation() {
                 console.log("All assets loaded, starting animation");
-                if (loadingIndicator && loadingIndicator.parentNode) { loadingIndicator.remove(); }
-                setTimeout(() => { console.log("Fading in words"); mountain.style.transition = 'opacity 3.5s ease-out'; west.style.transition = 'opacity 3.5s ease-out'; mountain.style.opacity = '1'; west.style.opacity = '1'; }, 500);
-                setTimeout(() => { console.log("Sliding words"); mountain.style.transition = 'opacity 3.5s ease-out, transform 0.8s ease-in-out'; west.style.transition = 'opacity 3.5s ease-out, transform 0.8s ease-in-out'; const screenWidth = window.innerWidth; mountain.style.transform = `translateX(-${screenWidth + 500}px)`; west.style.transform = `translateX(${screenWidth + 500}px)`; }, 7000);
-                setTimeout(() => { console.log("Showing content"); overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none'; }, 8000);
-                setTimeout(() => { overlay.style.display = 'none'; document.body.style.overflow = 'auto'; }, 8500);
+
+                // Remove loading spinner when done
+                if (loadingSpinner && loadingSpinner.parentNode) {
+                    loadingSpinner.remove();
+                }
+
+                setTimeout(() => {
+                    console.log("Fading in words");
+                    mountain.style.transition = 'opacity 3.5s ease-out';
+                    west.style.transition = 'opacity 3.5s ease-out';
+                    mountain.style.opacity = '1';
+                    west.style.opacity = '1';
+                }, 500);
+
+                setTimeout(() => {
+                    console.log("Sliding words");
+                    mountain.style.transition = 'opacity 3.5s ease-out, transform 0.8s ease-in-out';
+                    west.style.transition = 'opacity 3.5s ease-out, transform 0.8s ease-in-out';
+                    const screenWidth = window.innerWidth;
+                    mountain.style.transform = `translateX(-${screenWidth + 500}px)`;
+                    west.style.transform = `translateX(${screenWidth + 500}px)`;
+                }, 7000);
+
+                setTimeout(() => {
+                    console.log("Showing content");
+                    overlay.style.opacity = '0';
+                    overlay.style.pointerEvents = 'none';
+                }, 8000);
+
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }, 8500);
             }
+
             function preloadAssets() {
                 console.log("Preloading assets");
-                const fontPreloader = new FontFaceObserver('Open Sans'); assetsToPreload.push(fontPreloader.load());
-                Promise.all(assetsToPreload).then(() => { setTimeout(startAnimation, 2000); }).catch(err => { console.error('Failed to preload some assets:', err); setTimeout(startAnimation, 3000); });
+                const fontPreloader = new FontFaceObserver('Open Sans');
+                assetsToPreload.push(fontPreloader.load());
+
+                Promise.all(assetsToPreload)
+                    .then(() => {
+                        setTimeout(startAnimation, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Failed to preload some assets:', err);
+                        setTimeout(startAnimation, 3000);
+                    });
             }
+
             setTimeout(preloadAssets, 100);
-            function FontFaceObserver(family) { this.load = function () { return new Promise((resolve) => { setTimeout(resolve, 1500); }); }; }
+
+            function FontFaceObserver(family) {
+                this.load = function () {
+                    return new Promise((resolve) => {
+                        setTimeout(resolve, 1500);
+                    });
+                };
+            }
         });
 
         // Initialize menu functionality (Original Script)
