@@ -77,7 +77,7 @@
             opacity: 0;
         }
 
-        /* HUD Styles */
+        /* HUD Styles - REVISED Z-INDEX VALUES */
         div {
             position: absolute;
             display: block;
@@ -117,16 +117,16 @@
                 right: 0;
             }
 
+        /* IMPORTANT: Lowered z-index for HUD and its elements */
         .hud {
-            position: relative; /* Centered relative to its flex container (body) */
+            position: relative;
             width: min(80vmin,800px);
             height: min(80vmin,800px);
             transform-origin: center center;
-            transform-style: preserve-3d; /* Important for 3D children */
+            transform-style: preserve-3d;
             animation: hud-3d 2s 4s ease-in-out forwards;
-            pointer-events: none; /* Allow clicks to pass through */
-            /* MODIFIED Z-INDEX: Place HUD below overlays/panels */
-            z-index: 1; /* Lower z-index so panels appear above */
+            pointer-events: none;
+            z-index: 1; /* LOWER z-index for HUD base */
         }
 
         .circle {
@@ -140,7 +140,7 @@
             width: 100%;
             height: 100%;
             animation: glow-orange 1s 3s ease-in-out forwards;
-            /* z-index relative to .hud */
+            z-index: 2; /* Lower z-index */
         }
 
         .notches {
@@ -150,7 +150,7 @@
             height: 100%;
             transform: perspective(500px) translate3d(0,0,0);
             animation: notches-rotate 3s 1s ease-in-out,notches-3d 2s 4s ease-in-out,notches-pulse-rotate 10s 6s ease-in-out alternate infinite;
-            /* z-index relative to .hud, animation might bring it "forward" visually */
+            z-index: 3; /* Lower z-index */
         }
 
         .notch {
@@ -160,6 +160,7 @@
             height: 50%;
             transform-origin: bottom center;
             animation: notches-grow 3.5s .5s ease-in-out;
+            z-index: 3; /* Lower z-index */
         }
 
             .notch:before {
@@ -224,6 +225,7 @@
             width: 100%;
             height: 100%;
             border: .85vw solid #555555;
+            z-index: 4; /* Lower z-index */
         }
 
         .outer1 {
@@ -232,6 +234,7 @@
             width: 86%;
             height: 86%;
             border: .25vw dotted #555555;
+            z-index: 4; /* Lower z-index */
         }
 
         .outer2 {
@@ -240,6 +243,7 @@
             width: 76%;
             height: 76%;
             border: .45vw solid #555555;
+            z-index: 4; /* Lower z-index */
         }
 
         .outer3 {
@@ -248,6 +252,7 @@
             width: 60%;
             height: 60%;
             border: .25vw dotted #d87930;
+            z-index: 4; /* Lower z-index */
         }
 
         .inner {
@@ -256,6 +261,7 @@
             width: 56%;
             height: 56%;
             border: .25vw solid #555555;
+            z-index: 4; /* Lower z-index */
         }
 
         .inner2 {
@@ -265,6 +271,7 @@
             height: 54%;
             border: .25vw solid #d87930;
             background-color: #f5f5f5;
+            z-index: 4; /* Lower z-index */
         }
 
         .inner3 {
@@ -275,6 +282,7 @@
             border: .25vw dashed #555555;
             transform: perspective(500px) rotateX(0) rotateY(0) rotateZ(0);
             animation: innerorange3-pulse-3d 2s 4s ease-in-out alternate infinite;
+            z-index: 4; /* Lower z-index */
         }
 
         .topnotches, .bottomnotches {
@@ -284,6 +292,7 @@
             height: 50%;
             transform: rotate(90deg) perspective(500px) translate3d(0,0,0);
             animation: notchestop-rotate 2s 2s ease-in-out,notchestop-3d 2s 4s ease-in-out forwards;
+            z-index: 4; /* Lower z-index */
         }
 
             .topnotches .notch {
@@ -303,7 +312,7 @@
             height: 8%;
             transform: translate3d(0,0,0);
             animation: center-pulse-3d 12s 4s ease-in-out alternate infinite;
-            /* z-index relative to .hud, animation might bring it "forward" visually */
+            z-index: 4; /* Lower z-index */
         }
 
         .top, .bottom {
@@ -357,7 +366,7 @@
             width: 36%;
             height: 36%;
             animation: glow-blue 1s 3s ease-in-out forwards;
-            z-index: 5; /* Above .orange within .hud */
+            z-index: 5; /* Lower z-index but still above other HUD elements */
         }
 
             .blue .inner1 {
@@ -392,8 +401,9 @@
                 background: #57b3c0;
             }
 
+        /* IMPORTANT: Adjust React root z-index */
         #root {
-            /* position: absolute; is default */
+            position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%,-50%);
@@ -406,17 +416,17 @@
             font-size: 1.6em;
             font-weight: bold;
             text-align: center;
-            z-index: 10; /* This is above .blue elements but below panels */
-            pointer-events: all; /* Allow interaction with React app */
+            z-index: 10; /* Ensure above HUD elements but below UI */
+            pointer-events: all;
             overflow: hidden;
         }
 
         .center-text {
-            /* position: absolute; is default */
+            position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 20; /* Above #root within .hud */
+            z-index: 6; /* Above blue but below root */
             color: #57b3c0;
             font-weight: bold;
             text-align: center;
@@ -425,12 +435,12 @@
         }
 
         .callout {
-            /* position: absolute; is default */
+            position: absolute;
             opacity: 0;
             width: 0;
             height: 5vw;
             border-bottom: .25vw solid #57b3c0;
-            z-index: 15; /* Above #root, below .center-text within .hud */
+            z-index: 7; /* Above blue, below root */
             pointer-events: none;
         }
 
@@ -463,7 +473,7 @@
             font-size: 1.4em;
         }
 
-        /* Menu styles */
+        /* Menu styles - REVISED Z-INDEX VALUES */
         .menu-toggle {
             position: fixed;
             top: 20px;
@@ -662,24 +672,39 @@
             vertical-align: middle;
         }
 
-        /* ADDED: Ensure UI overlays appear above HUD */
+        /* CRITICAL FIX: UI overlay z-index adjustments */
+        /* Ensure UI overlays appear above HUD */
         .ui-overlay {
-            z-index: 900 !important; /* Force higher z-index */
+            z-index: 900 !important;
         }
 
-        /* ADDED: Ensure flat panels appear above HUD */
+        /* Ensure flat panels appear above HUD */
         .flat-panel {
-            z-index: 901 !important; /* Force higher z-index than HUD */
+            z-index: 901 !important;
         }
 
-        /* ADDED: Ensure login forms and other important UI elements stay above HUD */
+        /* Ensure login forms and other important UI elements stay above HUD */
         #dedicated-google-signin-container,
         #google-signin-inner-container,
         .login-container,
         .google-button-container {
-            z-index: 950 !important; /* Force higher z-index than HUD and panels */
+            z-index: 950 !important;
         }
 
+        /* This is critical: ensure these additional elements appear above HUD */
+        .panel-header,
+        .panel-content,
+        .header-in-panel,
+        .content-container,
+        .action-buttons,
+        #google-button-container,
+        .nav-button,
+        .profile-container,
+        .content-section,
+        .buttons-row {
+            z-index: 902 !important;
+            position: relative;
+        }
 
         /* Animations (Unchanged) */
         @keyframes glow-orange {
@@ -964,96 +989,96 @@
     <div class="target bottom left"></div>
     <div class="target bottom right"></div>
 
-    <!-- HUD interface -->
-    <div class="hud">
-        <div class="orange">
-            <div class="notches">
-                <div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div>
-            </div>
-            <div class="circle outer"></div>
-            <div class="circle outer1"></div>
-            <div class="circle outer2"></div>
-            <div class="circle outer3"></div>
-            <div class="circle inner"></div>
-            <div class="circle inner2"></div>
-            <div class="circle inner3"></div>
-            <div class="topnotches">
-                <div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div>
-            </div>
-            <div class="bottomnotches">
-                <div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div>
-            </div>
-            <div class="center">
-                <div class="top left"></div><div class="top right"></div><div class="bottom left"></div><div class="bottom right"></div>
-            </div>
+   <!-- HUD interface -->
+<div class="hud">
+    <div class="orange">
+        <div class="notches">
+            <div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div>
         </div>
-        <div class="blue">
-            <div class="circle inner1"></div>
-            <div class="notches">
-                <div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div>
-            </div>
-            <div class="circle inner2"></div>
-            <!-- React App Mount Point -->
-            <div id="root">
-                <!-- React app content will be injected here -->
-            </div>
-            <script type="module" src="/src/main.jsx"></script>
+        <div class="circle outer"></div>
+        <div class="circle outer1"></div>
+        <div class="circle outer2"></div>
+        <div class="circle outer3"></div>
+        <div class="circle inner"></div>
+        <div class="circle inner2"></div>
+        <div class="circle inner3"></div>
+        <div class="topnotches">
+            <div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div>
         </div>
-
-        <!-- Center text on top of everything -->
-        <div class="center-text">
-            <!-- Content can be dynamic -->
+        <div class="bottomnotches">
+            <div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div>
         </div>
-
-        <div class="callout left">
-            <div class="title" style="color: #57b3c0;">SYSTEM ONLINE</div>
-            <div style="color: #57b3c0;">Status: Active</div>
-        </div>
-        <div class="callout right">
-            <div class="title" style="color: #57b3c0;">ALL SYSTEMS NOMINAL</div>
-            <div style="color: #57b3c0;">Performance: Optimal</div>
+        <div class="center">
+            <div class="top left"></div><div class="top right"></div><div class="bottom left"></div><div class="bottom right"></div>
         </div>
     </div>
+    <div class="blue">
+        <div class="circle inner1"></div>
+        <div class="notches">
+            <div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div>
+        </div>
+        <div class="circle inner2"></div>
+        <!-- React App Mount Point -->
+        <div id="root">
+            <!-- React app content will be injected here -->
+        </div>
+        <script type="module" src="/src/main.jsx"></script>
+    </div>
 
-    <script>
-        // Initialize preloader and animation (Original Script)
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("Preloading starting");
-            const mountain = document.getElementById('mountain');
-            const west = document.getElementById('west');
-            const overlay = document.getElementById('intro-overlay');
-            if (!mountain || !west || !overlay) { console.error("Intro animation elements missing."); if (overlay) overlay.style.display = 'none'; return; }
-            mountain.style.left = '50%'; mountain.style.transform = 'translateX(-50%)'; mountain.style.top = '30%';
-            west.style.left = '50%'; west.style.transform = 'translateX(-50%)'; west.style.top = '55%';
-            const loadingIndicator = document.createElement('div'); loadingIndicator.style.position = 'absolute'; loadingIndicator.style.bottom = '20%'; loadingIndicator.style.left = '50%'; loadingIndicator.style.transform = 'translateX(-50%)'; loadingIndicator.style.color = '#555'; loadingIndicator.style.fontSize = '1.5rem'; loadingIndicator.textContent = 'Loading...'; overlay.appendChild(loadingIndicator);
-            const assetsToPreload = [];
-            function startAnimation() {
-                console.log("All assets loaded, starting animation");
-                if (loadingIndicator && loadingIndicator.parentNode) { loadingIndicator.remove(); }
-                setTimeout(() => { console.log("Fading in words"); mountain.style.transition = 'opacity 3.5s ease-out'; west.style.transition = 'opacity 3.5s ease-out'; mountain.style.opacity = '1'; west.style.opacity = '1'; }, 500);
-                setTimeout(() => { console.log("Sliding words"); mountain.style.transition = 'opacity 3.5s ease-out, transform 0.8s ease-in-out'; west.style.transition = 'opacity 3.5s ease-out, transform 0.8s ease-in-out'; const screenWidth = window.innerWidth; mountain.style.transform = `translateX(-${screenWidth + 500}px)`; west.style.transform = `translateX(${screenWidth + 500}px)`; }, 7000);
-                setTimeout(() => { console.log("Showing content"); overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none'; }, 8000);
-                setTimeout(() => { overlay.style.display = 'none'; document.body.style.overflow = 'auto'; }, 8500);
-            }
-            function preloadAssets() {
-                console.log("Preloading assets");
-                const fontPreloader = new FontFaceObserver('Open Sans'); assetsToPreload.push(fontPreloader.load());
-                Promise.all(assetsToPreload).then(() => { setTimeout(startAnimation, 2000); }).catch(err => { console.error('Failed to preload some assets:', err); setTimeout(startAnimation, 3000); });
-            }
-            setTimeout(preloadAssets, 100);
-            function FontFaceObserver(family) { this.load = function () { return new Promise((resolve) => { setTimeout(resolve, 1500); }); }; }
-        });
+    <!-- Center text on top of everything -->
+    <div class="center-text">
+        <!-- Content can be dynamic -->
+    </div>
 
-        // Initialize menu functionality (Original Script)
-        document.addEventListener('DOMContentLoaded', () => {
-            const menuToggle = document.querySelector('.menu-toggle'); const slidingMenu = document.querySelector('.sliding-menu');
-            if (!menuToggle || !slidingMenu) { console.error('Menu toggle or sliding menu element not found.'); return; }
-            menuToggle.addEventListener('click', function () { this.classList.toggle('active'); slidingMenu.classList.toggle('active'); console.log('Menu toggle clicked. Active:', slidingMenu.classList.contains('active')); });
-            const menuItems = slidingMenu.querySelectorAll('.menu-item'); const contentSections = slidingMenu.querySelectorAll('.menu-content-section');
-            if (menuItems.length === 0 || contentSections.length === 0) { console.warn('No menu items or content sections found.'); return; }
-            menuItems.forEach(item => { item.addEventListener('click', function () { const currentActiveItem = slidingMenu.querySelector('.menu-item.active'); const currentActiveSection = slidingMenu.querySelector('.menu-content-section.active'); if (currentActiveItem) { currentActiveItem.classList.remove('active'); } if (currentActiveSection) { currentActiveSection.classList.remove('active'); } this.classList.add('active'); const targetId = this.getAttribute('data-target'); const targetSection = document.getElementById(targetId); if (targetSection) { targetSection.classList.add('active'); } else { console.error('Target content section not found:', targetId); } }); });
-            if (!slidingMenu.querySelector('.menu-item.active') && menuItems.length > 0) { menuItems[0].classList.add('active'); const firstTargetId = menuItems[0].getAttribute('data-target'); const firstSection = document.getElementById(firstTargetId); if (firstSection && !firstSection.classList.contains('active')) { firstSection.classList.add('active'); } }
-        });
-    </script>
+    <div class="callout left">
+        <div class="title" style="color: #57b3c0;">SYSTEM ONLINE</div>
+        <div style="color: #57b3c0;">Status: Active</div>
+    </div>
+    <div class="callout right">
+        <div class="title" style="color: #57b3c0;">ALL SYSTEMS NOMINAL</div>
+        <div style="color: #57b3c0;">Performance: Optimal</div>
+    </div>
+</div>
+
+<script>
+    // Initialize preloader and animation (Original Script)
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log("Preloading starting");
+        const mountain = document.getElementById('mountain');
+        const west = document.getElementById('west');
+        const overlay = document.getElementById('intro-overlay');
+        if (!mountain || !west || !overlay) { console.error("Intro animation elements missing."); if (overlay) overlay.style.display = 'none'; return; }
+        mountain.style.left = '50%'; mountain.style.transform = 'translateX(-50%)'; mountain.style.top = '30%';
+        west.style.left = '50%'; west.style.transform = 'translateX(-50%)'; west.style.top = '55%';
+        const loadingIndicator = document.createElement('div'); loadingIndicator.style.position = 'absolute'; loadingIndicator.style.bottom = '20%'; loadingIndicator.style.left = '50%'; loadingIndicator.style.transform = 'translateX(-50%)'; loadingIndicator.style.color = '#555'; loadingIndicator.style.fontSize = '1.5rem'; loadingIndicator.textContent = 'Loading...'; overlay.appendChild(loadingIndicator);
+        const assetsToPreload = [];
+        function startAnimation() {
+            console.log("All assets loaded, starting animation");
+            if (loadingIndicator && loadingIndicator.parentNode) { loadingIndicator.remove(); }
+            setTimeout(() => { console.log("Fading in words"); mountain.style.transition = 'opacity 3.5s ease-out'; west.style.transition = 'opacity 3.5s ease-out'; mountain.style.opacity = '1'; west.style.opacity = '1'; }, 500);
+            setTimeout(() => { console.log("Sliding words"); mountain.style.transition = 'opacity 3.5s ease-out, transform 0.8s ease-in-out'; west.style.transition = 'opacity 3.5s ease-out, transform 0.8s ease-in-out'; const screenWidth = window.innerWidth; mountain.style.transform = `translateX(-${screenWidth + 500}px)`; west.style.transform = `translateX(${screenWidth + 500}px)`; }, 7000);
+            setTimeout(() => { console.log("Showing content"); overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none'; }, 8000);
+            setTimeout(() => { overlay.style.display = 'none'; document.body.style.overflow = 'auto'; }, 8500);
+        }
+        function preloadAssets() {
+            console.log("Preloading assets");
+            const fontPreloader = new FontFaceObserver('Open Sans'); assetsToPreload.push(fontPreloader.load());
+            Promise.all(assetsToPreload).then(() => { setTimeout(startAnimation, 2000); }).catch(err => { console.error('Failed to preload some assets:', err); setTimeout(startAnimation, 3000); });
+        }
+        setTimeout(preloadAssets, 100);
+        function FontFaceObserver(family) { this.load = function () { return new Promise((resolve) => { setTimeout(resolve, 1500); }); }; }
+    });
+
+    // Initialize menu functionality (Original Script)
+    document.addEventListener('DOMContentLoaded', () => {
+        const menuToggle = document.querySelector('.menu-toggle'); const slidingMenu = document.querySelector('.sliding-menu');
+        if (!menuToggle || !slidingMenu) { console.error('Menu toggle or sliding menu element not found.'); return; }
+        menuToggle.addEventListener('click', function () { this.classList.toggle('active'); slidingMenu.classList.toggle('active'); console.log('Menu toggle clicked. Active:', slidingMenu.classList.contains('active')); });
+        const menuItems = slidingMenu.querySelectorAll('.menu-item'); const contentSections = slidingMenu.querySelectorAll('.menu-content-section');
+        if (menuItems.length === 0 || contentSections.length === 0) { console.warn('No menu items or content sections found.'); return; }
+        menuItems.forEach(item => { item.addEventListener('click', function () { const currentActiveItem = slidingMenu.querySelector('.menu-item.active'); const currentActiveSection = slidingMenu.querySelector('.menu-content-section.active'); if (currentActiveItem) { currentActiveItem.classList.remove('active'); } if (currentActiveSection) { currentActiveSection.classList.remove('active'); } this.classList.add('active'); const targetId = this.getAttribute('data-target'); const targetSection = document.getElementById(targetId); if (targetSection) { targetSection.classList.add('active'); } else { console.error('Target content section not found:', targetId); } }); });
+        if (!slidingMenu.querySelector('.menu-item.active') && menuItems.length > 0) { menuItems[0].classList.add('active'); const firstTargetId = menuItems[0].getAttribute('data-target'); const firstSection = document.getElementById(firstTargetId); if (firstSection && !firstSection.classList.contains('active')) { firstSection.classList.add('active'); } }
+    });
+</script>
 </body>
 </html>
