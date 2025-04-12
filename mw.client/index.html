@@ -672,7 +672,7 @@
             vertical-align: middle;
         }
 
-        /* CRITICAL FIX: UI overlays with very high z-index and opaque backgrounds */
+        /* CRITICAL FIX: UI overlays with panel masking layer */
         .ui-overlay {
             position: fixed;
             top: 0;
@@ -683,23 +683,38 @@
             z-index: 900 !important;
         }
 
-        /* CRITICAL FIX: Flat panels with opaque backgrounds */
+        /* CRITICAL FIX: Make panels 35% more transparent (0.455 instead of 0.7) */
         .flat-panel {
-            position: absolute;
+            position: relative; /* Create stacking context */
             top: 50px;
             left: 50px;
             width: 75%;
             height: 75%;
-            background-color: rgba(13, 20, 24, 1) !important; /* FULLY OPAQUE background */
+            background-color: rgba(13, 20, 24, 0.455); /* 35% more transparent than original 0.7 */
             border-radius: 12px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
             padding: 20px;
             color: white;
             pointer-events: auto;
             z-index: 901 !important;
+            isolation: isolate; /* Create stacking context for children */
         }
 
-        /* Ensure all panel contents are above HUD */
+            /* Create a pseudo-element mask behind panel content */
+            .flat-panel::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(13, 20, 24, 0.617); /* Also 35% more transparent */
+                border-radius: 12px;
+                z-index: -1; /* Behind panel content */
+                pointer-events: none;
+            }
+
+        /* Ensure all panel contents are above HUD with proper masking */
         .panel-header,
         .panel-content,
         .header-in-panel,
@@ -712,6 +727,7 @@
         .buttons-row {
             position: relative;
             z-index: 902 !important;
+            background-color: transparent; /* Let panel background show through */
         }
 
         /* Google auth elements */
@@ -721,6 +737,12 @@
         .google-button-container {
             z-index: 950 !important;
             position: relative;
+        }
+
+        /* Additional fixes for transparent panel content */
+        .panel-text, p {
+            position: relative;
+            z-index: 5;
         }
 
         /* Animations (Unchanged) */

@@ -1,6 +1,6 @@
 /**
  * About.jsx - Component for the About page with Google authentication
- * (Revision 13 - Fixed Google Login Display & Organized Button Sections)
+ * (Revision 14 - Added configurable content positioning variables)
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -18,6 +18,30 @@ export default function About() {
 
     // Google Client ID
     const GOOGLE_CLIENT_ID = "7074654684-866fnk2dp7c23e54nt35o5o3uvlm6fbl.apps.googleusercontent.com";
+
+    // *** CONFIGURABLE CONTENT POSITIONING VARIABLES ***
+    // Adjust these values to control the vertical positioning of content sections
+    const CONFIG = {
+        desktop: {
+            // Controls content container top margin in desktop view
+            contentContainerTopMargin: '-130px',
+            // Controls logged-out content section max height in desktop view
+            contentMaxHeight: 'calc(100% - 200px)',
+            // Controls position of button stack in desktop view
+            buttonStackTopPosition: '75%'
+        },
+        mobile: {
+            // Controls content container top margin in mobile view
+            contentContainerTopMargin: '-65px',
+            // Controls logged-out content section max height in mobile view 
+            contentMaxHeight: 'calc(100vh - 250px)',
+            // Controls position of button stack in mobile view
+            buttonStackBottomPosition: '100px',
+            // Controls top margin for the button area
+            buttonStackTopMargin: '20px'
+        }
+    };
+    // *** END CONFIGURABLE CONTENT POSITIONING VARIABLES ***
 
     // Check initial login state
     useEffect(() => {
@@ -423,11 +447,17 @@ export default function About() {
                 panel.appendChild(templateButtonContainer);
 
             } else { // Desktop Logged Out
+                // *** SECTION WITH CONFIGURABLE CONTENT POSITIONING - DESKTOP VIEW ***
                 const contentContainer = document.createElement('div');
                 contentContainer.className = 'content-container';
-                contentContainer.style.padding = '30px'; contentContainer.style.marginTop = '30px';
-                contentContainer.style.display = 'flex'; contentContainer.style.flexDirection = 'column';
-                contentContainer.style.overflow = 'auto'; contentContainer.style.maxHeight = 'calc(100% - 200px)';
+                contentContainer.style.padding = '30px';
+                // Using the configurable top margin
+                contentContainer.style.marginTop = CONFIG.desktop.contentContainerTopMargin;
+                contentContainer.style.display = 'flex';
+                contentContainer.style.flexDirection = 'column';
+                contentContainer.style.overflow = 'auto';
+                // Using the configurable max height
+                contentContainer.style.maxHeight = CONFIG.desktop.contentMaxHeight;
                 contentContainer.innerHTML = `
                     <p style="font-size: 35px; line-height: 1.4; margin-bottom: 40px; color: #a7d3d8;">
                         Mountain West provides compassionate care for those struggling with addiction. Our experienced team offers sober living environments, recovery support groups, and personalized treatment plans to help you achieve lasting sobriety. We believe in addressing all aspects of recovery, from in-house therapy to life skills development, creating a supportive community where your recovery journey begins with dignity and hope.
@@ -440,7 +470,8 @@ export default function About() {
                 const leftButtonStack = document.createElement('div');
                 leftButtonStack.style.position = 'absolute';
                 leftButtonStack.style.left = '50px'; // Attach to left side
-                leftButtonStack.style.top = '67%';
+                // Using the configurable top position
+                leftButtonStack.style.top = CONFIG.desktop.buttonStackTopPosition;
                 leftButtonStack.style.transform = 'translateY(-50%)';
                 leftButtonStack.style.display = 'flex';
                 leftButtonStack.style.flexDirection = 'column'; // Stack vertically
@@ -590,13 +621,19 @@ export default function About() {
                 panel.appendChild(templateButtonContainer);
 
             } else { // Mobile Logged Out
+                // *** SECTION WITH CONFIGURABLE CONTENT POSITIONING - MOBILE VIEW ***
                 const contentContainer = document.createElement('div');
                 contentContainer.className = 'content-container';
-                contentContainer.style.padding = '15px'; contentContainer.style.marginTop = '15px';
-                contentContainer.style.display = 'flex'; contentContainer.style.flexDirection = 'column';
-                contentContainer.style.width = 'calc(100% - 30px)'; contentContainer.style.paddingBottom = '120px';
+                contentContainer.style.padding = '15px';
+                // Using the configurable top margin
+                contentContainer.style.marginTop = CONFIG.mobile.contentContainerTopMargin;
+                contentContainer.style.display = 'flex';
+                contentContainer.style.flexDirection = 'column';
+                contentContainer.style.width = 'calc(100% - 30px)';
+                contentContainer.style.paddingBottom = '120px';
                 contentContainer.style.overflowY = 'auto';
-                contentContainer.style.maxHeight = 'calc(100vh - 250px)';
+                // Using the configurable max height
+                contentContainer.style.maxHeight = CONFIG.mobile.contentMaxHeight;
                 contentContainer.innerHTML = `
                     <p style="font-size: 16px; line-height: 1.4; margin-bottom: 20px; color: #a7d3d8;">
                         Mountain West provides compassionate care for those struggling with addiction. Our experienced team offers sober living environments, recovery support groups, and personalized treatment plans to help you achieve lasting sobriety. We believe in addressing all aspects of recovery, from in-house therapy to life skills development, creating a supportive community where your recovery journey begins with dignity and hope.
@@ -604,11 +641,14 @@ export default function About() {
                 `;
                 panel.appendChild(contentContainer);
 
-                // **Mobile_NoLogin_Buttons**
+                // **** MOBILE BUTTON AREA WITH CONFIGURABLE POSITIONING ****
                 // Configuration for button container on mobile
                 const mobileButtonArea = document.createElement('div');
                 mobileButtonArea.style.position = 'absolute';
-                mobileButtonArea.style.bottom = '200px';
+                // Using the configurable bottom position
+                mobileButtonArea.style.bottom = CONFIG.mobile.buttonStackBottomPosition;
+                // Apply the configurable top margin
+                mobileButtonArea.style.marginTop = CONFIG.mobile.buttonStackTopMargin;
                 mobileButtonArea.style.left = '0';
                 mobileButtonArea.style.width = '100%';
                 mobileButtonArea.style.display = 'flex';
