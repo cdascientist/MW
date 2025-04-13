@@ -3,4 +3,4 @@
 # Install the dependencies	
 npm install react-router-dom
 npm install @react-oauth/google
-npm install framer-motion
+npm install framer-motion@10.16.16 --save --legacy-peer-deps
