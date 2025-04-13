@@ -28,7 +28,7 @@ export default function About() {
             // Controls logged-out content section max height in desktop view
             contentMaxHeight: 'calc(100% - 200px)',
             // Controls position of button stack in desktop view
-            buttonStackTopPosition: '75%',
+            buttonStackTopPosition: '85%',
             // ****** ADDED NEW CONFIGURABLE VARIABLES FOR DESKTOP ******
             // Controls top position for the content section after login
             loggedInContentTopPosition: '100px',
