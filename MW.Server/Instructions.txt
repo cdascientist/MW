@@ -1,4 +1,153 @@
-﻿cd mw.client
+﻿MySQL Server:
+basis-project-ef1e.g.aivencloud.com
+avnadmin
+AVNS_wUH-gfFc3pf76IZ7l0Z
+defaultdb
+mysql://avnadmin:AVNS_wUH-gfFc3pf76IZ7l0Z@basis-project-ef1e.g.aivencloud.com:13566/defaultdb?ssl-mode=REQUIRED
+
+
+EntityFrameworkcore 8.0.8
+EntityFrameworkcore.Design 8.0.8
+EntityFrameworkcore.Tools 8.0.8
+Mysql.EntityFramework 8.0.0
+
+
+To Update Or Install models:
+dotnet tool install --global dotnet-ef
+dotnet nuget locals all --clear
+dotnet ef dbcontext scaffold "server=basis-project-ef1e.g.aivencloud.com;port=13566;user=avnadmin;password=AVNS_wUH-gfFc3pf76IZ7l0Z;database=defaultdb;SSL Mode=Required" MySql.EntityFrameworkCore --output-dir Models --data-annotations --force --no-onconfiguring
+
+Set Cnnfiguration in appsettings.json
+{
+  "ConnectionStrings": {
+	"DefaultConnection": "server=basis-project-ef1e.g.aivencloud.com;port=13566;user=avnadmin;password=AVNS_wUH-gfFc3pf76IZ7l0Z;database=defaultdb;SSL Mode=Required"
+  }
+} 
+
+Set configuration in Program.cs	
+
+Set the font end application port in:
+Current:5173
+
+MW.Server.csproj
+vite.config.js
+
+
+Confiure httpd.conf:
+
+*****************************************************************************************************
+# Basic server settings
+ServerRoot "/xampp/apache"
+Listen 80
+Listen 443
+
+# Essential modules
+LoadModule access_compat_module modules/mod_access_compat.so
+LoadModule actions_module modules/mod_actions.so
+LoadModule alias_module modules/mod_alias.so
+LoadModule auth_basic_module modules/mod_auth_basic.so
+LoadModule authn_core_module modules/mod_authn_core.so
+LoadModule authn_file_module modules/mod_authn_file.so
+LoadModule authz_core_module modules/mod_authz_core.so
+LoadModule authz_host_module modules/mod_authz_host.so
+LoadModule authz_user_module modules/mod_authz_user.so
+LoadModule dir_module modules/mod_dir.so
+LoadModule env_module modules/mod_env.so
+LoadModule headers_module modules/mod_headers.so
+LoadModule log_config_module modules/mod_log_config.so
+LoadModule mime_module modules/mod_mime.so
+LoadModule proxy_module modules/mod_proxy.so
+LoadModule proxy_http_module modules/mod_proxy_http.so
+LoadModule proxy_wstunnel_module modules/mod_proxy_wstunnel.so
+LoadModule rewrite_module modules/mod_rewrite.so
+LoadModule setenvif_module modules/mod_setenvif.so
+LoadModule ssl_module modules/mod_ssl.so
+
+# Main server configuration
+ServerAdmin admin@mountainwestjobsearch.com
+ServerName mountainwestjobsearch.com
+DocumentRoot "/xampp/htdocs"
+
+# Basic directory settings
+<Directory />
+    AllowOverride none
+    Require all denied
+</Directory>
+
+<Directory "/xampp/htdocs">
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Require all granted
+</Directory>
+
+# Log files
+ErrorLog "logs/error.log"
+LogLevel warn
+CustomLog "logs/access.log" combined
+
+# MIME types
+TypesConfig conf/mime.types
+
+# HTTP Virtual Host (Redirect to HTTPS)
+<VirtualHost *:80>
+    ServerName mountainwestjobsearch.com
+    ServerAlias www.mountainwestjobsearch.com
+
+    # Redirect all HTTP traffic to HTTPS
+    RewriteEngine On
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
+</VirtualHost>
+
+# HTTPS Virtual Host
+<VirtualHost *:443>
+    ServerName mountainwestjobsearch.com
+    ServerAlias www.mountainwestjobsearch.com
+
+    # SSL Configuration
+    SSLEngine on
+    SSLCertificateFile "C:/Users/Administrator/Desktop/103.90.162.17/mountainwestjobsearch/mountainwestjobsearch.com_ssl_certificate.cer"
+    SSLCertificateKeyFile "C:/Users/Administrator/Desktop/103.90.162.17/mountainwestjobsearch/private_key.key"
+    SSLCertificateChainFile "C:/Users/Administrator/Desktop/103.90.162.17/mountainwestjobsearch/chain.crt"
+
+    # Enable SSL Proxy for backends
+    SSLProxyEngine On
+    # Don't verify certificates for localhost backends
+    SSLProxyVerify none
+    SSLProxyCheckPeerCN off
+    SSLProxyCheckPeerName off
+
+    # Proxy configuration with correct headers
+    ProxyPreserveHost On
+
+    # Route API requests to the .NET backend
+    ProxyPass /weatherforecast http://localhost:5078/weatherforecast
+    ProxyPassReverse /weatherforecast http://localhost:5078/weatherforecast
+
+    # Proxy the main application to the React frontend
+    ProxyPass / https://localhost:5173/
+    ProxyPassReverse / https://localhost:5173/
+
+    # WebSocket support if needed
+    ProxyPass /ws ws://localhost:5173/ws
+    ProxyPassReverse /ws ws://localhost:49964/ws
+
+    # Ensure headers are passed correctly
+    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Port "443"
+    RequestHeader set X-Forwarded-Host "%{HTTP_HOST}e"
+
+    # Logging
+    ErrorLog "logs/proxy-ssl-error.log"
+    CustomLog "logs/proxy-ssl-access.log" combined
+</VirtualHost>
+
+
+*****************************************************************************************************
+
+Install Dependancies:
+
+
+cd mw.client
 npm install --legacy-peer-deps
 npm list
 
