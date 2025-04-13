@@ -1,4 +1,6 @@
 ﻿cd mw.client
+npm install --legacy-peer-deps
+
 
 # Install the dependencies	
 npm install react-router-dom
