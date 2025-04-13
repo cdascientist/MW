@@ -5,26 +5,28 @@ AVNS_wUH-gfFc3pf76IZ7l0Z
 defaultdb
 mysql://avnadmin:AVNS_wUH-gfFc3pf76IZ7l0Z@basis-project-ef1e.g.aivencloud.com:13566/defaultdb?ssl-mode=REQUIRED
 
+******************************************************************************************************
 
 EntityFrameworkcore 8.0.8
 EntityFrameworkcore.Design 8.0.8
 EntityFrameworkcore.Tools 8.0.8
 Mysql.EntityFramework 8.0.0
 
-
-To Update Or Install models:
-dotnet tool install --global dotnet-ef
-dotnet nuget locals all --clear
-dotnet ef dbcontext scaffold "server=basis-project-ef1e.g.aivencloud.com;port=13566;user=avnadmin;password=AVNS_wUH-gfFc3pf76IZ7l0Z;database=defaultdb;SSL Mode=Required" MySql.EntityFrameworkCore --output-dir Models --data-annotations --force --no-onconfiguring
+******************************************************************************************************
 
 Set Cnnfiguration in appsettings.json
 {
   "ConnectionStrings": {
 	"DefaultConnection": "server=basis-project-ef1e.g.aivencloud.com;port=13566;user=avnadmin;password=AVNS_wUH-gfFc3pf76IZ7l0Z;database=defaultdb;SSL Mode=Required"
   }
-} 
+}
 
-Set configuration in Program.cs	
+To Update Or Install models:
+dotnet tool install --global dotnet-ef
+dotnet nuget locals all --clear
+dotnet ef dbcontext scaffold "server=basis-project-ef1e.g.aivencloud.com;port=13566;user=avnadmin;password=AVNS_wUH-gfFc3pf76IZ7l0Z;database=defaultdb;SSL Mode=Required" MySql.EntityFrameworkCore --output-dir Models --data-annotations --force --no-onconfiguring
+
+****************************************************************************************************** 
 
 Set the font end application port in:
 Current:5173
@@ -33,9 +35,10 @@ MW.Server.csproj
 vite.config.js
 
 
+*****************************************************************************************************
 Confiure httpd.conf:
 
-*****************************************************************************************************
+
 # Basic server settings
 ServerRoot "/xampp/apache"
 Listen 80
@@ -156,3 +159,6 @@ npm list
 npm install react-router-dom
 npm install @react-oauth/google
 npm install framer-motion@10.16.16 --save --legacy-peer-deps
+
+
+******************************************************************************************************
