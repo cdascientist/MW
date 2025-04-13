@@ -1,15 +1,12 @@
 /**
- * Analysis Home Page.jsx - Template component for logged-in pages
- * Updated with 35% larger panel and text for desktop only
+ * Analysis_Home.jsx - Analysis Dashboard Component
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import "../../style/AboutStyle.css"; // Adjusted to move a directory up
+import "../../style/AboutStyle.css"; // Correct path to styles
 
-
-export default function LoggedInTemplate() {
+export default function Analysis_Home() {
     // ====================================
     // 1. COMPONENT SETUP & STATE INITIALIZATION
     // ====================================
@@ -18,6 +15,7 @@ export default function LoggedInTemplate() {
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
     const overlayRef = useRef(null);
+    const panelRef = useRef(null);
 
     // ====================================
     // 2. AUTHENTICATION VERIFICATION & REDIRECTION
@@ -28,20 +26,40 @@ export default function LoggedInTemplate() {
         let isAuthenticated = false;
         if (savedLoginStatus === 'true' && savedUserData) {
             try {
-                const parsedUserData = JSON.parse(savedUserData); setUserData(parsedUserData); setIsLoggedIn(true); isAuthenticated = true;
-            } catch (error) { console.error('LoggedInTemplate: Failed to parse saved user data:', error); localStorage.removeItem('mw_isLoggedIn'); localStorage.removeItem('mw_userData'); }
-        } else { setIsLoggedIn(false); setUserData(null); }
+                const parsedUserData = JSON.parse(savedUserData);
+                setUserData(parsedUserData);
+                setIsLoggedIn(true);
+                isAuthenticated = true;
+            } catch (error) {
+                console.error('Analysis_Home: Failed to parse saved user data:', error);
+                localStorage.removeItem('mw_isLoggedIn');
+                localStorage.removeItem('mw_userData');
+            }
+        } else {
+            setIsLoggedIn(false);
+            setUserData(null);
+        }
         setLoading(false);
-        if (!isAuthenticated && !loading) { console.warn("LoggedInTemplate: Auth check complete, user not authenticated. Redirecting..."); redirectToLogin("Not authenticated after check"); }
+        if (!isAuthenticated && !loading) {
+            console.warn("Analysis_Home: Auth check complete, user not authenticated. Redirecting...");
+            redirectToLogin("Not authenticated after check");
+        }
     }, []);
 
     // Redirect function
-    const redirectToLogin = (reason) => { navigate('/about'); };
+    const redirectToLogin = (reason) => {
+        navigate('/about');
+    };
 
     // Logout handler
     const handleLogout = () => {
-        if (window.google && window.google.accounts && window.google.accounts.id) { window.google.accounts.id.disableAutoSelect(); }
-        setUserData(null); setIsLoggedIn(false); localStorage.removeItem('mw_isLoggedIn'); localStorage.removeItem('mw_userData');
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+            window.google.accounts.id.disableAutoSelect();
+        }
+        setUserData(null);
+        setIsLoggedIn(false);
+        localStorage.removeItem('mw_isLoggedIn');
+        localStorage.removeItem('mw_userData');
         redirectToLogin("User logged out");
     };
 
@@ -51,34 +69,55 @@ export default function LoggedInTemplate() {
     const getStyles = () => {
         const isMobile = window.innerWidth <= 768;
 
-        // --- Define spacing & positioning values ---
-        const panelPaddingTop = isMobile ? '100px' : '130px';
+        // *** GLOBAL SIZE CONFIGURATION ***
+        // Panel sizing (25% smaller than LoggedInTemplate)
+        const sizeFactor = 0.75; // 25% smaller (75% of original size)
+
+        // Desktop-specific panel size with 25% reduction
+        const desktopPanelWidth = isMobile ? '95%' : `calc(85% * ${sizeFactor})`; // 25% smaller
+        const desktopPanelHeight = isMobile ? '90vh' : `calc(85vh * ${sizeFactor})`; // 25% smaller
+        const desktopMaxWidth = isMobile ? '1200px' : `calc(1200px * ${sizeFactor})`; // 25% smaller
+        // *** END GLOBAL SIZE CONFIGURATION ***
+
+        // *** PANEL PADDING CONFIGURATION ***
+        const panelPaddingTop = isMobile ? '20px' : '30px';
         const panelPaddingSides = isMobile ? '15px' : '40px';
         const panelPaddingBottom = isMobile ? '30px' : '50px';
+        // *** END PANEL PADDING CONFIGURATION ***
 
-        // Desktop-specific panel size enhancement (35% larger)
-        const desktopPanelWidth = isMobile ? '95%' : 'calc(85% * 1.35)'; // 35% wider for desktop
-        const desktopPanelHeight = isMobile ? '90vh' : 'calc(85vh * 1.35)'; // 35% taller for desktop
-        const desktopMaxWidth = isMobile ? '1200px' : 'calc(1200px * 1.35)'; // 35% larger max width
+        // ****** CONTENT VERTICAL POSITION CONFIGURATION ****** 
+        // This variable controls the space between the top of the panel and the content
+        // Increase this to push content down further below buttons
+        const contentTopOffsetMobile = '180px';
+        const contentTopOffsetDesktop = '140px';
+        // ****** END CONTENT VERTICAL POSITION CONFIGURATION ******
 
-        // Text size enhancement (35% larger for desktop only)
+        // *** CONTENT MARGIN CONFIGURATION ***
+        const profileTopMargin = isMobile ? '10px' : '20px';
+        // Content sections side margins for preventing horizontal scroll
+        const contentSidePadding = '15px'; // Space to prevent horizontal scroll
+        // Content right padding (to avoid button overlap)
+        const contentRightPadding = isMobile ? '20px' : '120px'; // Extra space on right for buttons
+        // *** END CONTENT MARGIN CONFIGURATION ***
+
+        // *** BUTTON POSITION CONFIGURATION ***
+        const sideButtonsTop = isMobile ? '20px' : '30px';
+        const sideButtonsRight = panelPaddingSides;
+        const buttonGap = '10px';
+        // *** END BUTTON POSITION CONFIGURATION ***
+
+        // *** FONT SIZE CONFIGURATION ***
         const headingFontSize = isMobile ? '20px' : 'calc(24px * 1.35)'; // 35% larger heading for desktop
         const textFontSize = isMobile ? '15px' : 'calc(16px * 1.35)'; // 35% larger text for desktop
         const sectionHeadingFontSize = isMobile ? '18px' : 'calc(20px * 1.35)'; // 35% larger section heading for desktop
         const userNameFontSize = isMobile ? '15px' : 'calc(17px * 1.35)'; // 35% larger username for desktop
         const userEmailFontSize = isMobile ? '11px' : 'calc(13px * 1.35)'; // 35% larger email for desktop
         const buttonFontSize = isMobile ? '12px' : 'calc(14px * 1.35)'; // 35% larger button text for desktop
-
-        // Absolute positions (relative to panel edges)
-        const profileTop = isMobile ? '20px' : '30px';
-        const profileLeft = panelPaddingSides;
-        const buttonStackTop = isMobile ? '15px' : '25px';
-        const buttonStackRight = panelPaddingSides;
-        const buttonStackGap = isMobile ? '10px' : '15px';
+        // *** END FONT SIZE CONFIGURATION ***
 
         return {
             overlay: {
-                className: 'ui-overlay logged-in-template-overlay',
+                className: 'ui-overlay analysis-overlay',
                 style: {
                     zIndex: '9999', position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
                     pointerEvents: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center',
@@ -86,52 +125,70 @@ export default function LoggedInTemplate() {
                 }
             },
             panel: {
-                className: 'flat-panel logged-in-template-panel',
+                className: 'flat-panel analysis-panel',
                 style: {
                     position: 'relative',
                     width: desktopPanelWidth, maxWidth: desktopMaxWidth,
                     height: desktopPanelHeight, backgroundColor: 'rgba(13, 20, 24, 0.9)',
                     borderRadius: '12px', boxShadow: '0 6px 15px rgba(0, 0, 0, 0.3)',
-                    paddingTop: panelPaddingTop,
-                    paddingLeft: panelPaddingSides,
-                    paddingRight: panelPaddingSides,
-                    paddingBottom: panelPaddingBottom,
-                    color: 'white', pointerEvents: 'auto', overflowY: 'auto',
+                    padding: panelPaddingTop + ' ' + panelPaddingSides + ' ' + panelPaddingBottom + ' ' + panelPaddingSides,
+                    color: 'white', pointerEvents: 'auto',
+                    overflowY: 'auto', // Make the panel vertically scrollable
+                    overflowX: 'hidden', // Prevent horizontal scrolling
                     boxSizing: 'border-box',
                     opacity: 0, // Start with opacity 0 for animation
+                    WebkitOverflowScrolling: 'touch', // Improve scrolling on iOS
+                    msOverflowStyle: 'none', // Hide scrollbar in IE and Edge
+                    scrollbarWidth: 'thin', // Thin scrollbar in Firefox
                 }
             },
             profileContainer: {
                 style: {
-                    position: 'absolute',
-                    top: profileTop,
-                    left: profileLeft,
-                    display: 'flex', alignItems: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
                     gap: '15px',
-                    zIndex: 10,
+                    marginBottom: '20px',
+                    marginTop: profileTopMargin,
+                    width: 'calc(100% - ' + contentRightPadding + ')', // Prevent horizontal overflow
                     opacity: 0, // Start with opacity 0 for animation
                     transform: 'translateX(-50px)', // Start off-screen for animation
                 }
             },
-            buttonStackContainer: {
+            sideButtonsContainer: {
                 style: {
                     position: 'absolute',
-                    top: buttonStackTop,
-                    right: buttonStackRight,
-                    display: 'flex', flexDirection: 'column',
-                    gap: buttonStackGap,
-                    zIndex: 10,
-                    alignItems: 'flex-end',
+                    top: sideButtonsTop,
+                    right: sideButtonsRight,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: buttonGap,
+                    zIndex: 100,
                     opacity: 0, // Start with opacity 0 for animation
                     transform: 'translateX(50px)', // Start off-screen for animation
                 }
             },
             contentContainer: {
-                className: 'content-container',
                 style: {
                     width: '100%',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
+                    paddingRight: contentRightPadding, // Space for buttons
+                    paddingLeft: contentSidePadding,
+                    marginTop: isMobile ? contentTopOffsetMobile : contentTopOffsetDesktop, // Using the configurable top offset
                     opacity: 0, // Start with opacity 0 for animation
                     transform: 'translateY(30px)', // Start below for animation
+                }
+            },
+            titleHeading: {
+                style: {
+                    fontSize: headingFontSize,
+                    color: '#57b3c0',
+                    fontWeight: 'bold',
+                    marginBottom: '30px',
+                    width: 'calc(100% - ' + contentRightPadding + ')', // Prevent horizontal overflow
+                    overflowWrap: 'break-word', // Prevent text overflow
+                    wordWrap: 'break-word',
+                    hyphens: 'auto',
                 }
             },
             profilePhoto: {
@@ -164,10 +221,23 @@ export default function LoggedInTemplate() {
             logoutButton: { className: 'nav-button logout-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 99, 71, 0.2)', color: '#ff6347', border: '1px solid rgba(255, 99, 71, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
             chatButton: { className: 'nav-button chat-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 165, 0, 0.2)', color: '#FFA500', border: '1px solid rgba(255, 165, 0, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
             homeButton: { className: 'nav-button home-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(87, 179, 192, 0.2)', color: '#57b3c0', border: '1px solid rgba(87, 179, 192, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap', width: 'fit-content' } },
+            dashboardButton: { className: 'nav-button dashboard-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(142, 68, 173, 0.2)', color: '#8e44ad', border: '1px solid rgba(142, 68, 173, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
             contentHeading: { style: { fontSize: headingFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#57b3c0', fontWeight: 'bold', } },
             contentText: { style: { fontSize: textFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#c0d0d3', lineHeight: '1.6', } },
-            contentSection: { style: { backgroundColor: 'rgba(87, 179, 192, 0.05)', padding: isMobile ? '15px' : '20px', borderRadius: '8px', marginBottom: isMobile ? '15px' : '20px', border: '1px solid rgba(87, 179, 192, 0.1)', } },
-            contentSectionHeading: { style: { fontSize: sectionHeadingFontSize, marginBottom: '10px', color: '#57b3c0', fontWeight: '600', } },
+            contentSection: {
+                style: {
+                    backgroundColor: 'rgba(87, 179, 192, 0.05)',
+                    padding: isMobile ? '15px' : '20px',
+                    borderRadius: '8px',
+                    marginBottom: isMobile ? '25px' : '30px',
+                    border: '1px solid rgba(87, 179, 192, 0.1)',
+                    maxWidth: '100%',
+                    overflowWrap: 'break-word', // Prevent text overflow
+                    wordWrap: 'break-word',
+                    boxSizing: 'border-box',
+                }
+            },
+            contentSectionHeading: { style: { fontSize: sectionHeadingFontSize, marginBottom: '15px', color: '#57b3c0', fontWeight: '600', } },
         };
     };
 
@@ -197,7 +267,7 @@ export default function LoggedInTemplate() {
             }
             return;
         }
-        if (overlayRef.current || document.querySelector('.logged-in-template-overlay')) { return; }
+        if (overlayRef.current || document.querySelector('.analysis-overlay')) { return; }
 
         const styles = getStyles();
         const isMobile = window.innerWidth <= 768;
@@ -212,38 +282,11 @@ export default function LoggedInTemplate() {
 
             panel = document.createElement('div');
             panel.className = styles.panel.className;
-            panel.id = 'template-panel';
+            panel.id = 'analysis-panel';
             Object.assign(panel.style, styles.panel.style);
+            panelRef.current = panel;
 
-            // --- CREATE ABSOLUTE BUTTON STACK (Top-Right) ---
-            const buttonStackContainer = document.createElement('div');
-            buttonStackContainer.id = 'button-stack';
-            Object.assign(buttonStackContainer.style, styles.buttonStackContainer.style);
-
-            const logoutButton = document.createElement('button');
-            logoutButton.id = 'logout-button';
-            logoutButton.className = styles.logoutButton.className;
-            Object.assign(logoutButton.style, styles.logoutButton.style);
-            logoutButton.textContent = 'Logout';
-            buttonStackContainer.appendChild(logoutButton);
-
-            const chatButton = document.createElement('button');
-            chatButton.id = 'chat-button';
-            chatButton.className = styles.chatButton.className;
-            Object.assign(chatButton.style, styles.chatButton.style);
-            chatButton.textContent = 'Live Chat';
-            buttonStackContainer.appendChild(chatButton);
-
-            const homeButton = document.createElement('button');
-            homeButton.id = 'home-button';
-            homeButton.className = styles.homeButton.className;
-            Object.assign(homeButton.style, styles.homeButton.style);
-            homeButton.textContent = 'Back to Home';
-            buttonStackContainer.appendChild(homeButton);
-
-            panel.appendChild(buttonStackContainer);
-
-            // --- CREATE ABSOLUTE PROFILE INFO (Top-Left) ---
+            // --- CREATE PROFILE INFO (Top-Left) ---
             const profileContainer = document.createElement('div');
             profileContainer.id = 'profile-container';
             Object.assign(profileContainer.style, styles.profileContainer.style);
@@ -272,31 +315,104 @@ export default function LoggedInTemplate() {
             profileContainer.appendChild(userInfoDiv);
             panel.appendChild(profileContainer);
 
-            // --- CREATE FLOWED CONTENT AREA ---
+            // --- CREATE SIDE BUTTONS (Right) ---
+            const sideButtonsContainer = document.createElement('div');
+            sideButtonsContainer.id = 'side-buttons-container';
+            Object.assign(sideButtonsContainer.style, styles.sideButtonsContainer.style);
+
+            // Create buttons array for sorting by size/priority
+            const buttonsConfig = [
+                {
+                    id: 'logout-button',
+                    text: 'Logout',
+                    style: styles.logoutButton.style,
+                    className: styles.logoutButton.className,
+                    handler: () => handleLogout(),
+                    priority: 1
+                },
+                {
+                    id: 'chat-button',
+                    text: 'Live Chat',
+                    style: styles.chatButton.style,
+                    className: styles.chatButton.className,
+                    handler: () => navigate('/chat'),
+                    priority: 2
+                },
+                {
+                    id: 'dashboard-button',
+                    text: 'Back to Dashboard',
+                    style: styles.dashboardButton.style,
+                    className: styles.dashboardButton.className,
+                    handler: () => navigate('/loggedintemplate'),
+                    priority: 3
+                },
+                {
+                    id: 'home-button',
+                    text: 'Back to Home',
+                    style: styles.homeButton.style,
+                    className: styles.homeButton.className,
+                    handler: () => navigate('/'),
+                    priority: 4
+                }
+            ];
+
+            // Sort buttons by priority (ascending)
+            buttonsConfig.sort((a, b) => a.priority - b.priority);
+
+            // Create and add buttons in sorted order
+            buttonsConfig.forEach(config => {
+                const button = document.createElement('button');
+                button.id = config.id;
+                button.className = config.className;
+                Object.assign(button.style, config.style);
+                button.textContent = config.text;
+                button.addEventListener('click', config.handler);
+                sideButtonsContainer.appendChild(button);
+            });
+
+            panel.appendChild(sideButtonsContainer);
+
+            // --- CREATE CONTENT AREA ---
             const contentContainer = document.createElement('div');
             contentContainer.id = 'content-container';
-            contentContainer.className = styles.contentContainer.className;
             Object.assign(contentContainer.style, styles.contentContainer.style);
 
+            // Add title heading to content container
             const contentHeading = document.createElement('h2');
             Object.assign(contentHeading.style, styles.contentHeading.style);
-            contentHeading.textContent = "Template Main Content";
-
-            const contentSectionDiv = document.createElement('div');
-            Object.assign(contentSectionDiv.style, styles.contentSection.style);
-
-            const contentSectionHeading = document.createElement('h3');
-            Object.assign(contentSectionHeading.style, styles.contentSectionHeading.style);
-            contentSectionHeading.textContent = "Content Section Example";
-
-            const contentSectionP = document.createElement('p');
-            Object.assign(contentSectionP.style, styles.contentText.style);
-            contentSectionP.textContent = "This is an example content section with different styling to show how you can organize your page content.";
-
-            contentSectionDiv.appendChild(contentSectionHeading);
-            contentSectionDiv.appendChild(contentSectionP);
+            contentHeading.textContent = "Analysis Dashboard";
             contentContainer.appendChild(contentHeading);
-            contentContainer.appendChild(contentSectionDiv);
+
+            // Add single content section with Lorem Ipsum
+            const contentSection = document.createElement('div');
+            Object.assign(contentSection.style, styles.contentSection.style);
+
+            // Add lorem ipsum content
+            for (let i = 1; i <= 7; i++) {
+                const paragraph = document.createElement('p');
+                Object.assign(paragraph.style, styles.contentText.style);
+
+                // First paragraph has more specific content
+                if (i === 1) {
+                    paragraph.textContent = "Welcome to the Analysis Dashboard. This is where you can view and analyze your data, create visualizations, and generate reports based on the information collected from various sources.";
+                } else {
+                    // Different lorem ipsum paragraphs
+                    const loremTexts = [
+                        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam in dui mauris. Vivamus hendrerit arcu sed erat molestie vehicula. Sed auctor neque eu tellus rhoncus ut eleifend nibh porttitor. Ut in nulla enim.",
+                        "Suspendisse in justo eu magna luctus suscipit. Sed lectus. Integer euismod lacus luctus magna. Quisque cursus, metus vitae pharetra auctor, sem massa mattis sem, at interdum magna augue eget diam.",
+                        "Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Morbi lacinia molestie dui. Praesent blandit dolor. Sed non quam. In vel mi sit amet augue congue elementum.",
+                        "Morbi in ipsum sit amet pede facilisis laoreet. Donec lacus nunc, viverra nec, blandit vel, egestas et, augue. Vestibulum tincidunt malesuada tellus. Ut ultrices ultrices enim.",
+                        "Curabitur sit amet mauris. Morbi in dui quis est pulvinar ullamcorper. Nulla facilisi. Integer lacinia sollicitudin massa. Cras metus.",
+                        "Sed aliquet risus a tortor. Integer id quam. Morbi mi. Quisque nisl felis, venenatis tristique, dignissim in, ultrices sit amet, augue. Proin sodales libero eget ante."
+                    ];
+
+                    paragraph.textContent = loremTexts[(i - 2) % loremTexts.length];
+                }
+
+                contentSection.appendChild(paragraph);
+            }
+
+            contentContainer.appendChild(contentSection);
             panel.appendChild(contentContainer);
 
             // --- APPEND TO BODY ---
@@ -308,7 +424,7 @@ export default function LoggedInTemplate() {
                 // Panel fade in
                 if (window.framerMotion && window.framerMotion.animate) {
                     // If Framer Motion is available from CDN
-                    window.framerMotion.animate('#template-panel', { opacity: 1 }, { duration: 0.5 });
+                    window.framerMotion.animate('#analysis-panel', { opacity: 1 }, { duration: 0.5 });
 
                     // Profile container animation
                     window.framerMotion.animate('#profile-container', {
@@ -320,8 +436,8 @@ export default function LoggedInTemplate() {
                         ease: 'easeOut'
                     });
 
-                    // Button stack animation
-                    window.framerMotion.animate('#button-stack', {
+                    // Button container animation
+                    window.framerMotion.animate('#side-buttons-container', {
                         opacity: 1,
                         x: 0
                     }, {
@@ -343,12 +459,12 @@ export default function LoggedInTemplate() {
                     // Fallback to simple CSS transitions
                     animateElement(panel, { opacity: '1' }, 0);
                     animateElement(profileContainer, { opacity: '1', transform: 'translateX(0)' }, 200);
-                    animateElement(buttonStackContainer, { opacity: '1', transform: 'translateX(0)' }, 200);
+                    animateElement(sideButtonsContainer, { opacity: '1', transform: 'translateX(0)' }, 200);
                     animateElement(contentContainer, { opacity: '1', transform: 'translateY(0)' }, 400);
                 }
 
                 // Add hover effects to buttons
-                const buttons = document.querySelectorAll('#button-stack button');
+                const buttons = document.querySelectorAll('#side-buttons-container button');
                 buttons.forEach(button => {
                     button.addEventListener('mouseenter', () => {
                         button.style.transform = 'scale(1.05)';
@@ -360,10 +476,31 @@ export default function LoggedInTemplate() {
                         button.style.transition = 'transform 0.2s ease';
                     });
                 });
+
+                // Ensure mobile scrolling works
+                if (isMobile) {
+                    // Add specific mobile scrolling styles
+                    panel.style.overflowY = 'scroll';
+                    panel.style['-webkit-overflow-scrolling'] = 'touch';
+
+                    // Add touchstart listener to improve scroll responsiveness on mobile
+                    panel.addEventListener('touchstart', function () {
+                        // This empty handler improves scroll performance on iOS
+                    }, { passive: true });
+                }
+
+                // Make side buttons container stay in position when scrolling
+                panel.addEventListener('scroll', function () {
+                    const sideButtons = document.getElementById('side-buttons-container');
+                    if (sideButtons) {
+                        const initialTop = isMobile ? 20 : 30; // Same as sideButtonsTop
+                        sideButtons.style.top = `${initialTop + panel.scrollTop}px`;
+                    }
+                });
             }, 100);
         } catch (error) {
-            console.error("LoggedInTemplate: Error during UI element creation:", error);
-            if (overlayRef.current && overlayRef.current.parentNode === document.body) {
+            console.error("Analysis_Home: Error during UI element creation:", error);
+            if (overlayRef.current && overlayRef.current.parentNode) {
                 overlayRef.current.remove(); overlayRef.current = null;
             }
             return;
@@ -376,24 +513,12 @@ export default function LoggedInTemplate() {
         const handleResize = () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                console.log("LoggedInTemplate: Reloading due to resize...");
+                console.log("Analysis_Home: Reloading due to resize...");
                 window.location.reload();
             }, 250);
         };
 
         window.addEventListener('resize', handleResize);
-
-        const homeBtn = document.getElementById('home-button');
-        if (homeBtn) homeBtn.addEventListener('click', () => navigate('/'));
-        else console.error("LoggedInTemplate: Home button not found");
-
-        const chatBtn = document.getElementById('chat-button');
-        if (chatBtn) chatBtn.addEventListener('click', () => navigate('/chat'));
-        else console.error("LoggedInTemplate: Chat button not found");
-
-        const logoutBtn = document.getElementById('logout-button');
-        if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
-        else console.error("LoggedInTemplate: Logout button not found");
 
         return () => {
             window.removeEventListener('resize', handleResize);
@@ -402,22 +527,16 @@ export default function LoggedInTemplate() {
             if (overlayRef.current && overlayRef.current.parentNode) {
                 overlayRef.current.remove();
             } else {
-                const fallbackOverlay = document.querySelector('.logged-in-template-overlay');
+                const fallbackOverlay = document.querySelector('.analysis-overlay');
                 if (fallbackOverlay) {
                     fallbackOverlay.remove();
                 }
             }
 
             overlayRef.current = null;
+            panelRef.current = null;
         };
     }, [isLoggedIn, userData, loading, navigate, handleLogout]);
-
-    // ====================================
-    // 6. TEMPLATE-SPECIFIC FUNCTIONS
-    // ====================================
-    const handleCustomAction = () => {
-        console.log('Custom action triggered on template page');
-    };
 
     return null; // Component renders null, UI handled by effect
 }

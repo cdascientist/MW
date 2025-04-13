@@ -405,7 +405,7 @@ export default function LoggedInTemplate() {
 
         // Add event listener for the Analysis button
         const analysisBtn = document.getElementById('analysis-button');
-        if (analysisBtn) analysisBtn.addEventListener('click', () => navigate('/analysis'));
+        if (analysisBtn) analysisBtn.addEventListener('click', () => navigate('/analysis/home'));
         else console.error("LoggedInTemplate: Analysis button not found");
 
         return () => {
