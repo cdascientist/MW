@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import About from './pages/About';
 import LiveChat from './pages/LiveChat';
 import LoggedInTemplate from './pages/LoggedInTemplate'; // <--- IMPORT LoggedInTemplate
+import Analysis_Home from './pages/Analysis/Analysis_Home';
 
 // Styling
 import './App.css';
@@ -59,9 +60,9 @@ function App() {
 
                     {/* --- ADDED ROUTE for LoggedInTemplate --- */}
                     <Route path="/loggedintemplate" element={<LoggedInTemplate />} />
-
-                    {/* Optional: Add a 404 Not Found route */}
-                    {/* <Route path="*" element={<NotFoundComponent />} /> */}
+                    {/* --- ADDED ROUTE for Analysis_Home --- */}   
+                    <Route path="/analysis/home" element={<Analysis_Home />} />
+                   
                 </Routes>
             </BrowserRouter>
         </GoogleOAuthProvider>

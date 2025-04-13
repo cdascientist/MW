@@ -1,5 +1,6 @@
 /**
  * LoggedInTemplate.jsx - Template component for logged-in pages
+ * Updated with 35% larger panel and text for desktop only
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -54,6 +55,19 @@ export default function LoggedInTemplate() {
         const panelPaddingSides = isMobile ? '15px' : '40px';
         const panelPaddingBottom = isMobile ? '30px' : '50px';
 
+        // Desktop-specific panel size enhancement (35% larger)
+        const desktopPanelWidth = isMobile ? '95%' : 'calc(85% * 1.35)'; // 35% wider for desktop
+        const desktopPanelHeight = isMobile ? '90vh' : 'calc(85vh * 1.35)'; // 35% taller for desktop
+        const desktopMaxWidth = isMobile ? '1200px' : 'calc(1200px * 1.35)'; // 35% larger max width
+
+        // Text size enhancement (35% larger for desktop only)
+        const headingFontSize = isMobile ? '20px' : 'calc(24px * 1.35)'; // 35% larger heading for desktop
+        const textFontSize = isMobile ? '15px' : 'calc(16px * 1.35)'; // 35% larger text for desktop
+        const sectionHeadingFontSize = isMobile ? '18px' : 'calc(20px * 1.35)'; // 35% larger section heading for desktop
+        const userNameFontSize = isMobile ? '15px' : 'calc(17px * 1.35)'; // 35% larger username for desktop
+        const userEmailFontSize = isMobile ? '11px' : 'calc(13px * 1.35)'; // 35% larger email for desktop
+        const buttonFontSize = isMobile ? '12px' : 'calc(14px * 1.35)'; // 35% larger button text for desktop
+
         // Absolute positions (relative to panel edges)
         const profileTop = isMobile ? '20px' : '30px';
         const profileLeft = panelPaddingSides;
@@ -74,8 +88,8 @@ export default function LoggedInTemplate() {
                 className: 'flat-panel logged-in-template-panel',
                 style: {
                     position: 'relative',
-                    width: isMobile ? '95%' : '85%', maxWidth: '1200px',
-                    height: isMobile ? '90vh' : '85vh', backgroundColor: 'rgba(13, 20, 24, 0.9)',
+                    width: desktopPanelWidth, maxWidth: desktopMaxWidth,
+                    height: desktopPanelHeight, backgroundColor: 'rgba(13, 20, 24, 0.9)',
                     borderRadius: '12px', boxShadow: '0 6px 15px rgba(0, 0, 0, 0.3)',
                     paddingTop: panelPaddingTop,
                     paddingLeft: panelPaddingSides,
@@ -119,18 +133,41 @@ export default function LoggedInTemplate() {
                     transform: 'translateY(30px)', // Start below for animation
                 }
             },
-            profilePhoto: { style: { width: '45px', height: '45px', borderRadius: '50%', border: '2px solid #57b3c0', objectFit: 'cover', flexShrink: 0, } },
-            profilePhotoPlaceholder: { style: { width: '45px', height: '45px', borderRadius: '50%', backgroundColor: '#57b3c0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '18px', flexShrink: 0, } },
+            profilePhoto: {
+                style: {
+                    width: isMobile ? '45px' : '60px', // Larger profile photo for desktop
+                    height: isMobile ? '45px' : '60px', // Larger profile photo for desktop
+                    borderRadius: '50%',
+                    border: '2px solid #57b3c0',
+                    objectFit: 'cover',
+                    flexShrink: 0,
+                }
+            },
+            profilePhotoPlaceholder: {
+                style: {
+                    width: isMobile ? '45px' : '60px', // Larger placeholder for desktop
+                    height: isMobile ? '45px' : '60px', // Larger placeholder for desktop
+                    borderRadius: '50%',
+                    backgroundColor: '#57b3c0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: isMobile ? '18px' : '24px', // Larger letter for desktop
+                    flexShrink: 0,
+                }
+            },
             userInfo: { style: { display: 'flex', flexDirection: 'column', textAlign: 'left', } },
-            userName: { style: { margin: '0', fontSize: isMobile ? '15px' : '17px', color: '#a7d3d8', fontWeight: '500', } },
-            userEmail: { style: { margin: '2px 0 0 0', fontSize: isMobile ? '11px' : '13px', color: '#7a9a9e', } },
-            logoutButton: { className: 'nav-button logout-button', style: { fontSize: isMobile ? '12px' : '14px', backgroundColor: 'rgba(255, 99, 71, 0.2)', color: '#ff6347', border: '1px solid rgba(255, 99, 71, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
-            chatButton: { className: 'nav-button chat-button', style: { fontSize: isMobile ? '12px' : '14px', backgroundColor: 'rgba(255, 165, 0, 0.2)', color: '#FFA500', border: '1px solid rgba(255, 165, 0, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
-            homeButton: { className: 'nav-button home-button', style: { fontSize: isMobile ? '12px' : '14px', backgroundColor: 'rgba(87, 179, 192, 0.2)', color: '#57b3c0', border: '1px solid rgba(87, 179, 192, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap', width: 'fit-content' } },
-            contentHeading: { style: { fontSize: isMobile ? '20px' : '24px', marginBottom: isMobile ? '15px' : '20px', color: '#57b3c0', fontWeight: 'bold', } },
-            contentText: { style: { fontSize: isMobile ? '15px' : '16px', marginBottom: isMobile ? '15px' : '20px', color: '#c0d0d3', lineHeight: '1.6', } },
+            userName: { style: { margin: '0', fontSize: userNameFontSize, color: '#a7d3d8', fontWeight: '500', } },
+            userEmail: { style: { margin: '2px 0 0 0', fontSize: userEmailFontSize, color: '#7a9a9e', } },
+            logoutButton: { className: 'nav-button logout-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 99, 71, 0.2)', color: '#ff6347', border: '1px solid rgba(255, 99, 71, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
+            chatButton: { className: 'nav-button chat-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 165, 0, 0.2)', color: '#FFA500', border: '1px solid rgba(255, 165, 0, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
+            homeButton: { className: 'nav-button home-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(87, 179, 192, 0.2)', color: '#57b3c0', border: '1px solid rgba(87, 179, 192, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap', width: 'fit-content' } },
+            analysisButton: { className: 'nav-button analysis-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(142, 68, 173, 0.2)', color: '#8e44ad', border: '1px solid rgba(142, 68, 173, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content', marginBottom: '20px' } },
+            contentHeading: { style: { fontSize: headingFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#57b3c0', fontWeight: 'bold', } },
+            contentText: { style: { fontSize: textFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#c0d0d3', lineHeight: '1.6', } },
             contentSection: { style: { backgroundColor: 'rgba(87, 179, 192, 0.05)', padding: isMobile ? '15px' : '20px', borderRadius: '8px', marginBottom: isMobile ? '15px' : '20px', border: '1px solid rgba(87, 179, 192, 0.1)', } },
-            contentSectionHeading: { style: { fontSize: isMobile ? '18px' : '20px', marginBottom: '10px', color: '#57b3c0', fontWeight: '600', } },
+            contentSectionHeading: { style: { fontSize: sectionHeadingFontSize, marginBottom: '10px', color: '#57b3c0', fontWeight: '600', } },
         };
     };
 
@@ -245,6 +282,13 @@ export default function LoggedInTemplate() {
             Object.assign(contentHeading.style, styles.contentHeading.style);
             contentHeading.textContent = "Template Main Content";
 
+            // Create Analysis Button in the content section
+            const analysisButton = document.createElement('button');
+            analysisButton.id = 'analysis-button';
+            analysisButton.className = styles.analysisButton.className;
+            Object.assign(analysisButton.style, styles.analysisButton.style);
+            analysisButton.textContent = 'Open Analysis Dashboard';
+
             const contentSectionDiv = document.createElement('div');
             Object.assign(contentSectionDiv.style, styles.contentSection.style);
 
@@ -259,6 +303,7 @@ export default function LoggedInTemplate() {
             contentSectionDiv.appendChild(contentSectionHeading);
             contentSectionDiv.appendChild(contentSectionP);
             contentContainer.appendChild(contentHeading);
+            contentContainer.appendChild(analysisButton); // Add analysis button right after heading
             contentContainer.appendChild(contentSectionDiv);
             panel.appendChild(contentContainer);
 
@@ -311,7 +356,7 @@ export default function LoggedInTemplate() {
                 }
 
                 // Add hover effects to buttons
-                const buttons = document.querySelectorAll('#button-stack button');
+                const buttons = document.querySelectorAll('#button-stack button, #analysis-button');
                 buttons.forEach(button => {
                     button.addEventListener('mouseenter', () => {
                         button.style.transform = 'scale(1.05)';
@@ -357,6 +402,11 @@ export default function LoggedInTemplate() {
         const logoutBtn = document.getElementById('logout-button');
         if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
         else console.error("LoggedInTemplate: Logout button not found");
+
+        // Add event listener for the Analysis button
+        const analysisBtn = document.getElementById('analysis-button');
+        if (analysisBtn) analysisBtn.addEventListener('click', () => navigate('/analysis'));
+        else console.error("LoggedInTemplate: Analysis button not found");
 
         return () => {
             window.removeEventListener('resize', handleResize);
