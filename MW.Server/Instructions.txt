@@ -1,5 +1,6 @@
 ﻿cd mw.client
 npm install --legacy-peer-deps
+npm list
 
 
 # Install the dependencies	

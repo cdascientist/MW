@@ -6,7 +6,7 @@
     <title>Mountain West HUD</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
-    <script src="https://unpkg.com/framer-motion@10.12.16/dist/framer-motion.js"></script>
+
     <style>
         /* Base styles */
         body, html {
@@ -89,6 +89,7 @@
             }
         }
 
+        /* This rule correctly centers the loader */
         .loader {
             border: 5px solid rgba(87, 179, 192, 0.1);
             border-radius: 50%;
@@ -97,9 +98,11 @@
             height: 50px;
             animation: spin 1s linear infinite;
             position: absolute;
-            top: 50%; /* Center vertically */
-            left: 50%; /* Center horizontally */
-            transform: translate(-50%, -50%); /* Perfect centering */
+            top: 50%; /* Center vertically relative to #intro-overlay */
+            left: 50%; /* Center horizontally relative to #intro-overlay */
+            transform: translate(-50%, -50%); /* Fine-tune to exact center */
+            /* Adding a z-index ensures it's visually above other positioned siblings if needed */
+            z-index: 2001;
         }
 
         /* HUD Styles - REVISED WITH LOWER Z-INDEX */
@@ -1003,6 +1006,9 @@
                 padding: 15px;
                 overflow-y: auto;
             }
+
+            /* No changes needed for .loader specific to mobile, */
+            /* as the absolute centering should work viewport-relative */
         }
     </style>
 </head>
@@ -1012,7 +1018,11 @@
         <div id="logo-container">
             <div id="mountain">MOUNTAIN</div>
             <div id="west">WEST</div>
+            <!-- The .loader element will be added here dynamically by JS -->
+            <!-- Its CSS rule already handles centering -->
         </div>
+        <!-- OR the loader might be appended directly here, -->
+        <!-- either way, the CSS rule targets .loader for centering -->
     </div>
 
     <!-- Menu toggle button -->
@@ -1142,9 +1152,10 @@
             west.style.top = '40%'; // Changed from 55% to 40%
 
             // Add circular loading animation instead of text
+            // The CSS class '.loader' handles the centering.
             const loadingSpinner = document.createElement('div');
             loadingSpinner.className = 'loader';
-            overlay.appendChild(loadingSpinner);
+            overlay.appendChild(loadingSpinner); // Appends to #intro-overlay
 
             const assetsToPreload = [];
 
