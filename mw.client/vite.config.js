@@ -86,6 +86,9 @@ export default defineConfig({
         https: {
             key: fs.readFileSync(keyFilePath),
             cert: fs.readFileSync(certFilePath),
+        },
+        hmr: {
+            overlay: false // Disable the Vite HMR overlay to prevent fullscreen error messages
         }
     }
 })

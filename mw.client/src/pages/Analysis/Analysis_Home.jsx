@@ -126,95 +126,191 @@ export default function Analysis_Home() {
     const getStyles = () => {
         const isMobile = window.innerWidth <= 768;
         const sizeFactor = 0.75;
+
+        // ***** PANEL CONFIGURATION *****
         const desktopPanelWidth = isMobile ? '95%' : `calc(85% * ${sizeFactor})`;
         const desktopPanelHeight = isMobile ? '90vh' : `calc(85vh * ${sizeFactor})`;
         const desktopMaxWidth = isMobile ? '1200px' : `calc(1200px * ${sizeFactor})`;
+
+        // ***** PADDING CONFIGURATION *****
         const panelPaddingTop = isMobile ? '20px' : '30px';
         const panelPaddingSides = isMobile ? '15px' : '40px';
         const panelPaddingBottom = isMobile ? '30px' : '50px';
-        const contentTopOffsetMobile = '180px';
-        const contentTopOffsetDesktop = '140px';
+
+        // ***** CLIENT SELECTION POSITIONING *****
+        // Controls the spacing and layout of the client dropdown area
+        const dropdownTopMargin = isMobile ? '90px' : '80px';
+        const dropdownBottomMargin = isMobile ? '25px' : '30px';
+        const dropdownLabelMargin = '8px';
+        const dropdownLabelColor = '#a7d3d8';
+        const dropdownBackgroundColor = 'rgba(87, 179, 192, 0.1)';
+        const dropdownBorderColor = 'rgba(87, 179, 192, 0.3)';
+
+        // ***** CONTENT SECTION POSITIONING *****
+        // Controls where the main content area appears relative to the dropdown
+        const contentSectionTopMargin = '25px'; // Space between dropdown and content section
+        const contentSectionBorderRadius = '8px';
+        const contentSectionBottomMargin = isMobile ? '25px' : '30px';
+        const contentAreaPadding = isMobile ? '15px' : '20px';
+
+        // General positioning
         const profileTopMargin = isMobile ? '10px' : '20px';
         const contentSidePadding = '15px';
         const contentRightPadding = isMobile ? '20px' : '120px';
+
+        // ***** SIDE BUTTONS CONFIGURATION *****
+        // These variables control the fixed side buttons
         const sideButtonsTop = isMobile ? '20px' : '30px';
         const sideButtonsRight = panelPaddingSides;
         const buttonGap = '10px';
+        const buttonWidth = 'auto'; // Set to auto to allow natural width
+        const buttonRightAlignment = 'flex-end'; // Align buttons to the right
+
+        // Font sizes
         const headingFontSize = isMobile ? '20px' : 'calc(24px * 1.35)';
         const textFontSize = isMobile ? '15px' : 'calc(16px * 1.35)';
         const sectionHeadingFontSize = isMobile ? '18px' : 'calc(20px * 1.35)';
         const userNameFontSize = isMobile ? '15px' : 'calc(17px * 1.35)';
         const userEmailFontSize = isMobile ? '11px' : 'calc(13px * 1.35)';
         const buttonFontSize = isMobile ? '12px' : 'calc(14px * 1.35)';
-        const dropdownFontSize = isMobile ? '14px' : 'calc(15px * 1.35)'; // Style for dropdown
+        const dropdownFontSize = isMobile ? '14px' : 'calc(15px * 1.35)';
 
         return {
             overlay: {
                 className: 'ui-overlay analysis-overlay',
-                style: { zIndex: '9999', position: 'fixed', top: '0', left: '0', width: '100%', height: '100%', pointerEvents: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: isMobile ? '10px' : '50px', boxSizing: 'border-box', }
+                style: { zIndex: '9999', position: 'fixed', top: '0', left: '0', width: '100%', height: '100%', pointerEvents: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: isMobile ? '10px' : '50px', boxSizing: 'border-box' }
             },
             panel: {
                 className: 'flat-panel analysis-panel',
-                style: { position: 'relative', width: desktopPanelWidth, maxWidth: desktopMaxWidth, height: desktopPanelHeight, backgroundColor: 'rgba(13, 20, 24, 0.9)', borderRadius: '12px', boxShadow: '0 6px 15px rgba(0, 0, 0, 0.3)', padding: panelPaddingTop + ' ' + panelPaddingSides + ' ' + panelPaddingBottom + ' ' + panelPaddingSides, color: 'white', pointerEvents: 'auto', overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', opacity: 0, WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'thin', }
+                style: { position: 'relative', width: desktopPanelWidth, maxWidth: desktopMaxWidth, height: desktopPanelHeight, backgroundColor: 'rgba(13, 20, 24, 0.9)', borderRadius: '12px', boxShadow: '0 6px 15px rgba(0, 0, 0, 0.3)', padding: panelPaddingTop + ' ' + panelPaddingSides + ' ' + panelPaddingBottom + ' ' + panelPaddingSides, color: 'white', pointerEvents: 'auto', overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', opacity: 0, WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'thin' }
             },
-            profileContainer: { style: { display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px', marginTop: profileTopMargin, width: 'calc(100% - ' + contentRightPadding + ')', opacity: 0, transform: 'translateX(-50px)', } },
-            sideButtonsContainer: { style: { position: 'absolute', top: sideButtonsTop, right: sideButtonsRight, display: 'flex', flexDirection: 'column', gap: buttonGap, zIndex: 100, opacity: 0, transform: 'translateX(50px)', } },
-            contentContainer: { style: { width: '100%', maxWidth: '100%', boxSizing: 'border-box', paddingRight: contentRightPadding, paddingLeft: contentSidePadding, marginTop: isMobile ? contentTopOffsetMobile : contentTopOffsetDesktop, opacity: 0, transform: 'translateY(30px)', } },
-            titleHeading: { style: { fontSize: headingFontSize, color: '#57b3c0', fontWeight: 'bold', marginBottom: '30px', width: 'calc(100% - ' + contentRightPadding + ')', overflowWrap: 'break-word', wordWrap: 'break-word', hyphens: 'auto', } },
-            profilePhoto: { style: { width: isMobile ? '45px' : '60px', height: isMobile ? '45px' : '60px', borderRadius: '50%', border: '2px solid #57b3c0', objectFit: 'cover', flexShrink: 0, } },
-            profilePhotoPlaceholder: { style: { width: isMobile ? '45px' : '60px', height: isMobile ? '45px' : '60px', borderRadius: '50%', backgroundColor: '#57b3c0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: isMobile ? '18px' : '24px', flexShrink: 0, } },
-            userInfo: { style: { display: 'flex', flexDirection: 'column', textAlign: 'left', } },
-            userName: { style: { margin: '0', fontSize: userNameFontSize, color: '#a7d3d8', fontWeight: '500', } },
-            userEmail: { style: { margin: '2px 0 0 0', fontSize: userEmailFontSize, color: '#7a9a9e', } },
-            logoutButton: { className: 'nav-button logout-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 99, 71, 0.2)', color: '#ff6347', border: '1px solid rgba(255, 99, 71, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
-            chatButton: { className: 'nav-button chat-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 165, 0, 0.2)', color: '#FFA500', border: '1px solid rgba(255, 165, 0, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
-            homeButton: { className: 'nav-button home-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(87, 179, 192, 0.2)', color: '#57b3c0', border: '1px solid rgba(87, 179, 192, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap', width: 'fit-content' } },
-            dashboardButton: { className: 'nav-button dashboard-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(142, 68, 173, 0.2)', color: '#8e44ad', border: '1px solid rgba(142, 68, 173, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
-            contentHeading: { style: { fontSize: headingFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#57b3c0', fontWeight: 'bold', } },
-            contentText: { style: { fontSize: textFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#c0d0d3', lineHeight: '1.6', } },
-            contentSection: { style: { backgroundColor: 'rgba(87, 179, 192, 0.05)', padding: isMobile ? '15px' : '20px', borderRadius: '8px', marginBottom: isMobile ? '25px' : '30px', border: '1px solid rgba(87, 179, 192, 0.1)', maxWidth: '100%', overflowWrap: 'break-word', wordWrap: 'break-word', boxSizing: 'border-box', } },
-            contentSectionHeading: { style: { fontSize: sectionHeadingFontSize, marginBottom: '15px', color: '#57b3c0', fontWeight: '600', } },
-            // Styles for Dropdown
-            dropdownContainer: {
+            profileContainer: {
                 style: {
-                    marginBottom: isMobile ? '20px' : '25px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '15px',
+                    marginBottom: '20px',
+                    marginTop: profileTopMargin,
+                    width: 'calc(100% - ' + contentRightPadding + ')',
+                    opacity: 0,
+                    transform: 'translateX(-50px)'
+                }
+            },
+            sideButtonsContainer: {
+                style: {
+                    position: 'absolute', // Using absolute for positioning
+                    top: sideButtonsTop,
+                    right: sideButtonsRight,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: buttonGap,
+                    zIndex: 100,
+                    opacity: 0,
+                    transform: 'translateX(50px)',
+                    alignItems: buttonRightAlignment // Align buttons to the right
+                }
+            },
+            contentContainer: {
+                style: {
+                    width: '100%',
                     maxWidth: '100%',
                     boxSizing: 'border-box',
+                    paddingRight: contentRightPadding,
+                    paddingLeft: contentSidePadding,
+                    opacity: 0,
+                    transform: 'translateY(30px)',
+                    wordWrap: 'break-word', // Ensure text wraps properly 
+                    overflowWrap: 'break-word' // Modern browsers support
+                }
+            },
+            titleHeading: {
+                style: {
+                    fontSize: headingFontSize,
+                    color: '#57b3c0',
+                    fontWeight: 'bold',
+                    marginBottom: '20px',
+                    width: 'calc(100% - ' + contentRightPadding + ')',
+                    overflowWrap: 'break-word',
+                    wordWrap: 'break-word',
+                    hyphens: 'auto'
+                }
+            },
+            profilePhoto: { style: { width: isMobile ? '45px' : '60px', height: isMobile ? '45px' : '60px', borderRadius: '50%', border: '2px solid #57b3c0', objectFit: 'cover', flexShrink: 0 } },
+            profilePhotoPlaceholder: { style: { width: isMobile ? '45px' : '60px', height: isMobile ? '45px' : '60px', borderRadius: '50%', backgroundColor: '#57b3c0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: isMobile ? '18px' : '24px', flexShrink: 0 } },
+            userInfo: { style: { display: 'flex', flexDirection: 'column', textAlign: 'left' } },
+            userName: { style: { margin: '0', fontSize: userNameFontSize, color: '#a7d3d8', fontWeight: '500' } },
+            userEmail: { style: { margin: '2px 0 0 0', fontSize: userEmailFontSize, color: '#7a9a9e' } },
+            logoutButton: { className: 'nav-button logout-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 99, 71, 0.2)', color: '#ff6347', border: '1px solid rgba(255, 99, 71, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: buttonWidth } },
+            chatButton: { className: 'nav-button chat-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 165, 0, 0.2)', color: '#FFA500', border: '1px solid rgba(255, 165, 0, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: buttonWidth } },
+            homeButton: { className: 'nav-button home-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(87, 179, 192, 0.2)', color: '#57b3c0', border: '1px solid rgba(87, 179, 192, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap', width: buttonWidth } },
+            dashboardButton: { className: 'nav-button dashboard-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(142, 68, 173, 0.2)', color: '#8e44ad', border: '1px solid rgba(142, 68, 173, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: buttonWidth } },
+            contentHeading: { style: { fontSize: headingFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#57b3c0', fontWeight: 'bold' } },
+            contentText: { style: { fontSize: textFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#c0d0d3', lineHeight: '1.6', wordWrap: 'break-word', overflowWrap: 'break-word' } },
+            contentSection: {
+                style: {
+                    backgroundColor: 'rgba(87, 179, 192, 0.05)',
+                    padding: contentAreaPadding,
+                    borderRadius: contentSectionBorderRadius,
+                    marginBottom: contentSectionBottomMargin,
+                    marginTop: contentSectionTopMargin, // Added margin-top for spacing from dropdown
+                    border: '1px solid rgba(87, 179, 192, 0.1)',
+                    maxWidth: '100%',
+                    overflowWrap: 'break-word',
+                    wordWrap: 'break-word',
+                    boxSizing: 'border-box'
+                }
+            },
+            contentSectionHeading: {
+                style: {
+                    fontSize: sectionHeadingFontSize,
+                    marginBottom: '15px',
+                    color: '#57b3c0',
+                    fontWeight: '600'
+                }
+            },
+            // ***** DROPDOWN STYLES *****
+            dropdownContainer: {
+                style: {
+                    position: 'relative',
+                    marginTop: dropdownTopMargin, // Top margin adjusted
+                    marginBottom: dropdownBottomMargin, // Space between dropdown and content
+                    maxWidth: '100%',
+                    boxSizing: 'border-box'
                 }
             },
             dropdownLabel: {
                 style: {
                     display: 'block',
-                    fontSize: textFontSize, // Use text font size
-                    color: '#a7d3d8', // Lighter text color
-                    marginBottom: '8px',
-                    fontWeight: '500',
+                    fontSize: textFontSize,
+                    color: dropdownLabelColor,
+                    marginBottom: dropdownLabelMargin,
+                    fontWeight: '500'
                 }
             },
             dropdownSelect: {
                 style: {
-                    width: '100%', // Take full width of container
+                    width: '100%',
                     padding: isMobile ? '8px 10px' : '10px 12px',
                     fontSize: dropdownFontSize,
-                    backgroundColor: 'rgba(87, 179, 192, 0.1)', // Subtle background
-                    color: '#e0e0e0', // Light text color
-                    border: '1px solid rgba(87, 179, 192, 0.3)',
+                    backgroundColor: dropdownBackgroundColor,
+                    color: '#e0e0e0',
+                    border: '1px solid ' + dropdownBorderColor,
                     borderRadius: '6px',
                     cursor: 'pointer',
-                    appearance: 'none', // Remove default browser appearance
-                    backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="%2357b3c0" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>')`, // Custom arrow
+                    appearance: 'none',
+                    backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="%2357b3c0" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>')`,
                     backgroundRepeat: 'no-repeat',
                     backgroundPosition: `right ${isMobile ? '8px' : '12px'} center`,
                     backgroundSize: '20px',
-                    boxSizing: 'border-box',
+                    boxSizing: 'border-box'
                 }
             },
-            loadingText: { // Style for loading/error messages
+            loadingText: {
                 style: {
                     fontSize: textFontSize,
-                    color: '#FFA500', // Orange color for loading/error
+                    color: '#FFA500',
                     marginBottom: '15px',
-                    fontStyle: 'italic',
+                    fontStyle: 'italic'
                 }
             }
         };
@@ -264,14 +360,12 @@ export default function Analysis_Home() {
             return;
         }
 
-
         // Prevent duplicate rendering if overlay already exists
         if (overlayRef.current || document.querySelector('.analysis-overlay')) {
             console.log("UI Effect: Overlay already exists, skipping UI creation.");
             return;
         }
         console.log("UI Effect: Proceeding to create UI elements...");
-
 
         const styles = getStyles();
         const isMobile = window.innerWidth <= 768;
@@ -320,7 +414,7 @@ export default function Analysis_Home() {
             sideButtonsContainer.id = 'side-buttons-container';
             Object.assign(sideButtonsContainer.style, styles.sideButtonsContainer.style);
             const buttonsConfig = [
-                { id: 'logout-button', text: 'Logout', style: styles.logoutButton.style, className: styles.logoutButton.className, handler: handleLogout, priority: 1 }, // Pass handleLogout directly
+                { id: 'logout-button', text: 'Logout', style: styles.logoutButton.style, className: styles.logoutButton.className, handler: handleLogout, priority: 1 },
                 { id: 'chat-button', text: 'Live Chat', style: styles.chatButton.style, className: styles.chatButton.className, handler: () => navigate('/chat'), priority: 2 },
                 { id: 'dashboard-button', text: 'Back to Dashboard', style: styles.dashboardButton.style, className: styles.dashboardButton.className, handler: () => navigate('/loggedintemplate'), priority: 3 },
                 { id: 'home-button', text: 'Back to Home', style: styles.homeButton.style, className: styles.homeButton.className, handler: () => navigate('/'), priority: 4 }
@@ -330,7 +424,7 @@ export default function Analysis_Home() {
                 const button = document.createElement('button');
                 button.id = config.id; button.className = config.className;
                 Object.assign(button.style, config.style); button.textContent = config.text;
-                button.addEventListener('click', config.handler); // Add listener here
+                button.addEventListener('click', config.handler);
                 sideButtonsContainer.appendChild(button);
             });
             panel.appendChild(sideButtonsContainer);
@@ -342,7 +436,7 @@ export default function Analysis_Home() {
 
             // Add title heading
             const contentHeading = document.createElement('h2');
-            Object.assign(contentHeading.style, styles.contentHeading.style);
+            Object.assign(contentHeading.style, styles.titleHeading.style);
             contentHeading.textContent = "Analysis Dashboard";
             contentContainer.appendChild(contentHeading);
 
@@ -402,14 +496,15 @@ export default function Analysis_Home() {
             }
             contentContainer.appendChild(dropdownContainer); // Add dropdown section to content
 
-            // --- ADD DEMO CONTENT SECTION ---
+            // --- ADD CONTENT SECTION ---
             const contentSection = document.createElement('div');
             Object.assign(contentSection.style, styles.contentSection.style);
             for (let i = 1; i <= 7; i++) {
                 const paragraph = document.createElement('p');
                 Object.assign(paragraph.style, styles.contentText.style);
-                if (i === 1) { paragraph.textContent = "Welcome to the Analysis Dashboard. Select a client from the dropdown above to view specific details. This section will display relevant information based on your selection."; }
-                else {
+                if (i === 1) {
+                    paragraph.textContent = "Welcome to the Analysis Dashboard. Select a client from the dropdown above to view specific details. This section will display relevant information based on your selection.";
+                } else {
                     const loremTexts = ["Lorem ipsum dolor sit amet...", "Suspendisse in justo...", "Vestibulum ante ipsum...", "Morbi in ipsum sit amet...", "Curabitur sit amet mauris...", "Sed aliquet risus a tortor...", "Integer id quam..."]; // Shortened for brevity
                     paragraph.textContent = loremTexts[(i - 2) % loremTexts.length];
                 }
@@ -424,7 +519,6 @@ export default function Analysis_Home() {
             overlay.appendChild(panel);
             document.body.appendChild(overlay);
             console.log("UI Effect: UI elements created and appended to body.");
-
 
             // Apply animations
             setTimeout(() => {
@@ -452,20 +546,21 @@ export default function Analysis_Home() {
 
                 // Mobile scrolling improvements
                 if (isMobile) {
-                    panel.style.overflowY = 'scroll'; panel.style['-webkit-overflow-scrolling'] = 'touch';
+                    panel.style.overflowY = 'scroll';
+                    panel.style['-webkit-overflow-scrolling'] = 'touch';
                     panel.addEventListener('touchstart', function () { }, { passive: true });
                 }
 
-                // Make side buttons stick (simple version)
+                // Make side buttons stick when scrolling
                 panel.addEventListener('scroll', function () {
                     const sideButtons = document.getElementById('side-buttons-container');
                     if (sideButtons) {
-                        const initialTop = isMobile ? 20 : 30;
+                        const initialTop = isMobile ? 20 : 30; // Same as sideButtonsTop
                         sideButtons.style.top = `${initialTop + panel.scrollTop}px`;
                     }
                 });
-                console.log("UI Effect: Animations applied and event listeners added.");
 
+                console.log("UI Effect: Animations applied and event listeners added.");
             }, 100); // Small delay before starting animations
 
         } catch (error) {
@@ -519,14 +614,8 @@ export default function Analysis_Home() {
             panelRef.current = null;
             console.log("UI Effect Cleanup: Refs nullified.");
         };
-        // Critical Dependencies: Re-run UI build if login status, user data, auth loading state,
-        // or name loading/error/data changes. handleLogout is stable, navigate is stable.
     }, [isLoggedIn, userData, loading, navigate, clientNames, namesLoading, namesError]); // Added name-related state
 
-<<<<<<< HEAD
-    return null; // Component renders null, UI handled by effect test
-=======
     // Component renders null, UI is managed entirely by the effect hook
     return null;
->>>>>>> Relational_Data
 }
