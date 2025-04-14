@@ -538,5 +538,5 @@ export default function Analysis_Home() {
         };
     }, [isLoggedIn, userData, loading, navigate, handleLogout]);
 
-    return null; // Component renders null, UI handled by effect
+    return null; // Component renders null, UI handled by effect test
 }
