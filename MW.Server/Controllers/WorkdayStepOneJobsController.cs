@@ -13,10 +13,12 @@ namespace MW.Server.Controllers // Assuming Controllers namespace follows projec
     public class WorkdayStepOneJobsController : ControllerBase
     {
         private readonly DefaultdbContext _context;
+        private readonly ILogger<WorkdayStepOneJobsController> _logger;
 
-        public WorkdayStepOneJobsController(DefaultdbContext context)
+        public WorkdayStepOneJobsController(DefaultdbContext context, ILogger<WorkdayStepOneJobsController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         /// <summary>
@@ -25,12 +27,22 @@ namespace MW.Server.Controllers // Assuming Controllers namespace follows projec
         /// <returns>The total number of records.</returns>
         [HttpGet("Count")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<int>> GetCount()
         {
-            // IMPORTANT: Assumes the DbSet property in 'DefaultdbContext' is named by pluralizing 'WorkdayStepOneJob' (e.g., 'WorkdayStepOneJobs')
-            // If your DbSet has a different name, update it here.
-            var count = await _context.WorkdayStepOneJobs.CountAsync();
-            return Ok(count);
+            try
+            {
+                // IMPORTANT: Assumes the DbSet property in 'DefaultdbContext' is named by pluralizing 'WorkdayStepOneJob' (e.g., 'WorkdayStepOneJobs')
+                // If your DbSet has a different name, update it here.
+                var count = await _context.WorkdayStepOneJobs.CountAsync();
+                return Ok(count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting count of WorkdayStepOneJobs");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "An error occurred while retrieving record count." });
+            }
         }
 
         /// <summary>
@@ -39,44 +51,64 @@ namespace MW.Server.Controllers // Assuming Controllers namespace follows projec
         /// <returns>A list of unique client first names.</returns>
         [HttpGet("UniqueClientFirstNames")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)] // Optional: If you want to return 404 if no names found
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<List<string>>> GetUniqueClientFirstNames()
         {
-            // IMPORTANT: Assumes the DbSet property in 'DefaultdbContext' is named by pluralizing 'WorkdayStepOneJob' (e.g., 'WorkdayStepOneJobs')
-            // If your DbSet has a different name, update it here.
-            var uniqueNames = await _context.WorkdayStepOneJobs
+            try
+            {
+                // IMPORTANT: Assumes the DbSet property in 'DefaultdbContext' is named by pluralizing 'WorkdayStepOneJob' (e.g., 'WorkdayStepOneJobs')
+                // If your DbSet has a different name, update it here.
+                var uniqueNames = await _context.WorkdayStepOneJobs
                                         .Select(j => j.ClientFirstName) // Select only the first name
                                         .Where(name => !string.IsNullOrEmpty(name)) // Filter out null or empty names (optional but recommended)
                                         .Distinct()                     // Get unique names
                                         .OrderBy(name => name)          // Order alphabetically (optional)
                                         .ToListAsync();                 // Execute the query asynchronously
 
-            // Optional: Handle case where no names are found
-            // if (uniqueNames == null || !uniqueNames.Any())
-            // {
-            //     return NotFound("No client first names found.");
-            // }
+                // Handle case where no names are found
+                if (uniqueNames == null || !uniqueNames.Any())
+                {
+                    _logger.LogInformation("No client first names found");
+                    return new List<string>(); // Return empty list instead of 404
+                }
 
-            return Ok(uniqueNames);
+                return Ok(uniqueNames);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting unique client first names");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "An error occurred while retrieving client names." });
+            }
         }
 
-        // You can add other CRUD operations (GET by ID, POST, PUT, DELETE) here if needed.
-        // Example: Get a specific job by ID
-        /*
+        // GET: api/WorkdayStepOneJobs/5
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<WorkdayStepOneJob>> GetWorkdayStepOneJob(int id)
         {
-            var job = await _context.WorkdayStepOneJobs.FindAsync(id);
-
-            if (job == null)
+            try
             {
-                return NotFound();
-            }
+                var job = await _context.WorkdayStepOneJobs.FindAsync(id);
 
-            return Ok(job);
+                if (job == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(job);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving WorkdayStepOneJob with ID {Id}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "An error occurred while retrieving the job." });
+            }
         }
-        */
+
+        // You can add other CRUD operations (POST, PUT, DELETE) here if needed.
     }
 }
