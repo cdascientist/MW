@@ -523,6 +523,5 @@ export default function Analysis_Home() {
         // or name loading/error/data changes. handleLogout is stable, navigate is stable.
     }, [isLoggedIn, userData, loading, navigate, clientNames, namesLoading, namesError]); // Added name-related state
 
-    // Component renders null, UI is managed entirely by the effect hook
-    return null;
+    return null; // Component renders null, UI handled by effect
 }
