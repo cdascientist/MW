@@ -1,6 +1,7 @@
 /**
  * LoggedInTemplate.jsx - Template component for logged-in pages
  * Updated with 35% larger panel and text for desktop only
+ * Fixed layout to prevent content from covering buttons
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -44,6 +45,22 @@ export default function LoggedInTemplate() {
         redirectToLogin("User logged out");
     };
 
+    // Navigation handlers
+    const handleChatClick = () => {
+        console.log("Navigating to chat");
+        navigate('/chat');
+    };
+
+    const handleHomeClick = () => {
+        console.log("Navigating to about page");
+        navigate('/about');
+    };
+
+    const handleAnalysisClick = () => {
+        console.log("Navigating to analysis dashboard");
+        navigate('/analysis/home');
+    };
+
     // ====================================
     // 3. STYLING CONFIGURATION (WITH ANIMATION PROPERTIES)
     // ====================================
@@ -75,12 +92,28 @@ export default function LoggedInTemplate() {
         const buttonStackRight = panelPaddingSides;
         const buttonStackGap = isMobile ? '10px' : '15px';
 
+        // Content top position (pushed down to avoid overlap)
+        const contentTopMargin = isMobile ? '150px' : '170px'; // Increased margin to push content down
+
+        // Standard button style (base styles for all buttons)
+        const standardButtonStyle = {
+            fontSize: buttonFontSize,
+            padding: isMobile ? '5px 10px' : '8px 15px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            width: 'fit-content',
+            pointerEvents: 'auto',
+            transition: 'transform 0.2s ease, background-color 0.2s ease',
+            display: 'inline-block'
+        };
+
         return {
             overlay: {
                 className: 'ui-overlay logged-in-template-overlay',
                 style: {
                     zIndex: '9999', position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
-                    pointerEvents: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    pointerEvents: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center',
                     padding: isMobile ? '10px' : '50px', boxSizing: 'border-box',
                 }
             },
@@ -119,18 +152,22 @@ export default function LoggedInTemplate() {
                     right: buttonStackRight,
                     display: 'flex', flexDirection: 'column',
                     gap: buttonStackGap,
-                    zIndex: 10,
+                    zIndex: 100, // Higher z-index to ensure buttons are above content
                     alignItems: 'flex-end',
                     opacity: 0, // Start with opacity 0 for animation
                     transform: 'translateX(50px)', // Start off-screen for animation
+                    pointerEvents: 'auto'
                 }
             },
             contentContainer: {
                 className: 'content-container',
                 style: {
                     width: '100%',
+                    marginTop: contentTopMargin, // Added explicit top margin to avoid overlap
                     opacity: 0, // Start with opacity 0 for animation
                     transform: 'translateY(30px)', // Start below for animation
+                    position: 'relative',
+                    zIndex: 5 // Lower z-index than buttons
                 }
             },
             profilePhoto: {
@@ -160,10 +197,44 @@ export default function LoggedInTemplate() {
             userInfo: { style: { display: 'flex', flexDirection: 'column', textAlign: 'left', } },
             userName: { style: { margin: '0', fontSize: userNameFontSize, color: '#a7d3d8', fontWeight: '500', } },
             userEmail: { style: { margin: '2px 0 0 0', fontSize: userEmailFontSize, color: '#7a9a9e', } },
-            logoutButton: { className: 'nav-button logout-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 99, 71, 0.2)', color: '#ff6347', border: '1px solid rgba(255, 99, 71, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
-            chatButton: { className: 'nav-button chat-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 165, 0, 0.2)', color: '#FFA500', border: '1px solid rgba(255, 165, 0, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
-            homeButton: { className: 'nav-button home-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(87, 179, 192, 0.2)', color: '#57b3c0', border: '1px solid rgba(87, 179, 192, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap', width: 'fit-content' } },
-            analysisButton: { className: 'nav-button analysis-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(142, 68, 173, 0.2)', color: '#8e44ad', border: '1px solid rgba(142, 68, 173, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content', marginBottom: '20px' } },
+            logoutButton: {
+                className: 'nav-button logout-button',
+                style: {
+                    ...standardButtonStyle,
+                    backgroundColor: 'rgba(255, 99, 71, 0.2)',
+                    color: '#ff6347',
+                    border: '1px solid rgba(255, 99, 71, 0.4)'
+                }
+            },
+            chatButton: {
+                className: 'nav-button chat-button',
+                style: {
+                    ...standardButtonStyle,
+                    backgroundColor: 'rgba(255, 165, 0, 0.2)',
+                    color: '#FFA500',
+                    border: '1px solid rgba(255, 165, 0, 0.4)'
+                }
+            },
+            homeButton: {
+                className: 'nav-button home-button',
+                style: {
+                    ...standardButtonStyle,
+                    backgroundColor: 'rgba(87, 179, 192, 0.2)',
+                    color: '#57b3c0',
+                    border: '1px solid rgba(87, 179, 192, 0.4)',
+                    textDecoration: 'none'
+                }
+            },
+            analysisButton: {
+                className: 'nav-button analysis-button',
+                style: {
+                    ...standardButtonStyle,
+                    backgroundColor: 'rgba(142, 68, 173, 0.2)',
+                    color: '#8e44ad',
+                    border: '1px solid rgba(142, 68, 173, 0.4)',
+                    marginBottom: '20px'
+                }
+            },
             contentHeading: { style: { fontSize: headingFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#57b3c0', fontWeight: 'bold', } },
             contentText: { style: { fontSize: textFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#c0d0d3', lineHeight: '1.6', } },
             contentSection: { style: { backgroundColor: 'rgba(87, 179, 192, 0.05)', padding: isMobile ? '15px' : '20px', borderRadius: '8px', marginBottom: isMobile ? '15px' : '20px', border: '1px solid rgba(87, 179, 192, 0.1)', } },
@@ -220,25 +291,55 @@ export default function LoggedInTemplate() {
             buttonStackContainer.id = 'button-stack';
             Object.assign(buttonStackContainer.style, styles.buttonStackContainer.style);
 
+            // Create Logout Button
             const logoutButton = document.createElement('button');
             logoutButton.id = 'logout-button';
             logoutButton.className = styles.logoutButton.className;
             Object.assign(logoutButton.style, styles.logoutButton.style);
             logoutButton.textContent = 'Logout';
+            logoutButton.addEventListener('click', handleLogout);
+            logoutButton.addEventListener('mouseenter', () => {
+                logoutButton.style.transform = 'scale(1.05)';
+                logoutButton.style.backgroundColor = 'rgba(255, 99, 71, 0.3)';
+            });
+            logoutButton.addEventListener('mouseleave', () => {
+                logoutButton.style.transform = 'scale(1)';
+                logoutButton.style.backgroundColor = 'rgba(255, 99, 71, 0.2)';
+            });
             buttonStackContainer.appendChild(logoutButton);
 
+            // Create Chat Button
             const chatButton = document.createElement('button');
             chatButton.id = 'chat-button';
             chatButton.className = styles.chatButton.className;
             Object.assign(chatButton.style, styles.chatButton.style);
             chatButton.textContent = 'Live Chat';
+            chatButton.addEventListener('click', handleChatClick);
+            chatButton.addEventListener('mouseenter', () => {
+                chatButton.style.transform = 'scale(1.05)';
+                chatButton.style.backgroundColor = 'rgba(255, 165, 0, 0.3)';
+            });
+            chatButton.addEventListener('mouseleave', () => {
+                chatButton.style.transform = 'scale(1)';
+                chatButton.style.backgroundColor = 'rgba(255, 165, 0, 0.2)';
+            });
             buttonStackContainer.appendChild(chatButton);
 
+            // Create Home Button with explicit styling and event handlers
             const homeButton = document.createElement('button');
             homeButton.id = 'home-button';
             homeButton.className = styles.homeButton.className;
             Object.assign(homeButton.style, styles.homeButton.style);
-            homeButton.textContent = 'Back to Home';
+            homeButton.textContent = 'Back to About';
+            homeButton.addEventListener('click', handleHomeClick);
+            homeButton.addEventListener('mouseenter', () => {
+                homeButton.style.transform = 'scale(1.05)';
+                homeButton.style.backgroundColor = 'rgba(87, 179, 192, 0.3)';
+            });
+            homeButton.addEventListener('mouseleave', () => {
+                homeButton.style.transform = 'scale(1)';
+                homeButton.style.backgroundColor = 'rgba(87, 179, 192, 0.2)';
+            });
             buttonStackContainer.appendChild(homeButton);
 
             panel.appendChild(buttonStackContainer);
@@ -272,7 +373,7 @@ export default function LoggedInTemplate() {
             profileContainer.appendChild(userInfoDiv);
             panel.appendChild(profileContainer);
 
-            // --- CREATE FLOWED CONTENT AREA ---
+            // --- CREATE FLOWED CONTENT AREA (PUSHED DOWN TO AVOID OVERLAP) ---
             const contentContainer = document.createElement('div');
             contentContainer.id = 'content-container';
             contentContainer.className = styles.contentContainer.className;
@@ -282,12 +383,21 @@ export default function LoggedInTemplate() {
             Object.assign(contentHeading.style, styles.contentHeading.style);
             contentHeading.textContent = "Template Main Content";
 
-            // Create Analysis Button in the content section
+            // Create Analysis Button in the content section with explicit event handlers
             const analysisButton = document.createElement('button');
             analysisButton.id = 'analysis-button';
             analysisButton.className = styles.analysisButton.className;
             Object.assign(analysisButton.style, styles.analysisButton.style);
             analysisButton.textContent = 'Open Analysis Dashboard';
+            analysisButton.addEventListener('click', handleAnalysisClick);
+            analysisButton.addEventListener('mouseenter', () => {
+                analysisButton.style.transform = 'scale(1.05)';
+                analysisButton.style.backgroundColor = 'rgba(142, 68, 173, 0.3)';
+            });
+            analysisButton.addEventListener('mouseleave', () => {
+                analysisButton.style.transform = 'scale(1)';
+                analysisButton.style.backgroundColor = 'rgba(142, 68, 173, 0.2)';
+            });
 
             const contentSectionDiv = document.createElement('div');
             Object.assign(contentSectionDiv.style, styles.contentSection.style);
@@ -311,42 +421,18 @@ export default function LoggedInTemplate() {
             overlay.appendChild(panel);
             document.body.appendChild(overlay);
 
-            // Apply animations using setTimeout (Pure DOM, no external dependencies)
+            // Debug positioning - add outlines to help visualize the layout
+            buttonStackContainer.style.outline = '1px dashed rgba(255, 255, 255, 0.3)';
+            contentContainer.style.outline = '1px dashed rgba(255, 255, 255, 0.3)';
+
+            // Apply animations using setTimeout
             setTimeout(() => {
                 // Panel fade in
                 if (window.framerMotion && window.framerMotion.animate) {
-                    // If Framer Motion is available from CDN
                     window.framerMotion.animate('#template-panel', { opacity: 1 }, { duration: 0.5 });
-
-                    // Profile container animation
-                    window.framerMotion.animate('#profile-container', {
-                        opacity: 1,
-                        x: 0
-                    }, {
-                        duration: 0.5,
-                        delay: 0.2,
-                        ease: 'easeOut'
-                    });
-
-                    // Button stack animation
-                    window.framerMotion.animate('#button-stack', {
-                        opacity: 1,
-                        x: 0
-                    }, {
-                        duration: 0.5,
-                        delay: 0.2,
-                        ease: 'easeOut'
-                    });
-
-                    // Content animation
-                    window.framerMotion.animate('#content-container', {
-                        opacity: 1,
-                        y: 0
-                    }, {
-                        duration: 0.5,
-                        delay: 0.4,
-                        ease: 'easeOut'
-                    });
+                    window.framerMotion.animate('#profile-container', { opacity: 1, x: 0 }, { duration: 0.5, delay: 0.2, ease: 'easeOut' });
+                    window.framerMotion.animate('#button-stack', { opacity: 1, x: 0 }, { duration: 0.5, delay: 0.2, ease: 'easeOut' });
+                    window.framerMotion.animate('#content-container', { opacity: 1, y: 0 }, { duration: 0.5, delay: 0.4, ease: 'easeOut' });
                 } else {
                     // Fallback to simple CSS transitions
                     animateElement(panel, { opacity: '1' }, 0);
@@ -354,21 +440,16 @@ export default function LoggedInTemplate() {
                     animateElement(buttonStackContainer, { opacity: '1', transform: 'translateX(0)' }, 200);
                     animateElement(contentContainer, { opacity: '1', transform: 'translateY(0)' }, 400);
                 }
-
-                // Add hover effects to buttons
-                const buttons = document.querySelectorAll('#button-stack button, #analysis-button');
-                buttons.forEach(button => {
-                    button.addEventListener('mouseenter', () => {
-                        button.style.transform = 'scale(1.05)';
-                        button.style.transition = 'transform 0.2s ease';
-                    });
-
-                    button.addEventListener('mouseleave', () => {
-                        button.style.transform = 'scale(1)';
-                        button.style.transition = 'transform 0.2s ease';
-                    });
-                });
             }, 100);
+
+            // Verify all buttons are clickable by adding debug info
+            console.log('Buttons initialized:', {
+                logoutButton: document.getElementById('logout-button'),
+                chatButton: document.getElementById('chat-button'),
+                homeButton: document.getElementById('home-button'),
+                analysisButton: document.getElementById('analysis-button')
+            });
+
         } catch (error) {
             console.error("LoggedInTemplate: Error during UI element creation:", error);
             if (overlayRef.current && overlayRef.current.parentNode === document.body) {
@@ -391,23 +472,6 @@ export default function LoggedInTemplate() {
 
         window.addEventListener('resize', handleResize);
 
-        const homeBtn = document.getElementById('home-button');
-        if (homeBtn) homeBtn.addEventListener('click', () => navigate('/'));
-        else console.error("LoggedInTemplate: Home button not found");
-
-        const chatBtn = document.getElementById('chat-button');
-        if (chatBtn) chatBtn.addEventListener('click', () => navigate('/chat'));
-        else console.error("LoggedInTemplate: Chat button not found");
-
-        const logoutBtn = document.getElementById('logout-button');
-        if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
-        else console.error("LoggedInTemplate: Logout button not found");
-
-        // Add event listener for the Analysis button
-        const analysisBtn = document.getElementById('analysis-button');
-        if (analysisBtn) analysisBtn.addEventListener('click', () => navigate('/analysis/home'));
-        else console.error("LoggedInTemplate: Analysis button not found");
-
         return () => {
             window.removeEventListener('resize', handleResize);
             clearTimeout(resizeTimeout);
@@ -423,14 +487,7 @@ export default function LoggedInTemplate() {
 
             overlayRef.current = null;
         };
-    }, [isLoggedIn, userData, loading, navigate, handleLogout]);
-
-    // ====================================
-    // 6. TEMPLATE-SPECIFIC FUNCTIONS
-    // ====================================
-    const handleCustomAction = () => {
-        console.log('Custom action triggered on template page');
-    };
+    }, [isLoggedIn, userData, loading, navigate, handleLogout, handleChatClick, handleHomeClick, handleAnalysisClick]);
 
     return null; // Component renders null, UI handled by effect
 }

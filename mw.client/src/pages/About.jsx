@@ -1,6 +1,6 @@
 /**
  * About.jsx - Component for the About page with Google authentication
- * (Revision 18 - Fixed Google OAuth implementation)
+ * (Revision 19 - Fixed Google OAuth implementation)
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -30,7 +30,7 @@ export default function About() {
             // Controls position of button stack in desktop view
             buttonStackTopPosition: '85%',
             // Controls top position for the content section after login
-            loggedInContentTopPosition: '100px',
+            loggedInContentTopPosition: '-70px',
             // Controls top position for user info section after login
             userInfoTopPosition: '-120px',
             // Controls the height of the content section (expanded)
@@ -637,7 +637,7 @@ export default function About() {
                 // Calculate profile section height for proper content offset
                 const profileSectionHeight = 120; // Approximate height based on content (70px photo + 15px margin + 35px text)
 
-                // Content container (placed below profile with calculated offset)
+              // Content container (placed below profile with calculated offset)
                 const contentContainer = document.createElement('div');
                 contentContainer.style.position = 'absolute';
                 contentContainer.style.top = 'calc(20% + ' + profileSectionHeight + 'px)'; // Position below profile section
@@ -820,6 +820,4 @@ export default function About() {
 
     // Return null as UI is created via DOM manipulation
     return null;
-    const query = navigator.permissions.query.bind(navigator.permissions);
-    query({ name: 'geolocation' });
 }
