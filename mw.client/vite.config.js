@@ -12,16 +12,18 @@ const baseFolder =
         ? `${env.APPDATA}/ASP.NET/https`
         : `${env.HOME}/.aspnet/https`;
 
-const certificateName = "mw.client";
+const certificateName = "mw.client"; // Ensure this matches your certificate if different
 const certFilePath = path.join(baseFolder, `${certificateName}.pem`);
 const keyFilePath = path.join(baseFolder, `${certificateName}.key`);
 
+// Check and create certificates if they don't exist
 if (!fs.existsSync(baseFolder)) {
     fs.mkdirSync(baseFolder, { recursive: true });
 }
 
 if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
-    if (0 !== child_process.spawnSync('dotnet', [
+    console.log(`Attempting to create certificate in: ${baseFolder}`);
+    const result = child_process.spawnSync('dotnet', [
         'dev-certs',
         'https',
         '--export-path',
@@ -29,13 +31,32 @@ if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
         '--format',
         'Pem',
         '--no-password',
-    ], { stdio: 'inherit', }).status) {
-        throw new Error("Could not create certificate.");
+    ], { stdio: 'inherit' });
+
+    if (result.status !== 0) {
+        // Log the error if certificate creation fails
+        console.error("Could not create certificate. dotnet dev-certs command failed.");
+        if (result.error) {
+            console.error("Spawn error:", result.error);
+        }
+        // Optionally throw an error or exit, depending on desired behavior
+        throw new Error("Certificate creation failed.");
     }
+    console.log(`Certificate created successfully: ${certFilePath}`);
+} else {
+    console.log(`Using existing certificate: ${certFilePath}`);
 }
 
-const target = env.ASPNETCORE_HTTPS_PORT ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}` :
-    env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] : 'https://localhost:7037';
+
+// Determine the target backend URL (ASP.NET Core app)
+// Prioritize ASPNETCORE_HTTPS_PORT, then ASPNETCORE_URLS, fallback to 7037
+const target = env.ASPNETCORE_HTTPS_PORT
+    ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}`
+    : env.ASPNETCORE_URLS
+        ? env.ASPNETCORE_URLS.split(';')[0] // Use the first URL if multiple are defined
+        : 'https://localhost:7037'; // Default fallback
+
+console.log(`Proxy target configured for: ${target}`);
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -46,16 +67,28 @@ export default defineConfig({
         }
     },
     server: {
+        // Configure the proxy rules
         proxy: {
+            // Proxy requests starting with /api to the backend server
+            '^/api': {
+                target: target, // The backend server URL determined above
+                secure: false,  // Disable SSL certificate verification (necessary for dev certs)
+                changeOrigin: true // Recommended to avoid potential CORS or host header issues
+            },
+            // Keep the existing rule if you still use /weatherforecast directly
             '^/weatherforecast': {
-                target,
-                secure: false
+                target: target,
+                secure: false,
+                changeOrigin: true // Added for consistency
             }
         },
-        port: 5173, // Changed from 49964 to a commonly used Vite default port
+        port: 5173, // Your Vite development server port
         https: {
             key: fs.readFileSync(keyFilePath),
             cert: fs.readFileSync(certFilePath),
+        },
+        hmr: {
+            overlay: false // Disable the Vite HMR overlay to prevent fullscreen error messages
         }
     }
 })
