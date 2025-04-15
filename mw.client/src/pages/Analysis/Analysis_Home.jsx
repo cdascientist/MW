@@ -101,10 +101,12 @@ export default function Analysis_Home() {
     // ====================================
     useEffect(() => {
         if (isLoggedIn) {
-            if (!namesLoading && clientNames.length === 0 && !namesError) {
+            // Check if names are not already loaded, not currently loading, and no error occurred previously
+            // OR if an error occurred previously, allow retrying
+            if ((!namesLoading && clientNames.length === 0 && !namesError) || namesError) {
                 console.log("Fetching client names...");
                 setNamesLoading(true);
-                setNamesError(null);
+                setNamesError(null); // Reset error state before fetching
 
                 const fetchClientNames = async () => {
                     try {
@@ -140,7 +142,11 @@ export default function Analysis_Home() {
                 console.log("Cleared client names data due to logout/not logged in.");
             }
         }
-    }, [isLoggedIn, namesError]); // Re-run if login status changes or if there was an error
+        // Dependencies:
+        // - isLoggedIn: Fetch when user logs in.
+        // - namesError: Allow retrying if an error occurred (namesError becomes non-null).
+        //               The check `!namesLoading && clientNames.length === 0` prevents refetching if already loaded successfully.
+    }, [isLoggedIn, namesError]); // Re-run if login status changes or if there was an error to allow retry
 
     // ====================================
     // 2.6 FETCH JOBS FOR SELECTED CLIENT
@@ -165,13 +171,10 @@ export default function Analysis_Home() {
                     const jobsData = await response.json();
                     console.log(`Jobs fetched for ${firstName} ${lastName}:`, jobsData);
                     setJobs(jobsData || []); // Expecting array of job objects
-                    // Decide whether to show the job dropdown based on results
-                    // setShowJobDropdown(jobsData && jobsData.length > 0);
                 } catch (error) {
                     console.error("Analysis_Home: Failed to fetch jobs for client:", error);
                     setJobsError(`Failed to load jobs for ${firstName} ${lastName}.`);
                     setJobs([]);
-                    // setShowJobDropdown(false);
                 } finally {
                     setJobsLoading(false);
                 }
@@ -188,7 +191,7 @@ export default function Analysis_Home() {
                 setSelectedJobId('');
                 setJobsLoading(false);
                 setJobsError(null);
-                setShowClientDropdown(true); // Re-enable client dropdown if deselected
+                setShowClientDropdown(true); // Re-enable client dropdown if deselected or initially null
             }
         }
     }, [selectedClient]); // Dependency: Run when selectedClient changes
@@ -241,10 +244,18 @@ export default function Analysis_Home() {
             chatButton: { className: 'nav-button chat-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 165, 0, 0.2)', color: '#FFA500', border: '1px solid rgba(255, 165, 0, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
             homeButton: { className: 'nav-button home-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(87, 179, 192, 0.2)', color: '#57b3c0', border: '1px solid rgba(87, 179, 192, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap', width: 'fit-content' } },
             dashboardButton: { className: 'nav-button dashboard-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(142, 68, 173, 0.2)', color: '#8e44ad', border: '1px solid rgba(142, 68, 173, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
-            contentSection: { style: { backgroundColor: 'rgba(87, 179, 192, 0.05)', padding: contentAreaPadding, borderRadius: contentSectionBorderRadius, border: '1px solid rgba(87, 179, 192, 0.1)', maxWidth: '100%', overflowWrap: 'break-word', wordWrap: 'break-word', boxSizing: 'border-box', marginTop: dropdownBottomMargin /* Add margin if job dropdown is present */ } },
+            contentSection: { style: { backgroundColor: 'rgba(87, 179, 192, 0.05)', padding: contentAreaPadding, borderRadius: contentSectionBorderRadius, border: '1px solid rgba(87, 179, 192, 0.1)', maxWidth: '100%', overflowWrap: 'break-word', wordWrap: 'break-word', boxSizing: 'border-box', marginTop: dropdownBottomMargin /* Adjusted dynamically below if job dropdown is present */ } },
             contentText: { style: { fontSize: textFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#c0d0d3', lineHeight: '1.6', wordWrap: 'break-word', overflowWrap: 'break-word' } },
-            // --- Client Dropdown ---
-            dropdownContainer: { style: { position: 'relative', marginTop: dropdownTopMargin, marginBottom: dropdownBottomMargin, maxWidth: '100%', boxSizing: 'border-box', display: showClientDropdown ? 'block' : 'none' /* Control visibility */ } },
+            // --- Client Dropdown / Selected Client Info ---
+            clientSelectionContainer: { // Common container style
+                style: {
+                    position: 'relative',
+                    marginTop: dropdownTopMargin,
+                    marginBottom: dropdownBottomMargin,
+                    maxWidth: '100%',
+                    boxSizing: 'border-box'
+                }
+            },
             selectedClientInfo: { // Style for showing the selected client when dropdown is hidden/disabled
                 style: {
                     fontSize: textFontSize,
@@ -253,13 +264,27 @@ export default function Analysis_Home() {
                     border: '1px solid ' + dropdownBorderColor,
                     borderRadius: '6px',
                     padding: isMobile ? '8px 10px' : '10px 12px',
-                    marginTop: dropdownTopMargin,
-                    marginBottom: dropdownBottomMargin, // Keep spacing consistent
                     fontStyle: 'italic',
                     cursor: 'not-allowed', // Indicate it's not interactive
+                    display: 'flex',        // Use flex for alignment
+                    justifyContent: 'space-between', // Space out text and button
+                    alignItems: 'center'     // Vertically align items
                 }
             },
-            // --- Job Dropdown (Shares some styles) ---
+            changeClientButton: { // Style for the 'Change' button next to selected client
+                style: {
+                    fontSize: buttonFontSize * 0.9, // Slightly smaller
+                    backgroundColor: 'rgba(87, 179, 192, 0.3)',
+                    color: '#a7d3d8',
+                    border: '1px solid rgba(87, 179, 192, 0.5)',
+                    padding: isMobile ? '3px 8px' : '5px 10px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    marginLeft: '15px' // Add some space
+                }
+            },
+            // --- Job Dropdown (Shares some styles with client dropdown) ---
             jobDropdownContainer: { style: { position: 'relative', marginTop: dropdownTopMargin, marginBottom: dropdownBottomMargin, maxWidth: '100%', boxSizing: 'border-box' } },
             dropdownLabel: { style: { display: 'block', fontSize: textFontSize, color: dropdownLabelColor, marginBottom: dropdownLabelMargin, fontWeight: '500' } },
             dropdownSelect: { style: { width: '100%', padding: isMobile ? '8px 10px' : '10px 12px', fontSize: dropdownFontSize, backgroundColor: dropdownBackgroundColor, color: '#e0e0e0', border: '1px solid ' + dropdownBorderColor, borderRadius: '6px', cursor: 'pointer', appearance: 'none', backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="%2357b3c0" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: `right ${isMobile ? '8px' : '12px'} center`, backgroundSize: '20px', boxSizing: 'border-box' } },
@@ -279,22 +304,35 @@ export default function Analysis_Home() {
         }, delay);
     };
 
+    // Handler to reset client selection and show the dropdown again
+    const handleChangeClient = () => {
+        console.log("Change Client button clicked.");
+        setSelectedClient(null); // This will trigger the jobs useEffect to clear jobs
+        setShowClientDropdown(true); // Show the client dropdown again
+        // Optionally reset job state immediately if needed, though useEffect will handle it
+        // setJobs([]);
+        // setSelectedJobId('');
+        // setJobsLoading(false);
+        // setJobsError(null);
+    };
+
+
     // ====================================
     // 4. UI RENDERING EFFECT
     // ====================================
     useEffect(() => {
-        if (loading) return;
-        if (!isLoggedIn) {
+        if (loading) return; // Wait for auth check
+        if (!isLoggedIn) { // If not logged in, ensure any existing UI is removed
             if (overlayRef.current && overlayRef.current.parentNode) {
                 overlayRef.current.remove(); overlayRef.current = null;
             } else {
                 const existingOverlay = document.querySelector('.analysis-overlay');
                 if (existingOverlay) existingOverlay.remove();
             }
-            return;
+            return; // Stop rendering UI
         }
-        if (!userData) return;
-        if (overlayRef.current || document.querySelector('.analysis-overlay')) return;
+        if (!userData) return; // Wait for user data if logged in
+        if (overlayRef.current || document.querySelector('.analysis-overlay')) return; // Prevent duplicate renders if already mounted
 
         const styles = getStyles();
         let panel;
@@ -304,7 +342,7 @@ export default function Analysis_Home() {
             const overlay = document.createElement('div');
             overlay.className = styles.overlay.className;
             Object.assign(overlay.style, styles.overlay.style);
-            overlayRef.current = overlay;
+            overlayRef.current = overlay; // Store ref immediately
 
             panel = document.createElement('div');
             panel.className = styles.panel.className;
@@ -351,36 +389,37 @@ export default function Analysis_Home() {
             contentHeading.textContent = "Analysis Dashboard";
             contentContainer.appendChild(contentHeading);
 
-            // --- ADD CLIENT NAME DROPDOWN/DISPLAY ---
-            const clientDropdownContainer = document.createElement('div');
-            clientDropdownContainer.id = 'client-dropdown-wrapper'; // Wrapper ID
-            // Check if we should show the interactive dropdown OR the selected client info
-            if (showClientDropdown) {
-                Object.assign(clientDropdownContainer.style, styles.dropdownContainer.style); // Apply container style
+            // --- ADD CLIENT SELECTION AREA (Dropdown or Selected Info) ---
+            const clientSelectionContainer = document.createElement('div');
+            clientSelectionContainer.id = 'client-selection-wrapper'; // Wrapper ID
+            Object.assign(clientSelectionContainer.style, styles.clientSelectionContainer.style); // Apply common container style
 
+            if (showClientDropdown) {
+                // Build the interactive dropdown
                 if (namesLoading) {
                     const loadingMsg = document.createElement('p');
                     Object.assign(loadingMsg.style, styles.loadingText.style);
                     loadingMsg.textContent = "Loading client names...";
-                    clientDropdownContainer.appendChild(loadingMsg);
+                    clientSelectionContainer.appendChild(loadingMsg);
                 } else if (namesError) {
                     const errorMsg = document.createElement('p');
                     Object.assign(errorMsg.style, styles.errorText.style);
                     errorMsg.textContent = namesError;
-                    clientDropdownContainer.appendChild(errorMsg);
+                    // Optionally add a retry button here
+                    clientSelectionContainer.appendChild(errorMsg);
                 } else if (clientNames.length > 0) {
                     const dropdownLabel = document.createElement('label');
                     dropdownLabel.htmlFor = 'client-name-select';
                     Object.assign(dropdownLabel.style, styles.dropdownLabel.style);
                     dropdownLabel.textContent = 'Select Client:';
-                    clientDropdownContainer.appendChild(dropdownLabel);
+                    clientSelectionContainer.appendChild(dropdownLabel);
 
                     const dropdownSelect = document.createElement('select');
                     dropdownSelect.id = 'client-name-select';
                     Object.assign(dropdownSelect.style, styles.dropdownSelect.style);
                     // Set the value based on the index of the selected client, or "" if none selected
-                    const selectedIndex = selectedClient ? clientNames.findIndex(c => c.clientFirstName === selectedClient.clientFirstName && c.clientLastName === selectedClient.clientLastName) : -1;
-                    dropdownSelect.value = selectedIndex > -1 ? selectedIndex.toString() : "";
+                    // Note: `selectedClient` should be null here because `showClientDropdown` is true
+                    dropdownSelect.value = ""; // Start with default option selected
 
                     dropdownSelect.addEventListener('change', (e) => {
                         const index = parseInt(e.target.value, 10);
@@ -388,9 +427,10 @@ export default function Analysis_Home() {
                             const client = clientNames[index];
                             console.log("Client selected:", client);
                             setSelectedClient(client); // Update state with the full client object
+                            // setShowClientDropdown(false); // Let the useEffect handle this
                         } else {
-                            console.log("Client deselected.");
-                            setSelectedClient(null); // Reset selection
+                            console.log("Client selection reset (shouldn't happen via UI unless '-- Select --' chosen).");
+                            // setSelectedClient(null); // Handled by useEffect when selectedClient changes
                         }
                     });
 
@@ -405,29 +445,39 @@ export default function Analysis_Home() {
                         option.textContent = `${client.clientFirstName} ${client.clientLastName}`; // Display full name
                         dropdownSelect.appendChild(option);
                     });
-                    clientDropdownContainer.appendChild(dropdownSelect);
+                    clientSelectionContainer.appendChild(dropdownSelect);
                 } else {
                     const noNamesMsg = document.createElement('p');
                     Object.assign(noNamesMsg.style, styles.noDataText.style); // Use appropriate style
                     noNamesMsg.textContent = "No client names found.";
-                    clientDropdownContainer.appendChild(noNamesMsg);
+                    clientSelectionContainer.appendChild(noNamesMsg);
                 }
             } else if (selectedClient) {
-                // If dropdown is hidden, show the selected client name
-                const selectedInfo = document.createElement('div');
-                Object.assign(selectedInfo.style, styles.selectedClientInfo.style);
-                selectedInfo.textContent = `Selected Client: ${selectedClient.clientFirstName} ${selectedClient.clientLastName}`;
-                // Maybe add a 'Change Client' button here later
-                clientDropdownContainer.appendChild(selectedInfo);
+                // If dropdown is hidden, show the selected client name and a 'Change' button
+                const selectedInfoDiv = document.createElement('div');
+                Object.assign(selectedInfoDiv.style, styles.selectedClientInfo.style);
+
+                const selectedInfoText = document.createElement('span'); // Use span for text part
+                selectedInfoText.textContent = `Selected Client: ${selectedClient.clientFirstName} ${selectedClient.clientLastName}`;
+                selectedInfoDiv.appendChild(selectedInfoText);
+
+                const changeButton = document.createElement('button');
+                changeButton.id = 'change-client-button';
+                Object.assign(changeButton.style, styles.changeClientButton.style);
+                changeButton.textContent = 'Change';
+                changeButton.addEventListener('click', handleChangeClient); // Attach handler
+                selectedInfoDiv.appendChild(changeButton);
+
+                clientSelectionContainer.appendChild(selectedInfoDiv);
             }
-            contentContainer.appendChild(clientDropdownContainer); // Add client section
+            contentContainer.appendChild(clientSelectionContainer); // Add client selection section
 
             // --- ADD JOB ID DROPDOWN ---
             const jobDropdownContainer = document.createElement('div');
             jobDropdownContainer.id = 'job-dropdown-container';
             Object.assign(jobDropdownContainer.style, styles.jobDropdownContainer.style);
 
-            // Show this section only if a client is selected (i.e., job fetch was triggered)
+            // Show this section only if a client is selected (i.e., job fetch was triggered/completed)
             if (selectedClient) {
                 if (jobsLoading) {
                     const loadingMsg = document.createElement('p');
@@ -438,6 +488,7 @@ export default function Analysis_Home() {
                     const errorMsg = document.createElement('p');
                     Object.assign(errorMsg.style, styles.errorText.style);
                     errorMsg.textContent = jobsError;
+                    // Optionally add retry mechanism for jobs
                     jobDropdownContainer.appendChild(errorMsg);
                 } else if (jobs.length > 0) {
                     const dropdownLabel = document.createElement('label');
@@ -453,7 +504,7 @@ export default function Analysis_Home() {
                     dropdownSelect.addEventListener('change', (e) => {
                         console.log("Job ID selected:", e.target.value);
                         setSelectedJobId(e.target.value);
-                        // Add logic here if needed when job ID changes
+                        // Add logic here if needed when job ID changes (e.g., fetch job details)
                     });
 
                     const defaultOption = document.createElement('option');
@@ -464,12 +515,18 @@ export default function Analysis_Home() {
                     jobs.forEach(job => {
                         const option = document.createElement('option');
                         option.value = job.JobId; // Use JobId as value
-                        option.textContent = `Job ID: ${job.JobId}${job.JobName ? ` - ${job.JobName}` : ''}`; // Display ID and optionally Name
+                        // Display more info if available
+                        let displayText = `Job ID: ${job.JobId}`;
+                        if (job.JobName) displayText += ` - ${job.JobName}`;
+                        // Add other useful identifiers if needed (e.g., date)
+                        // if (job.DateCreated) displayText += ` (${new Date(job.DateCreated).toLocaleDateString()})`;
+                        option.textContent = displayText;
                         dropdownSelect.appendChild(option);
                     });
                     jobDropdownContainer.appendChild(dropdownSelect);
                 } else {
                     // Only show 'no jobs found' if not loading and no error occurred
+                    // This covers the case where the fetch was successful but returned an empty array
                     if (!jobsLoading && !jobsError) {
                         const noJobsMsg = document.createElement('p');
                         Object.assign(noJobsMsg.style, styles.noDataText.style);
@@ -477,7 +534,7 @@ export default function Analysis_Home() {
                         jobDropdownContainer.appendChild(noJobsMsg);
                     }
                 }
-                contentContainer.appendChild(jobDropdownContainer); // Add job dropdown section
+                contentContainer.appendChild(jobDropdownContainer); // Add job dropdown section only if client is selected
             }
 
 
@@ -485,32 +542,54 @@ export default function Analysis_Home() {
             const contentSection = document.createElement('div');
             contentSection.id = 'analysis-content-section';
             Object.assign(contentSection.style, styles.contentSection.style);
-            // Adjust margin top if the job dropdown is potentially visible
+            // Adjust margin top based on whether the job dropdown section *could* be visible
             if (selectedClient) {
-                contentSection.style.marginTop = styles.dropdownBottomMargin.style.marginTop;
+                // If a client is selected, the job dropdown area (even if it shows loading/error/no jobs) takes space,
+                // so the content section needs the standard margin below it.
+                contentSection.style.marginTop = styles.jobDropdownContainer.style.marginBottom; // Use the standard bottom margin
+            } else {
+                // If no client is selected yet, the job dropdown isn't rendered,
+                // so the content section should appear directly below the client selection area.
+                contentSection.style.marginTop = styles.clientSelectionContainer.style.marginBottom;
             }
+
 
             // Example content - update based on selections
-            const welcomeText = document.createElement('p');
-            Object.assign(welcomeText.style, styles.contentText.style);
-            let dynamicText = "Welcome to the Analysis Dashboard. Select a client to begin.";
-            if (selectedClient) {
-                dynamicText = `Displaying analysis options for: ${selectedClient.clientFirstName} ${selectedClient.clientLastName}.`;
-                if (selectedJobId) {
-                    dynamicText += ` Selected Job ID: ${selectedJobId}. Details would load here.`;
-                } else if (jobs.length > 0) {
-                    dynamicText += ` Please select a Job ID from the dropdown above.`;
-                } else if (!jobsLoading && !jobsError) {
-                    dynamicText += ` No associated jobs found.`;
-                } else if (jobsLoading) {
-                    dynamicText += ` Loading associated jobs...`;
+            const statusText = document.createElement('p');
+            Object.assign(statusText.style, styles.contentText.style);
+            let dynamicText = "Welcome to the Analysis Dashboard.";
+
+            if (!selectedClient && showClientDropdown) {
+                dynamicText += " Please select a client to view associated jobs.";
+            } else if (selectedClient) {
+                dynamicText = `Displaying options for Client: ${selectedClient.clientFirstName} ${selectedClient.clientLastName}.`;
+                if (jobsLoading) {
+                    dynamicText += " Loading associated jobs...";
+                } else if (jobsError) {
+                    dynamicText += " Error loading jobs.";
+                } else if (jobs.length === 0) {
+                    dynamicText += " No associated jobs found for this client.";
+                } else if (!selectedJobId) {
+                    dynamicText += " Please select a Job ID from the dropdown above to view details.";
+                } else {
+                    // Both client and job are selected
+                    dynamicText = `Selected Client: ${selectedClient.clientFirstName} ${selectedClient.clientLastName}. Selected Job ID: ${selectedJobId}.`;
+                    // TODO: Add placeholder or logic for displaying job-specific analysis/data
+                    dynamicText += " Analysis details for this job would be displayed here.";
                 }
             }
-            welcomeText.textContent = dynamicText;
-            contentSection.appendChild(welcomeText);
+            statusText.textContent = dynamicText;
+            contentSection.appendChild(statusText);
 
-            // Add more placeholder paragraphs if needed (or actual content)
-            // ... (keep existing placeholder loop if desired)
+            // Add more content based on selectedJobId if needed
+            if (selectedClient && selectedJobId) {
+                const jobDetailPlaceholder = document.createElement('p');
+                Object.assign(jobDetailPlaceholder.style, styles.contentText.style);
+                jobDetailPlaceholder.style.fontStyle = 'italic';
+                jobDetailPlaceholder.style.marginTop = '15px';
+                jobDetailPlaceholder.textContent = `(Content area for Job ID ${selectedJobId} analysis...)`;
+                contentSection.appendChild(jobDetailPlaceholder);
+            }
 
             contentContainer.appendChild(contentSection); // Add content section
 
@@ -523,35 +602,41 @@ export default function Analysis_Home() {
             // Apply animations
             setTimeout(() => {
                 if (window.framerMotion && window.framerMotion.animate) {
+                    // Use Framer Motion if available
                     window.framerMotion.animate('#analysis-panel', { opacity: 1 }, { duration: 0.5 });
                     window.framerMotion.animate('#profile-container', { opacity: 1, x: 0 }, { duration: 0.5, delay: 0.2, ease: 'easeOut' });
                     window.framerMotion.animate('#button-stack', { opacity: 1, x: 0 }, { duration: 0.5, delay: 0.2, ease: 'easeOut' });
                     window.framerMotion.animate('#content-container', { opacity: 1, y: 0 }, { duration: 0.5, delay: 0.4, ease: 'easeOut' });
                 } else {
+                    // Fallback to basic CSS transitions
                     animateElement(panel, { opacity: '1' }, 0);
                     animateElement(profileContainer, { opacity: '1', transform: 'translateX(0)' }, 200);
                     animateElement(buttonStackContainer, { opacity: '1', transform: 'translateX(0)' }, 200);
                     animateElement(contentContainer, { opacity: '1', transform: 'translateY(0)' }, 400);
                 }
                 // Add hover effects etc.
-                const buttons = document.querySelectorAll('#button-stack button');
+                const buttons = document.querySelectorAll('#button-stack button, #change-client-button'); // Include change button
                 buttons.forEach(button => {
+                    const originalScale = button.style.transform || 'scale(1)';
                     button.addEventListener('mouseenter', () => { button.style.transform = 'scale(1.05)'; button.style.transition = 'transform 0.2s ease'; });
-                    button.addEventListener('mouseleave', () => { button.style.transform = 'scale(1)'; button.style.transition = 'transform 0.2s ease'; });
+                    button.addEventListener('mouseleave', () => { button.style.transform = originalScale; button.style.transition = 'transform 0.2s ease'; });
                 });
                 // Mobile scrolling
                 if (window.innerWidth <= 768) {
                     panel.style.overflowY = 'auto';
                     panel.style['-webkit-overflow-scrolling'] = 'touch';
+                    // Passive listener for potential performance improvement on touch devices
                     panel.addEventListener('touchstart', function () { }, { passive: true });
                 }
-            }, 100);
+            }, 100); // Small delay to ensure elements are in DOM for animation
 
         } catch (error) {
             console.error("Analysis_Home: Error during UI element creation:", error);
+            // Cleanup if error occurs during creation
             if (overlayRef.current && overlayRef.current.parentNode) {
                 overlayRef.current.remove(); overlayRef.current = null;
             }
+            // Maybe display an error message to the user?
             return;
         }
 
@@ -563,55 +648,47 @@ export default function Analysis_Home() {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
                 console.log("Analysis_Home: Reloading due to resize...");
+                // Reloading might be too drastic, consider re-running getStyles and reapplying if needed
+                // For simplicity, reload is kept, but could be optimized.
                 window.location.reload();
             }, 250);
         };
         window.addEventListener('resize', handleResize);
 
+        // Cleanup function
         return () => {
             window.removeEventListener('resize', handleResize);
             clearTimeout(resizeTimeout);
+
+            // Robust cleanup: remove the overlay using the ref if available, otherwise query selector
             if (overlayRef.current && overlayRef.current.parentNode) {
+                console.log("Cleaning up UI using ref...");
                 overlayRef.current.remove();
             } else {
+                console.log("Cleaning up UI using querySelector...");
                 const fallbackOverlay = document.querySelector('.analysis-overlay');
-                if (fallbackOverlay) fallbackOverlay.remove();
+                if (fallbackOverlay) {
+                    fallbackOverlay.remove();
+                } else {
+                    console.warn("Cleanup: Could not find overlay element to remove.");
+                }
             }
-            overlayRef.current = null;
+            overlayRef.current = null; // Clear the ref
+            console.log("Analysis_Home UI cleanup complete.");
         };
         // *** Update dependency array for the UI effect ***
+        // This effect now depends on all state variables that influence the UI rendering.
+        // If any of these change, the effect re-runs, cleans up the old UI, and renders the new UI.
     }, [
-        isLoggedIn, userData, loading, navigate, handleLogout, // Auth & Nav
-        clientNames, namesLoading, namesError, // Client names data
-        selectedClient, showClientDropdown, // Selected client state
-        jobs, jobsLoading, jobsError, // Jobs data
+        isLoggedIn, userData, loading, // Auth & Loading state
+        navigate, // Navigation dependency (though less likely to change causing re-render)
+        // Note: handleLogout is stable from useCallback/useRef if needed, but here it's fine
+        clientNames, namesLoading, namesError, // Client names data and status
+        selectedClient, showClientDropdown, // Selected client state and dropdown visibility
+        jobs, jobsLoading, jobsError, // Jobs data and status
         selectedJobId // Selected job state
     ]);
 
     // Component renders null, UI is managed entirely by the effect hook
     return null;
-=======
-    // Component renders null, UI is managed entirely by the effect hook
-    return null;
->>>>>>> Relational_Data
-=======
-    // Component renders null, UI is managed entirely by the effect hook
-    return null;
->>>>>>> Relational_Data
-=======
-    // Component renders null, UI is managed entirely by the effect hook
-    return null;
->>>>>>> Relational_Data
-=======
-    // Component renders null, UI is managed entirely by the effect hook
-    return null;
->>>>>>> Relational_Data
-=======
-    // Component renders null, UI is managed entirely by the effect hook
-    return null;
->>>>>>> Relational_Data
-=======
-    // Component renders null, UI is managed entirely by the effect hook
-    return null;
->>>>>>> Relational_Data
 }
