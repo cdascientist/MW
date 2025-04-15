@@ -108,7 +108,6 @@
         /* HUD Styles - REVISED WITH LOWER Z-INDEX */
         div {
             /* General div reset - careful with this */
-            /* position: absolute; /* Commenting out might be safer unless needed */
             display: block;
             box-sizing: border-box;
             margin: 0;
@@ -583,95 +582,132 @@
                 transform: rotate(-45deg) translate(7px,-7px);
             }
 
+        /****** MENU CONFIGURATION - Start of adjustable section ******/
+        /* Adjust these values to control menu positioning and behavior */
         .sliding-menu {
             /* position: fixed; */ /* Already set above */
             top: 0;
-            right: -80%;
-            width: 80%;
-            max-width: 400px; /* Limit width on larger screens */
+            right: -80%; /* Starting position (off-screen) */
+            width: 80%; /* Width of the menu */
+            max-width: 400px; /* Maximum width on larger screens */
             height: 100vh; /* Full viewport height */
-            background: rgba(13,20,24,.9);
+            background: rgba(13,20,24,.9); /* Menu background color and opacity */
             backdrop-filter: blur(8px);
             transition: right .3s ease;
             z-index: 10000; /* Below toggle but above most content */
             border-left: 1px solid rgba(87,179,192,.3);
-            /* --- KEY STYLE FOR SCROLL --- */
-            overflow-y: auto; /* Make the menu scrollable vertically if content overflows */
-            /* --- END KEY STYLE --- */
+            overflow-y: auto; /* Make the menu scrollable vertically */
             pointer-events: auto; /* Allow interaction */
-            -webkit-overflow-scrolling: touch; /* Optional: Smooth scrolling on iOS */
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
         }
             /* Active state for menu */
             .sliding-menu.active {
-                right: 0; /* Slide in */
+                right: 0; /* Slide in position */
             }
 
-        /* Styles inside the menu */
-        .menu-content, .menu-items, .menu-item, .menu-content-section, .status-grid,
-        .status-item, .nav-list, .nav-item, h2, .slack-link {
-            /* position: relative; */ /* Already set above */
-            display: block;
-            overflow: visible; /* Allow content like dropdowns to show */
-        }
-
+        /* Main menu content container */
         .menu-content {
             width: 100%;
             min-height: 100%; /* Ensure it tries to fill menu height */
-            padding: 80px 20px 40px 20px; /* Adjust padding */
+            padding: 80px 20px 40px 20px; /* Top/bottom/side padding - ADJUST TOP PADDING HERE */
             display: flex;
             flex-direction: column;
             color: #57b3c0;
             box-sizing: border-box; /* Include padding in height calculation */
         }
 
+        /* Menu tabs (Navigation, System Status) */
         .menu-items {
             display: flex;
             flex-direction: column;
             padding: 0 20px; /* Match content padding */
-            margin-bottom: 30px;
+            margin-bottom: 30px; /* Space below tabs */
         }
 
+        /* Individual menu tab */
         .menu-item {
             padding: 15px 20px;
             margin: 5px 0;
             border: 1px solid rgba(87,179,192,.2);
             cursor: pointer;
             transition: all .3s ease;
-            font-size: 1.6em; /* Adjusted for better mobile fit */
+            font-size: 1.6em; /* Font size for tab text */
             letter-spacing: 2px;
             background: rgba(87,179,192,.1);
             text-align: left;
             border-radius: 4px;
-            color: #a7d3d8; /* Ensure text color */
+            color: #a7d3d8; /* Text color */
         }
 
-            .menu-item:hover {
-                background: rgba(87,179,192,.2);
-                transform: translateX(5px);
-            }
-
-            .menu-item.active {
-                background: rgba(87,179,192,.3);
-                border-color: rgba(87,179,192,.4);
-                box-shadow: 0 0 15px rgba(87,179,192,.2);
-                color: #ffffff;
-            }
-        /* Highlight active */
-
+        /* Menu section containers (Navigation, System Status) */
         .menu-content-section {
             display: none; /* Hide sections by default */
-            padding: 0 20px; /* Match content padding */
+            /****** MENU CONTENT WIDTH AND POSITION ADJUSTMENTS ******/
+            padding: 0; /* Remove side padding to take full width */
+            margin: 120px auto 0 auto; /* Push down significantly more (from 60px to 120px) */
+            width: 80%; /* Bring in the width by 20% */
+            transform: scale(1.2); /* Make content 20% larger */
+            transform-origin: top center; /* Scale from the top center */
         }
 
             .menu-content-section.active {
                 display: block; /* Show active section */
             }
 
+        /* Section title (e.g. "Navigation Controls") */
+        h2 {
+            color: #57b3c0;
+            margin: 0;
+            padding: 20px 20px; /* Added horizontal padding to match adjusted width */
+            font-size: 1.8em; /* Adjusted size */
+            border-bottom: 1px solid rgba(87,179,192,.2);
+        }
+
+        /* Styling for nav-list after scaling adjustment */
+        .nav-list {
+            list-style: none;
+            padding: 15px 20px; /* Adjusted padding with sides to counter full width */
+            margin: 0;
+        }
+
+        /* Individual navigation items need inner padding after width adjustment */
+        .nav-item {
+            padding: 12px 15px; /* Padding inside nav items */
+            margin: 8px 0; /* Margin between nav items - ADJUST FOR ITEM SPACING */
+            border-bottom: 1px solid rgba(87,179,192,.1);
+            transition: all .3s ease;
+            color: #a7d3d8;
+            font-size: 1.4em; /* Font size for navigation items */
+        }
+        /****** MENU CONFIGURATION - End of adjustable section ******/
+
+        .menu-item:hover {
+            background: rgba(87,179,192,.2);
+            transform: translateX(5px);
+        }
+
+        .menu-item.active {
+            background: rgba(87,179,192,.3);
+            border-color: rgba(87,179,192,.4);
+            box-shadow: 0 0 15px rgba(87,179,192,.2);
+            color: #ffffff;
+        }
+
+        .nav-item:hover {
+            background: rgba(87,179,192,.1);
+            padding-left: 20px;
+        }
+
+        /* EXPLICITLY DISPLAY START JOB SEARCH LINK */
+        .nav-item a[href*="mountainwestjobsearch.com"] {
+            display: flex !important; /* Always display */
+        }
+
         .status-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 20px;
-            padding: 20px 0;
+            padding: 20px;
         }
 
         .status-item {
@@ -700,40 +736,6 @@
             }
         /* Adjusted size */
 
-        .nav-list {
-            list-style: none;
-            padding: 20px 0;
-            margin: 0;
-        }
-
-        .nav-item {
-            padding: 12px 15px; /* Adjusted padding */
-            margin: 8px 0; /* Adjusted margin */
-            border-bottom: 1px solid rgba(87,179,192,.1);
-            transition: all .3s ease;
-            color: #a7d3d8;
-            font-size: 1.4em; /* Adjusted size */
-        }
-
-            .nav-item:hover {
-                background: rgba(87,179,192,.1);
-                padding-left: 20px;
-            }
-
-        /* --- START JOB SEARCH BUTTON --- */
-        /* This item will be visible and styled like other .nav-items */
-        /* It should be scrollable into view on mobile if menu content is long */
-        /* No specific rule needed to make it visible, relies on parent layout */
-        /* Removed the empty rule: .nav-item a[href*="mountainwestjobsearch.com"] {} */
-
-        h2 {
-            color: #57b3c0;
-            margin: 0;
-            padding: 20px 0;
-            font-size: 1.8em; /* Adjusted size */
-            border-bottom: 1px solid rgba(87,179,192,.2);
-        }
-
         .slack-link { /* Also applies to the YouTube link */
             display: flex;
             align-items: center;
@@ -748,10 +750,11 @@
             }
         /* Brighter on hover */
 
+        /* Make icons bigger */
         .slack-icon, .youtube-icon {
-            width: 24px; /* Slightly smaller icon */
-            height: 24px;
-            margin-right: 10px; /* Adjusted spacing */
+            width: 30px; /* Increased from 24px */
+            height: 30px; /* Increased from 24px */
+            margin-right: 12px; /* Slightly increased spacing */
             vertical-align: middle;
             flex-shrink: 0; /* Prevent icon shrinking */
         }
@@ -1032,12 +1035,14 @@
                 margin-right: 8px;
             }
 
+            /****** MOBILE MENU CONFIGURATION ******/
             .menu-content {
-                padding: 70px 15px 30px 15px;
+                padding: 70px 15px 30px 15px; /* ADJUST TOP PADDING FOR MOBILE */
             }
             /* Less padding on mobile */
             .sliding-menu {
                 width: 85%;
+                right: -85%; /* Ensure it's fully off-screen */
             }
             /* Slightly wider menu on mobile */
 
@@ -1093,6 +1098,7 @@
 
             .sliding-menu {
                 width: 90%;
+                right: -90%; /* Ensure it's fully off-screen on very small devices */
             }
             /* Even wider on very small screens */
             .flat-panel {
@@ -1141,23 +1147,13 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <!-- Start Job Search Button/Link -->
+                        <!-- Start Job Search Button/Link - Always visible -->
                         <a href="https://mountainwestjobsearch.com:5678/form/0c43de0f-bb48-4973-860a-fee3b1deb280" target="_blank" class="slack-link">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg" alt="Slack" class="slack-icon">
                             <span>Start Job Search</span> <!-- This text should be visible -->
                         </a>
                     </li>
                     <!-- Add more items here if needed to test scrolling -->
-                    <!-- <li class="nav-item">Dummy Item 1</li>
-                    <li class="nav-item">Dummy Item 2</li>
-                    <li class="nav-item">Dummy Item 3</li>
-                    <li class="nav-item">Dummy Item 4</li>
-                    <li class="nav-item">Dummy Item 5</li>
-                    <li class="nav-item">Dummy Item 6</li>
-                    <li class="nav-item">Dummy Item 7</li>
-                    <li class="nav-item">Dummy Item 8</li>
-                    <li class="nav-item">Dummy Item 9</li>
-                    <li class="nav-item">Dummy Item 10</li> -->
                 </ul>
             </div>
 
@@ -1170,10 +1166,6 @@
                         <p>Operating at 97% efficiency</p>
                     </div>
                     <!-- Add more items here if needed to test scrolling -->
-                    <!-- <div class="status-item"><h3>Sensor Array</h3><p>Online</p></div>
-                    <div class="status-item"><h3>Comms Link</h3><p>Stable</p></div>
-                    <div class="status-item"><h3>Power Core</h3><p>Nominal</p></div>
-                    <div class="status-item"><h3>Life Support</h3><p>Active</p></div> -->
                 </div>
             </div>
         </div>
@@ -1200,12 +1192,11 @@
             <div class="circle inner1"></div>
             <div class="notches"><div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div></div>
             <div class="circle inner2"></div>
-            <!-- React App Mount Point -->
-            <div id="root">
-                <!-- React app content will be injected here -->
-            </div>
-            <!-- Ensure React script is loaded -->
-            <script type="module" src="/src/main.jsx"></script> <!-- Check path if needed -->
+            <!-- React App Mount Point - NO LONGER NEEDED AS WE HAVE THE MAIN ROOT DIV -->
+            <!-- <div id="root">
+            </div> -->
+            <!-- Script moved to after the body -->
+            <!-- <script type="module" src="/src/main.jsx"></script> -->
         </div>
 
         <!-- Center text on top of everything -->
@@ -1223,6 +1214,11 @@
             <div style="color: #57b3c0;">Performance: Optimal</div>
         </div>
     </div>
+
+    <!-- React Root Div - REQUIRED FOR REACT APPLICATION -->
+    <div id="root">
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
 
     <script>
         // Initialize preloader and animation (Modified as requested)
@@ -1333,7 +1329,8 @@
 
         });
 
-        // Initialize menu functionality (Original Script - Verified)
+        // Initialize menu functionality
+        // ****** MENU SCRIPT CONFIGURATION - Adjust menu behavior here ******
         document.addEventListener('DOMContentLoaded', () => {
             const menuToggle = document.querySelector('.menu-toggle');
             const slidingMenu = document.querySelector('.sliding-menu');
@@ -1400,6 +1397,12 @@
                 }
             } else if (slidingMenu.querySelector('.menu-item.active')) {
                 console.log("Menu item already active, no default set.");
+            }
+
+            // Ensure "Start Job Search" link is always visible
+            const jobSearchLink = document.querySelector('.nav-item a[href*="mountainwestjobsearch.com"]');
+            if (jobSearchLink) {
+                jobSearchLink.style.display = 'flex'; // Ensure it's visible
             }
         });
     </script>
