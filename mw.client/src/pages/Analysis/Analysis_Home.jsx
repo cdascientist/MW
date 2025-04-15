@@ -1,5 +1,6 @@
 /**
  * Analysis_Home.jsx - Analysis Dashboard Component
+ * Refactored to use styling consistent with LoggedInTemplate.jsx
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -15,7 +16,7 @@ export default function Analysis_Home() {
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true); // Loading for auth check
     const overlayRef = useRef(null);
-    const panelRef = useRef(null);
+    // panelRef might not be needed if we target by ID for animation
 
     // State for Client Names Dropdown
     const [clientNames, setClientNames] = useState([]);
@@ -53,7 +54,7 @@ export default function Analysis_Home() {
             console.warn("Analysis_Home: Auth check complete, user not authenticated. Redirecting...");
             redirectToLogin("Not authenticated after check");
         }
-    }, []); // Removed loading from dependency array here, it's set internally
+    }, []); // No dependencies needed here, runs once on mount
 
     // Redirect function
     const redirectToLogin = (reason) => {
@@ -73,7 +74,7 @@ export default function Analysis_Home() {
         localStorage.removeItem('mw_isLoggedIn');
         localStorage.removeItem('mw_userData');
         console.log("Local storage cleared.");
-        // Ensure redirection happens *after* state update is likely processed
+        // Redirect *after* state updates are likely processed
         setTimeout(() => redirectToLogin("User logged out"), 0);
     };
 
@@ -82,177 +83,191 @@ export default function Analysis_Home() {
     // 2.5. FETCH CLIENT NAMES
     // ====================================
     useEffect(() => {
-        // Only fetch names if logged in and not already loading/fetched
-        if (isLoggedIn && !namesLoading && clientNames.length === 0 && !namesError) {
-            console.log("Fetching client names...");
-            setNamesLoading(true);
-            setNamesError(null);
+        // Only fetch names if logged in
+        if (isLoggedIn) {
+            // Check if we need to fetch (not already loading, and haven't fetched successfully yet)
+            if (!namesLoading && clientNames.length === 0 && !namesError) {
+                console.log("Fetching client names...");
+                setNamesLoading(true);
+                setNamesError(null); // Clear previous errors
 
-            const fetchClientNames = async () => {
-                try {
-                    // Adjust the URL if your API is hosted elsewhere or needs specific base URL
-                    const response = await fetch('/api/WorkdayStepOneJobs/UniqueClientFirstNames');
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+                const fetchClientNames = async () => {
+                    try {
+                        const response = await fetch('/api/WorkdayStepOneJobs/UniqueClientFirstNames');
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+                        }
+                        const names = await response.json();
+                        console.log("Client names fetched successfully:", names);
+                        setClientNames(names || []); // Ensure it's an array
+                        setSelectedClientName(''); // Reset selection
+                    } catch (error) {
+                        console.error("Analysis_Home: Failed to fetch client names:", error);
+                        setNamesError('Failed to load client names. Please try again later.');
+                        setClientNames([]); // Clear names on error
+                    } finally {
+                        setNamesLoading(false);
                     }
-                    const names = await response.json();
-                    console.log("Client names fetched successfully:", names);
-                    setClientNames(names || []); // Ensure it's an array
-                    setSelectedClientName(''); // Reset selection
-                } catch (error) {
-                    console.error("Analysis_Home: Failed to fetch client names:", error);
-                    setNamesError('Failed to load client names. Please try again later.');
-                    setClientNames([]); // Clear any potentially stale names
-                } finally {
-                    setNamesLoading(false);
-                }
-            };
-
-            fetchClientNames();
-        } else if (!isLoggedIn) {
-            // If user logs out, clear names
-            setClientNames([]);
-            setSelectedClientName('');
-            setNamesLoading(false);
-            setNamesError(null);
+                };
+                fetchClientNames();
+            }
+        } else {
+            // If user logs out or isn't logged in initially, clear client names data
+            if (clientNames.length > 0 || selectedClientName || namesError || namesLoading) {
+                setClientNames([]);
+                setSelectedClientName('');
+                setNamesLoading(false);
+                setNamesError(null);
+                console.log("Cleared client names data due to logout/not logged in.");
+            }
         }
-        // Dependencies: Run when login status changes
-    }, [isLoggedIn]); // Rerun only when isLoggedIn changes
+        // Dependencies: Run when login status changes, or if an error occurred (to allow retry potential)
+    }, [isLoggedIn, namesError]); // Added namesError to potentially allow refetch if component logic permits
+
 
     // ====================================
-    // 3. STYLING CONFIGURATION (WITH ANIMATION PROPERTIES)
+    // 3. STYLING CONFIGURATION (ADOPTED FROM LoggedInTemplate.jsx)
     // ====================================
     const getStyles = () => {
         const isMobile = window.innerWidth <= 768;
-        const sizeFactor = 0.75;
 
-        // ***** PANEL CONFIGURATION *****
-        const desktopPanelWidth = isMobile ? '95%' : `calc(85% * ${sizeFactor})`;
-        const desktopPanelHeight = isMobile ? '90vh' : `calc(85vh * ${sizeFactor})`;
-        const desktopMaxWidth = isMobile ? '1200px' : `calc(1200px * ${sizeFactor})`;
+        // --- Define spacing & positioning values ---
+        const panelPaddingTop = isMobile ? '100px' : '130px'; // Adopted
+        const panelPaddingSides = isMobile ? '15px' : '40px'; // Adopted
+        const panelPaddingBottom = isMobile ? '30px' : '50px'; // Adopted
 
-        // ***** PADDING CONFIGURATION *****
-        const panelPaddingTop = isMobile ? '20px' : '30px';
-        const panelPaddingSides = isMobile ? '15px' : '40px';
-        const panelPaddingBottom = isMobile ? '30px' : '50px';
+        // Desktop-specific panel size enhancement (35% larger)
+        const desktopPanelWidth = isMobile ? '95%' : 'calc(85% * 1.35)'; // Adopted
+        const desktopPanelHeight = isMobile ? '90vh' : 'calc(85vh * 1.35)'; // Adopted
+        const desktopMaxWidth = isMobile ? '1200px' : 'calc(1200px * 1.35)'; // Adopted
 
-        // ***** CLIENT SELECTION POSITIONING *****
-        // Controls the spacing and layout of the client dropdown area
-        const dropdownTopMargin = isMobile ? '90px' : '80px';
-        const dropdownBottomMargin = isMobile ? '25px' : '30px';
+        // Text size enhancement (35% larger for desktop only)
+        const headingFontSize = isMobile ? '20px' : 'calc(24px * 1.35)'; // Adopted
+        const textFontSize = isMobile ? '15px' : 'calc(16px * 1.35)'; // Adopted
+        const sectionHeadingFontSize = isMobile ? '18px' : 'calc(20px * 1.35)'; // Adopted
+        const userNameFontSize = isMobile ? '15px' : 'calc(17px * 1.35)'; // Adopted
+        const userEmailFontSize = isMobile ? '11px' : 'calc(13px * 1.35)'; // Adopted
+        const buttonFontSize = isMobile ? '12px' : 'calc(14px * 1.35)'; // Adopted
+        const dropdownFontSize = isMobile ? '14px' : 'calc(15px * 1.35)'; // Adopted (Scaled Dropdown)
+
+        // Absolute positions (relative to panel edges)
+        const profileTop = isMobile ? '20px' : '30px'; // Adopted
+        const profileLeft = panelPaddingSides; // Adopted
+        const buttonStackTop = isMobile ? '15px' : '25px'; // Adopted
+        const buttonStackRight = panelPaddingSides; // Adopted
+        const buttonStackGap = isMobile ? '10px' : '15px'; // Adopted
+
+        // ***** DROPDOWN POSITIONING (Relative within content flow) *****
+        const dropdownTopMargin = isMobile ? '15px' : '20px'; // Space above dropdown (after title)
+        const dropdownBottomMargin = isMobile ? '25px' : '30px'; // Space below dropdown (before content section)
         const dropdownLabelMargin = '8px';
-        const dropdownLabelColor = '#a7d3d8';
+        const dropdownLabelColor = '#a7d3d8'; // Keep specific dropdown colors
         const dropdownBackgroundColor = 'rgba(87, 179, 192, 0.1)';
         const dropdownBorderColor = 'rgba(87, 179, 192, 0.3)';
 
-        // ***** CONTENT SECTION POSITIONING *****
-        // Controls where the main content area appears relative to the dropdown
-        const contentSectionTopMargin = '25px'; // Space between dropdown and content section
+        // ***** CONTENT SECTION POSITIONING (Relative within content flow) *****
         const contentSectionBorderRadius = '8px';
-        const contentSectionBottomMargin = isMobile ? '25px' : '30px';
-        const contentAreaPadding = isMobile ? '15px' : '20px';
+        const contentAreaPadding = isMobile ? '15px' : '20px'; // Padding inside the content section box
 
-        // General positioning
-        const profileTopMargin = isMobile ? '10px' : '20px';
-        const contentSidePadding = '15px';
-        const contentRightPadding = isMobile ? '20px' : '120px';
-
-        // ***** SIDE BUTTONS CONFIGURATION *****
-        // These variables control the fixed side buttons
-        const sideButtonsTop = isMobile ? '20px' : '30px';
-        const sideButtonsRight = panelPaddingSides;
-        const buttonGap = '10px';
-        const buttonWidth = 'auto'; // Set to auto to allow natural width
-        const buttonRightAlignment = 'flex-end'; // Align buttons to the right
-
-        // Font sizes
-        const headingFontSize = isMobile ? '20px' : 'calc(24px * 1.35)';
-        const textFontSize = isMobile ? '15px' : 'calc(16px * 1.35)';
-        const sectionHeadingFontSize = isMobile ? '18px' : 'calc(20px * 1.35)';
-        const userNameFontSize = isMobile ? '15px' : 'calc(17px * 1.35)';
-        const userEmailFontSize = isMobile ? '11px' : 'calc(13px * 1.35)';
-        const buttonFontSize = isMobile ? '12px' : 'calc(14px * 1.35)';
-        const dropdownFontSize = isMobile ? '14px' : 'calc(15px * 1.35)';
 
         return {
             overlay: {
-                className: 'ui-overlay analysis-overlay',
-                style: { zIndex: '9999', position: 'fixed', top: '0', left: '0', width: '100%', height: '100%', pointerEvents: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: isMobile ? '10px' : '50px', boxSizing: 'border-box' }
+                className: 'ui-overlay analysis-overlay', // Keep specific class if needed
+                style: {
+                    zIndex: '9999', position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
+                    pointerEvents: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    padding: isMobile ? '10px' : '50px', boxSizing: 'border-box',
+                }
             },
             panel: {
-                className: 'flat-panel analysis-panel',
-                style: { position: 'relative', width: desktopPanelWidth, maxWidth: desktopMaxWidth, height: desktopPanelHeight, backgroundColor: 'rgba(13, 20, 24, 0.9)', borderRadius: '12px', boxShadow: '0 6px 15px rgba(0, 0, 0, 0.3)', padding: panelPaddingTop + ' ' + panelPaddingSides + ' ' + panelPaddingBottom + ' ' + panelPaddingSides, color: 'white', pointerEvents: 'auto', overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', opacity: 0, WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'thin' }
+                className: 'flat-panel analysis-panel', // Keep specific class if needed
+                style: {
+                    position: 'relative', // Needed for absolute children
+                    width: desktopPanelWidth, maxWidth: desktopMaxWidth,
+                    height: desktopPanelHeight, backgroundColor: 'rgba(13, 20, 24, 0.9)',
+                    borderRadius: '12px', boxShadow: '0 6px 15px rgba(0, 0, 0, 0.3)',
+                    paddingTop: panelPaddingTop, // Adopted (Creates space for absolute elements)
+                    paddingLeft: panelPaddingSides, // Adopted
+                    paddingRight: panelPaddingSides, // Adopted
+                    paddingBottom: panelPaddingBottom, // Adopted
+                    color: 'white', pointerEvents: 'auto', overflowY: 'auto', // Enable scrolling for content
+                    boxSizing: 'border-box',
+                    opacity: 0, // Start with opacity 0 for animation
+                    WebkitOverflowScrolling: 'touch', // Keep mobile scroll improvements
+                    msOverflowStyle: 'none',
+                    scrollbarWidth: 'thin'
+                }
             },
             profileContainer: {
-                style: {
-                    display: 'flex',
-                    alignItems: 'center',
+                style: { // Adopted absolute positioning
+                    position: 'absolute',
+                    top: profileTop,
+                    left: profileLeft,
+                    display: 'flex', alignItems: 'center',
                     gap: '15px',
-                    marginBottom: '20px',
-                    marginTop: profileTopMargin,
-                    width: 'calc(100% - ' + contentRightPadding + ')',
-                    opacity: 0,
-                    transform: 'translateX(-50px)'
+                    zIndex: 10,
+                    opacity: 0, // Start with opacity 0 for animation
+                    transform: 'translateX(-50px)', // Start off-screen for animation
                 }
             },
-            sideButtonsContainer: {
-                style: {
-                    position: 'absolute', // Using absolute for positioning
-                    top: sideButtonsTop,
-                    right: sideButtonsRight,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: buttonGap,
-                    zIndex: 100,
-                    opacity: 0,
-                    transform: 'translateX(50px)',
-                    alignItems: buttonRightAlignment // Align buttons to the right
+            // Renamed to buttonStackContainer for clarity, using LoggedInTemplate style
+            buttonStackContainer: {
+                style: { // Adopted absolute positioning
+                    position: 'absolute',
+                    top: buttonStackTop,
+                    right: buttonStackRight,
+                    display: 'flex', flexDirection: 'column',
+                    gap: buttonStackGap,
+                    zIndex: 10,
+                    alignItems: 'flex-end', // Align buttons right
+                    opacity: 0, // Start with opacity 0 for animation
+                    transform: 'translateX(50px)', // Start off-screen for animation
                 }
             },
-            contentContainer: {
+            contentContainer: { // This holds the main flowing content (title, dropdown, text)
+                className: 'content-container', // Use class for potential external styling
                 style: {
-                    width: '100%',
-                    maxWidth: '100%',
+                    width: '100%', // Take full width within panel padding
+                    opacity: 0, // Start with opacity 0 for animation
+                    transform: 'translateY(30px)', // Start below for animation
                     boxSizing: 'border-box',
-                    paddingRight: contentRightPadding,
-                    paddingLeft: contentSidePadding,
-                    opacity: 0,
-                    transform: 'translateY(30px)',
-                    wordWrap: 'break-word', // Ensure text wraps properly 
+                    wordWrap: 'break-word', // Ensure text wraps properly
                     overflowWrap: 'break-word' // Modern browsers support
                 }
             },
-            titleHeading: {
+            titleHeading: { // Style for the "Analysis Dashboard" title
                 style: {
-                    fontSize: headingFontSize,
+                    fontSize: headingFontSize, // Adopted scaled font
                     color: '#57b3c0',
                     fontWeight: 'bold',
-                    marginBottom: '20px',
-                    width: 'calc(100% - ' + contentRightPadding + ')',
+                    marginBottom: '20px', // Space between title and dropdown
+                    // No width adjustment needed, flows naturally now
                     overflowWrap: 'break-word',
                     wordWrap: 'break-word',
                     hyphens: 'auto'
                 }
             },
-            profilePhoto: { style: { width: isMobile ? '45px' : '60px', height: isMobile ? '45px' : '60px', borderRadius: '50%', border: '2px solid #57b3c0', objectFit: 'cover', flexShrink: 0 } },
-            profilePhotoPlaceholder: { style: { width: isMobile ? '45px' : '60px', height: isMobile ? '45px' : '60px', borderRadius: '50%', backgroundColor: '#57b3c0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: isMobile ? '18px' : '24px', flexShrink: 0 } },
+            profilePhoto: { style: { width: isMobile ? '45px' : '60px', height: isMobile ? '45px' : '60px', borderRadius: '50%', border: '2px solid #57b3c0', objectFit: 'cover', flexShrink: 0 } }, // Adopted size
+            profilePhotoPlaceholder: { style: { width: isMobile ? '45px' : '60px', height: isMobile ? '45px' : '60px', borderRadius: '50%', backgroundColor: '#57b3c0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: isMobile ? '18px' : '24px', flexShrink: 0 } }, // Adopted size
             userInfo: { style: { display: 'flex', flexDirection: 'column', textAlign: 'left' } },
-            userName: { style: { margin: '0', fontSize: userNameFontSize, color: '#a7d3d8', fontWeight: '500' } },
-            userEmail: { style: { margin: '2px 0 0 0', fontSize: userEmailFontSize, color: '#7a9a9e' } },
-            logoutButton: { className: 'nav-button logout-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 99, 71, 0.2)', color: '#ff6347', border: '1px solid rgba(255, 99, 71, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: buttonWidth } },
-            chatButton: { className: 'nav-button chat-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 165, 0, 0.2)', color: '#FFA500', border: '1px solid rgba(255, 165, 0, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: buttonWidth } },
-            homeButton: { className: 'nav-button home-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(87, 179, 192, 0.2)', color: '#57b3c0', border: '1px solid rgba(87, 179, 192, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap', width: buttonWidth } },
-            dashboardButton: { className: 'nav-button dashboard-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(142, 68, 173, 0.2)', color: '#8e44ad', border: '1px solid rgba(142, 68, 173, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: buttonWidth } },
-            contentHeading: { style: { fontSize: headingFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#57b3c0', fontWeight: 'bold' } },
-            contentText: { style: { fontSize: textFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#c0d0d3', lineHeight: '1.6', wordWrap: 'break-word', overflowWrap: 'break-word' } },
-            contentSection: {
+            userName: { style: { margin: '0', fontSize: userNameFontSize, color: '#a7d3d8', fontWeight: '500' } }, // Adopted font size
+            userEmail: { style: { margin: '2px 0 0 0', fontSize: userEmailFontSize, color: '#7a9a9e' } }, // Adopted font size
+
+            // --- BUTTON STYLES (Adopted from LoggedInTemplate) ---
+            logoutButton: { className: 'nav-button logout-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 99, 71, 0.2)', color: '#ff6347', border: '1px solid rgba(255, 99, 71, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
+            chatButton: { className: 'nav-button chat-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(255, 165, 0, 0.2)', color: '#FFA500', border: '1px solid rgba(255, 165, 0, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
+            homeButton: { className: 'nav-button home-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(87, 179, 192, 0.2)', color: '#57b3c0', border: '1px solid rgba(87, 179, 192, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap', width: 'fit-content' } },
+            // Dashboard button specifically for this page, styled consistently
+            dashboardButton: { className: 'nav-button dashboard-button', style: { fontSize: buttonFontSize, backgroundColor: 'rgba(142, 68, 173, 0.2)', color: '#8e44ad', border: '1px solid rgba(142, 68, 173, 0.4)', padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' } },
+
+            // --- CONTENT SPECIFIC STYLES (within contentContainer) ---
+            contentSection: { // The box holding the lorem ipsum text
                 style: {
                     backgroundColor: 'rgba(87, 179, 192, 0.05)',
-                    padding: contentAreaPadding,
+                    padding: contentAreaPadding, // Use defined padding
                     borderRadius: contentSectionBorderRadius,
-                    marginBottom: contentSectionBottomMargin,
-                    marginTop: contentSectionTopMargin, // Added margin-top for spacing from dropdown
+                    // marginBottom: contentSectionBottomMargin, // No explicit bottom margin needed? Content flow handles it.
+                    // marginTop: contentSectionTopMargin, // No explicit top margin needed, flows after dropdown
                     border: '1px solid rgba(87, 179, 192, 0.1)',
                     maxWidth: '100%',
                     overflowWrap: 'break-word',
@@ -260,20 +275,22 @@ export default function Analysis_Home() {
                     boxSizing: 'border-box'
                 }
             },
-            contentSectionHeading: {
+            contentText: { // Style for paragraphs within contentSection
                 style: {
-                    fontSize: sectionHeadingFontSize,
-                    marginBottom: '15px',
-                    color: '#57b3c0',
-                    fontWeight: '600'
+                    fontSize: textFontSize, // Adopted scaled font
+                    marginBottom: isMobile ? '15px' : '20px',
+                    color: '#c0d0d3',
+                    lineHeight: '1.6',
+                    wordWrap: 'break-word',
+                    overflowWrap: 'break-word'
                 }
             },
-            // ***** DROPDOWN STYLES *****
+            // ***** DROPDOWN STYLES (within contentContainer) *****
             dropdownContainer: {
                 style: {
-                    position: 'relative',
-                    marginTop: dropdownTopMargin, // Top margin adjusted
-                    marginBottom: dropdownBottomMargin, // Space between dropdown and content
+                    position: 'relative', // Keep relative for label/select positioning
+                    marginTop: dropdownTopMargin, // Position below title
+                    marginBottom: dropdownBottomMargin, // Space before content section
                     maxWidth: '100%',
                     boxSizing: 'border-box'
                 }
@@ -281,7 +298,7 @@ export default function Analysis_Home() {
             dropdownLabel: {
                 style: {
                     display: 'block',
-                    fontSize: textFontSize,
+                    fontSize: textFontSize, // Use scaled text font size
                     color: dropdownLabelColor,
                     marginBottom: dropdownLabelMargin,
                     fontWeight: '500'
@@ -291,7 +308,7 @@ export default function Analysis_Home() {
                 style: {
                     width: '100%',
                     padding: isMobile ? '8px 10px' : '10px 12px',
-                    fontSize: dropdownFontSize,
+                    fontSize: dropdownFontSize, // Use scaled dropdown font size
                     backgroundColor: dropdownBackgroundColor,
                     color: '#e0e0e0',
                     border: '1px solid ' + dropdownBorderColor,
@@ -305,18 +322,28 @@ export default function Analysis_Home() {
                     boxSizing: 'border-box'
                 }
             },
-            loadingText: {
+            loadingText: { // For loading/error messages in dropdown area
                 style: {
-                    fontSize: textFontSize,
-                    color: '#FFA500',
-                    marginBottom: '15px',
+                    fontSize: textFontSize, // Use scaled text font size
+                    color: '#FFA500', // Default orange for loading
+                    marginTop: dropdownTopMargin, // Consistent spacing
+                    marginBottom: dropdownBottomMargin,
                     fontStyle: 'italic'
+                }
+            },
+            errorText: { // Specific style for errors
+                style: {
+                    fontSize: textFontSize, // Use scaled text font size
+                    color: '#ff6347', // Red for error
+                    marginTop: dropdownTopMargin, // Consistent spacing
+                    marginBottom: dropdownBottomMargin,
+                    fontWeight: '500' // Make errors slightly bolder
                 }
             }
         };
     };
 
-    // Simple animation function using setTimeout and transitions
+    // Simple animation function using setTimeout and transitions (copied from LoggedInTemplate)
     const animateElement = (element, properties, delay = 0) => {
         if (!element) return;
         setTimeout(() => {
@@ -328,26 +355,25 @@ export default function Analysis_Home() {
     };
 
     // ====================================
-    // 4. UI RENDERING EFFECT (WITH ANIMATIONS)
+    // 4. UI RENDERING EFFECT (WITH ANIMATIONS & ADOPTED STRUCTURE)
     // ====================================
     useEffect(() => {
-        console.log("UI Effect: Running. Loading:", loading, "IsLoggedIn:", isLoggedIn);
+        // console.log("UI Effect: Running. Loading:", loading, "IsLoggedIn:", isLoggedIn);
         if (loading) {
-            console.log("UI Effect: Exiting because loading is true.");
+            // console.log("UI Effect: Exiting because loading is true.");
             return;
         } // Wait for auth check
 
         // If not logged in after check, ensure no UI is rendered by this component
         if (!isLoggedIn) {
-            console.log("UI Effect: User not logged in, ensuring overlay is removed.");
+            // console.log("UI Effect: User not logged in, ensuring overlay is removed.");
             if (overlayRef.current && overlayRef.current.parentNode) {
-                console.log("UI Effect: Removing existing overlay.");
+                // console.log("UI Effect: Removing existing overlay.");
                 overlayRef.current.remove(); overlayRef.current = null;
             } else {
-                // Double check if somehow ref got detached but element exists
                 const existingOverlay = document.querySelector('.analysis-overlay');
                 if (existingOverlay) {
-                    console.log("UI Effect: Removing fallback found overlay.");
+                    // console.log("UI Effect: Removing fallback found overlay.");
                     existingOverlay.remove();
                 }
             }
@@ -362,32 +388,34 @@ export default function Analysis_Home() {
 
         // Prevent duplicate rendering if overlay already exists
         if (overlayRef.current || document.querySelector('.analysis-overlay')) {
-            console.log("UI Effect: Overlay already exists, skipping UI creation.");
+            // console.log("UI Effect: Overlay already exists, skipping UI creation.");
             return;
         }
-        console.log("UI Effect: Proceeding to create UI elements...");
+        // console.log("UI Effect: Proceeding to create UI elements...");
 
         const styles = getStyles();
-        const isMobile = window.innerWidth <= 768;
-        let panel;
+        // const isMobile = window.innerWidth <= 768; // Already used within getStyles
+        let panel; // Define panel variable
 
         try {
             // Create Overlay and Panel
             const overlay = document.createElement('div');
             overlay.className = styles.overlay.className;
             Object.assign(overlay.style, styles.overlay.style);
-            overlayRef.current = overlay;
+            overlayRef.current = overlay; // Store ref
 
-            panel = document.createElement('div');
+            panel = document.createElement('div'); // Assign to the outer scope variable
             panel.className = styles.panel.className;
-            panel.id = 'analysis-panel';
+            panel.id = 'analysis-panel'; // Keep ID for potential targeting/animation
             Object.assign(panel.style, styles.panel.style);
-            panelRef.current = panel;
+            // panelRef.current = panel; // Store ref if needed elsewhere
 
-            // --- CREATE PROFILE INFO (Top-Left) ---
+
+            // --- CREATE ABSOLUTE PROFILE INFO (Top-Left) ---
             const profileContainer = document.createElement('div');
-            profileContainer.id = 'profile-container';
+            profileContainer.id = 'profile-container'; // Use ID for animation
             Object.assign(profileContainer.style, styles.profileContainer.style);
+
             const profilePhotoEl = document.createElement(userData.picture ? 'img' : 'div');
             if (userData.picture) {
                 profilePhotoEl.src = userData.picture; profilePhotoEl.alt = "Profile";
@@ -397,6 +425,7 @@ export default function Analysis_Home() {
                 Object.assign(profilePhotoEl.style, styles.profilePhotoPlaceholder.style);
             }
             profileContainer.appendChild(profilePhotoEl);
+
             const userInfoDiv = document.createElement('div');
             Object.assign(userInfoDiv.style, styles.userInfo.style);
             const userNameEl = document.createElement('h3');
@@ -407,42 +436,47 @@ export default function Analysis_Home() {
             userEmailEl.textContent = userData.email || 'No email provided';
             userInfoDiv.appendChild(userNameEl); userInfoDiv.appendChild(userEmailEl);
             profileContainer.appendChild(userInfoDiv);
-            panel.appendChild(profileContainer);
+            panel.appendChild(profileContainer); // Add absolute element to panel
 
-            // --- CREATE SIDE BUTTONS (Right) ---
-            const sideButtonsContainer = document.createElement('div');
-            sideButtonsContainer.id = 'side-buttons-container';
-            Object.assign(sideButtonsContainer.style, styles.sideButtonsContainer.style);
+            // --- CREATE ABSOLUTE BUTTON STACK (Top-Right) ---
+            // Use buttonStackContainer naming from adopted styles
+            const buttonStackContainer = document.createElement('div');
+            buttonStackContainer.id = 'button-stack'; // Use consistent ID for animation
+            Object.assign(buttonStackContainer.style, styles.buttonStackContainer.style);
+
+            // Define buttons for this specific page
             const buttonsConfig = [
-                { id: 'logout-button', text: 'Logout', style: styles.logoutButton.style, className: styles.logoutButton.className, handler: handleLogout, priority: 1 },
-                { id: 'chat-button', text: 'Live Chat', style: styles.chatButton.style, className: styles.chatButton.className, handler: () => navigate('/chat'), priority: 2 },
-                { id: 'dashboard-button', text: 'Back to Dashboard', style: styles.dashboardButton.style, className: styles.dashboardButton.className, handler: () => navigate('/loggedintemplate'), priority: 3 },
-                { id: 'home-button', text: 'Back to Home', style: styles.homeButton.style, className: styles.homeButton.className, handler: () => navigate('/'), priority: 4 }
+                // Order matters for visual stacking (top to bottom)
+                { id: 'logout-button', text: 'Logout', style: styles.logoutButton.style, className: styles.logoutButton.className, handler: handleLogout },
+                { id: 'chat-button', text: 'Live Chat', style: styles.chatButton.style, className: styles.chatButton.className, handler: () => navigate('/chat') },
+                { id: 'dashboard-button', text: 'Back to Dashboard', style: styles.dashboardButton.style, className: styles.dashboardButton.className, handler: () => navigate('/loggedintemplate') },
+                { id: 'home-button', text: 'Back to Home', style: styles.homeButton.style, className: styles.homeButton.className, handler: () => navigate('/') }
             ];
-            buttonsConfig.sort((a, b) => a.priority - b.priority);
+
             buttonsConfig.forEach(config => {
                 const button = document.createElement('button');
                 button.id = config.id; button.className = config.className;
                 Object.assign(button.style, config.style); button.textContent = config.text;
                 button.addEventListener('click', config.handler);
-                sideButtonsContainer.appendChild(button);
+                buttonStackContainer.appendChild(button); // Add button to the stack
             });
-            panel.appendChild(sideButtonsContainer);
+            panel.appendChild(buttonStackContainer); // Add absolute element to panel
 
-            // --- CREATE CONTENT AREA ---
+            // --- CREATE FLOWING CONTENT AREA ---
             const contentContainer = document.createElement('div');
-            contentContainer.id = 'content-container';
+            contentContainer.id = 'content-container'; // Use ID for animation
+            contentContainer.className = styles.contentContainer.className; // Apply class
             Object.assign(contentContainer.style, styles.contentContainer.style);
 
-            // Add title heading
+            // Add title heading (inside content container now)
             const contentHeading = document.createElement('h2');
             Object.assign(contentHeading.style, styles.titleHeading.style);
             contentHeading.textContent = "Analysis Dashboard";
             contentContainer.appendChild(contentHeading);
 
-            // --- ADD CLIENT NAME DROPDOWN ---
+            // --- ADD CLIENT NAME DROPDOWN (inside content container) ---
             const dropdownContainer = document.createElement('div');
-            dropdownContainer.id = 'dropdown-container';
+            dropdownContainer.id = 'dropdown-container'; // Keep ID if needed
             Object.assign(dropdownContainer.style, styles.dropdownContainer.style);
 
             if (namesLoading) {
@@ -452,8 +486,7 @@ export default function Analysis_Home() {
                 dropdownContainer.appendChild(loadingMsg);
             } else if (namesError) {
                 const errorMsg = document.createElement('p');
-                Object.assign(errorMsg.style, styles.loadingText.style); // Reuse style
-                errorMsg.style.color = '#ff6347'; // Make error red
+                Object.assign(errorMsg.style, styles.errorText.style); // Use specific error style
                 errorMsg.textContent = namesError;
                 dropdownContainer.appendChild(errorMsg);
             } else if (clientNames.length > 0) {
@@ -470,97 +503,93 @@ export default function Analysis_Home() {
                 dropdownSelect.addEventListener('change', (e) => {
                     console.log("Dropdown changed:", e.target.value);
                     setSelectedClientName(e.target.value);
-                    // Add any other logic needed when selection changes here
+                    // Add logic here to update content based on selection
                 });
 
-                // Add default option
                 const defaultOption = document.createElement('option');
-                defaultOption.value = "";
-                defaultOption.textContent = "-- Select a Client --";
+                defaultOption.value = ""; defaultOption.textContent = "-- Select a Client --";
                 dropdownSelect.appendChild(defaultOption);
 
-                // Add client names
                 clientNames.forEach(name => {
                     const option = document.createElement('option');
-                    option.value = name;
-                    option.textContent = name;
+                    option.value = name; option.textContent = name;
                     dropdownSelect.appendChild(option);
                 });
                 dropdownContainer.appendChild(dropdownSelect);
             } else {
-                // Case where loading is done, no error, but no names found
                 const noNamesMsg = document.createElement('p');
-                Object.assign(noNamesMsg.style, styles.loadingText.style); // Reuse style
+                Object.assign(noNamesMsg.style, styles.loadingText.style); // Reuse style, maybe change text color
+                noNamesMsg.style.color = '#a7d3d8'; // Less alarming color for "not found"
                 noNamesMsg.textContent = "No client names found.";
                 dropdownContainer.appendChild(noNamesMsg);
             }
             contentContainer.appendChild(dropdownContainer); // Add dropdown section to content
 
-            // --- ADD CONTENT SECTION ---
+            // --- ADD CONTENT SECTION (inside content container) ---
             const contentSection = document.createElement('div');
+            contentSection.id = 'analysis-content-section'; // Give it an ID if needed
             Object.assign(contentSection.style, styles.contentSection.style);
-            for (let i = 1; i <= 7; i++) {
+
+            // Example content - Replace/update with actual analysis data later
+            const welcomeText = document.createElement('p');
+            Object.assign(welcomeText.style, styles.contentText.style);
+            welcomeText.textContent = selectedClientName
+                ? `Displaying analysis for: ${selectedClientName}. Lorem ipsum dolor sit amet...`
+                : "Welcome to the Analysis Dashboard. Select a client from the dropdown above to view specific details. This section will display relevant information based on your selection.";
+            contentSection.appendChild(welcomeText);
+
+            // Add more placeholder paragraphs if needed
+            for (let i = 2; i <= 5; i++) {
                 const paragraph = document.createElement('p');
                 Object.assign(paragraph.style, styles.contentText.style);
-                if (i === 1) {
-                    paragraph.textContent = "Welcome to the Analysis Dashboard. Select a client from the dropdown above to view specific details. This section will display relevant information based on your selection.";
-                } else {
-                    const loremTexts = ["Lorem ipsum dolor sit amet...", "Suspendisse in justo...", "Vestibulum ante ipsum...", "Morbi in ipsum sit amet...", "Curabitur sit amet mauris...", "Sed aliquet risus a tortor...", "Integer id quam..."]; // Shortened for brevity
-                    paragraph.textContent = loremTexts[(i - 2) % loremTexts.length];
-                }
+                const loremTexts = ["Suspendisse in justo...", "Vestibulum ante ipsum...", "Morbi in ipsum sit amet...", "Curabitur sit amet mauris..."];
+                paragraph.textContent = loremTexts[(i - 2) % loremTexts.length];
                 contentSection.appendChild(paragraph);
             }
+
             contentContainer.appendChild(contentSection); // Add content section after dropdown
 
-            // Append content container to panel
+            // Append the main content container to the panel
             panel.appendChild(contentContainer);
 
             // --- APPEND TO BODY ---
             overlay.appendChild(panel);
             document.body.appendChild(overlay);
-            console.log("UI Effect: UI elements created and appended to body.");
+            // console.log("UI Effect: UI elements created and appended to body.");
 
-            // Apply animations
+            // Apply animations using consistent IDs and logic from LoggedInTemplate
             setTimeout(() => {
-                console.log("UI Effect: Applying animations...");
+                // console.log("UI Effect: Applying animations...");
                 if (window.framerMotion && window.framerMotion.animate) {
-                    // Use Framer Motion if available
                     window.framerMotion.animate('#analysis-panel', { opacity: 1 }, { duration: 0.5 });
                     window.framerMotion.animate('#profile-container', { opacity: 1, x: 0 }, { duration: 0.5, delay: 0.2, ease: 'easeOut' });
-                    window.framerMotion.animate('#side-buttons-container', { opacity: 1, x: 0 }, { duration: 0.5, delay: 0.2, ease: 'easeOut' });
+                    window.framerMotion.animate('#button-stack', { opacity: 1, x: 0 }, { duration: 0.5, delay: 0.2, ease: 'easeOut' }); // Target button-stack ID
                     window.framerMotion.animate('#content-container', { opacity: 1, y: 0 }, { duration: 0.5, delay: 0.4, ease: 'easeOut' });
                 } else {
                     // Fallback to simple CSS transitions
                     animateElement(panel, { opacity: '1' }, 0);
                     animateElement(profileContainer, { opacity: '1', transform: 'translateX(0)' }, 200);
-                    animateElement(sideButtonsContainer, { opacity: '1', transform: 'translateX(0)' }, 200);
+                    animateElement(buttonStackContainer, { opacity: '1', transform: 'translateX(0)' }, 200); // Target buttonStackContainer
                     animateElement(contentContainer, { opacity: '1', transform: 'translateY(0)' }, 400);
                 }
 
-                // Add hover effects etc.
-                const buttons = document.querySelectorAll('#side-buttons-container button');
+                // Add hover effects etc. (Target buttons within the stack)
+                const buttons = document.querySelectorAll('#button-stack button'); // Target buttons inside the stack
                 buttons.forEach(button => {
                     button.addEventListener('mouseenter', () => { button.style.transform = 'scale(1.05)'; button.style.transition = 'transform 0.2s ease'; });
                     button.addEventListener('mouseleave', () => { button.style.transform = 'scale(1)'; button.style.transition = 'transform 0.2s ease'; });
                 });
 
-                // Mobile scrolling improvements
-                if (isMobile) {
-                    panel.style.overflowY = 'scroll';
+                // Mobile scrolling improvements (keep if panel style has overflowY: 'auto')
+                if (window.innerWidth <= 768) {
+                    panel.style.overflowY = 'auto'; // Ensure it's scrollable
                     panel.style['-webkit-overflow-scrolling'] = 'touch';
-                    panel.addEventListener('touchstart', function () { }, { passive: true });
+                    panel.addEventListener('touchstart', function () { }, { passive: true }); // Helps responsiveness on touch
                 }
 
-                // Make side buttons stick when scrolling
-                panel.addEventListener('scroll', function () {
-                    const sideButtons = document.getElementById('side-buttons-container');
-                    if (sideButtons) {
-                        const initialTop = isMobile ? 20 : 30; // Same as sideButtonsTop
-                        sideButtons.style.top = `${initialTop + panel.scrollTop}px`;
-                    }
-                });
+                // REMOVE the custom scroll listener for sticky buttons - absolute positioning handles this now.
 
-                console.log("UI Effect: Animations applied and event listeners added.");
+                // console.log("UI Effect: Animations applied and event listeners added.");
             }, 100); // Small delay before starting animations
 
         } catch (error) {
@@ -568,8 +597,7 @@ export default function Analysis_Home() {
             if (overlayRef.current && overlayRef.current.parentNode) {
                 overlayRef.current.remove(); overlayRef.current = null;
             }
-            // Optionally display an error message to the user here
-            return;
+            return; // Stop execution on error
         }
 
         // ====================================
@@ -580,41 +608,35 @@ export default function Analysis_Home() {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
                 console.log("Analysis_Home: Reloading due to resize...");
-                window.location.reload(); // Simple reload strategy
+                window.location.reload(); // Simple reload strategy remains
             }, 250);
         };
 
         window.addEventListener('resize', handleResize);
-        console.log("UI Effect: Resize listener added.");
+        // console.log("UI Effect: Resize listener added.");
 
         // Cleanup function
         return () => {
-            console.log("UI Effect: Cleanup running.");
+            // console.log("UI Effect: Cleanup running.");
             window.removeEventListener('resize', handleResize);
             clearTimeout(resizeTimeout);
-            console.log("UI Effect: Resize listener removed.");
+            // console.log("UI Effect: Resize listener removed.");
 
-            // Enhanced cleanup to ensure overlay removal
             if (overlayRef.current && overlayRef.current.parentNode) {
-                console.log("UI Effect Cleanup: Removing overlay via ref.");
+                // console.log("UI Effect Cleanup: Removing overlay via ref.");
                 overlayRef.current.remove();
             } else {
-                // If ref is lost, try querying selector again
                 const fallbackOverlay = document.querySelector('.analysis-overlay');
                 if (fallbackOverlay) {
-                    console.log("UI Effect Cleanup: Removing overlay via fallback querySelector.");
+                    // console.log("UI Effect Cleanup: Removing overlay via fallback querySelector.");
                     fallbackOverlay.remove();
-                } else {
-                    console.log("UI Effect Cleanup: No overlay found to remove.");
                 }
             }
-
-            // Nullify refs
-            overlayRef.current = null;
-            panelRef.current = null;
-            console.log("UI Effect Cleanup: Refs nullified.");
+            overlayRef.current = null; // Nullify ref
+            // console.log("UI Effect Cleanup: Cleanup complete.");
         };
-    }, [isLoggedIn, userData, loading, navigate, clientNames, namesLoading, namesError]); // Added name-related state
+        // Add selectedClientName to dependencies, so content section text updates when selection changes
+    }, [isLoggedIn, userData, loading, navigate, handleLogout, clientNames, namesLoading, namesError, selectedClientName]); // Added name-related state + selectedClientName
 
     // Component renders null, UI is managed entirely by the effect hook
     return null;

@@ -1,6 +1,6 @@
 /**
  * About.jsx - Component for the About page with Google authentication
- * (Revision 17 - Expanded content height, replaced chat button with dashboard, updated config)
+ * (Revision 18 - Fixed Google OAuth implementation)
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -29,7 +29,6 @@ export default function About() {
             contentMaxHeight: 'calc(100% - 200px)',
             // Controls position of button stack in desktop view
             buttonStackTopPosition: '85%',
-            // ****** ADDED NEW CONFIGURABLE VARIABLES FOR DESKTOP ******
             // Controls top position for the content section after login
             loggedInContentTopPosition: '100px',
             // Controls top position for user info section after login
@@ -68,7 +67,6 @@ export default function About() {
         }
     }, []);
 
-
     // JWT token decoder
     const decodeJwtResponse = (token) => {
         try {
@@ -91,7 +89,7 @@ export default function About() {
 
     // Set up Google Sign-In Script - Runs only ONCE on mount
     useEffect(() => {
-        // Define the global callback function
+        // Define the global callback function - FIXED: Simplified implementation
         window.handleGoogleSignIn = (response) => {
             isAttemptingLogin.current = false; // Reset attempt flag on callback
             if (response && response.credential) {
@@ -105,34 +103,55 @@ export default function About() {
             }
         };
 
-        // Load Google script if it doesn't exist
-        if (!document.getElementById('google-signin-script')) {
-            const script = document.createElement('script');
-            script.src = 'https://accounts.google.com/gsi/client';
-            script.id = 'google-signin-script';
-            script.async = true;
-            script.defer = true;
-            script.onload = () => {
-                setGoogleAuthLoaded(true);
-                console.log('Google Sign-In script loaded via onload.');
-            };
-            script.onerror = () => {
-                console.error('Failed to load Google Sign-In script.');
-            };
-            document.head.appendChild(script);
-        } else {
-            if (window.google?.accounts?.id) {
+        // FIXED: Improved script loading logic
+        const loadGoogleScript = () => {
+            // Load Google script if it doesn't exist
+            if (!document.getElementById('google-signin-script')) {
+                const script = document.createElement('script');
+                script.src = 'https://accounts.google.com/gsi/client';
+                script.id = 'google-signin-script';
+                script.async = true;
+                script.defer = true;
+
+                // FIXED: Added better error handling with timeout
+                let timeoutId = null;
+
+                script.onload = () => {
+                    if (timeoutId) clearTimeout(timeoutId);
+                    setGoogleAuthLoaded(true);
+                    console.log('Google Sign-In script loaded successfully.');
+                };
+
+                script.onerror = () => {
+                    if (timeoutId) clearTimeout(timeoutId);
+                    console.error('Failed to load Google Sign-In script.');
+                };
+
+                // Set a timeout to detect if Google API fails to initialize
+                timeoutId = setTimeout(() => {
+                    if (!window.google?.accounts?.id) {
+                        console.warn('Google API failed to initialize after timeout');
+                    }
+                }, 5000);
+
+                document.head.appendChild(script);
+            } else if (window.google?.accounts?.id) {
+                // Script already exists and API is ready
                 if (!googleAuthLoaded) {
                     setGoogleAuthLoaded(true);
-                    console.log('Google Sign-In script already existed and API seems ready.');
+                    console.log('Google Sign-In script already existed and API is ready.');
                 }
             } else {
+                // Script exists but API might still be initializing
                 if (!googleAuthLoaded) {
                     setGoogleAuthLoaded(true);
-                    console.log('Google Sign-In script already existed, setting loaded state optimistically (API might still be initializing).');
+                    console.log('Google Sign-In script exists, awaiting API initialization.');
                 }
             }
-        }
+        };
+
+        // Load the script
+        loadGoogleScript();
 
         // Cleanup global callback and timeout ref
         return () => {
@@ -169,7 +188,6 @@ export default function About() {
         };
     }, []); // Empty dependency array ensures this runs only once
 
-
     // Logout handler - memoized
     const handleLogout = useCallback(() => {
         isAttemptingLogin.current = false;
@@ -187,7 +205,7 @@ export default function About() {
         console.log('User logged out.');
     }, [setIsLoggedIn, setUserData]);
 
-    // Create a dedicated, properly-positioned container for Google Sign-In
+    // FIXED: Improved Google Sign-In container creation
     const createDedicatedGoogleSignInContainer = useCallback(() => {
         // Remove any existing container first
         const existingContainer = document.getElementById('dedicated-google-signin-container');
@@ -267,7 +285,7 @@ export default function About() {
         return buttonContainer;
     }, []);
 
-    // Initialize the Google Sign-In button in our dedicated container
+    // FIXED: Improved Google Sign-In initialization
     const initializeGoogleSignIn = useCallback(() => {
         if (!window.google?.accounts?.id) {
             console.error("Google Sign-In API not available");
@@ -277,50 +295,65 @@ export default function About() {
         try {
             const buttonContainer = createDedicatedGoogleSignInContainer();
 
-            // Initialize Google Sign-In
-            window.google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                callback: (response) => {
-                    // First clean up the container
-                    const container = document.getElementById('dedicated-google-signin-container');
-                    if (container && document.body.contains(container)) {
-                        document.body.removeChild(container);
-                    }
+            // Initialize Google Sign-In with improved error handling
+            try {
+                window.google.accounts.id.initialize({
+                    client_id: GOOGLE_CLIENT_ID,
+                    callback: (response) => {
+                        // First clean up the container
+                        const container = document.getElementById('dedicated-google-signin-container');
+                        if (container && document.body.contains(container)) {
+                            document.body.removeChild(container);
+                        }
 
-                    // Then process the sign-in response
-                    window.handleGoogleSignIn(response);
-                },
-                cancel_on_tap_outside: false,
-                context: 'signin'
-            });
+                        // Then process the sign-in response
+                        window.handleGoogleSignIn(response);
+                    },
+                    cancel_on_tap_outside: false,
+                    context: 'signin'
+                });
+            } catch (initError) {
+                console.error("Error initializing Google Sign-In:", initError);
+                return false;
+            }
 
             // Render the button in our container
-            window.google.accounts.id.renderButton(
-                buttonContainer,
-                {
-                    type: 'standard',
-                    theme: 'outline',
-                    size: 'large',
-                    text: 'signin_with',
-                    shape: 'rectangular',
-                    logo_alignment: 'center',
-                    width: 250
-                }
-            );
+            try {
+                window.google.accounts.id.renderButton(
+                    buttonContainer,
+                    {
+                        type: 'standard',
+                        theme: 'outline',
+                        size: 'large',
+                        text: 'signin_with',
+                        shape: 'rectangular',
+                        logo_alignment: 'center',
+                        width: 250
+                    }
+                );
+            } catch (renderError) {
+                console.error("Error rendering Google Sign-In button:", renderError);
+                return false;
+            }
 
-            // Also prompt with the One Tap UI in our container
-            window.google.accounts.id.prompt((notification) => {
-                console.log("Google Sign-In prompt notification:", notification);
-            });
+            // Also prompt with the One Tap UI in our container with error handling
+            try {
+                window.google.accounts.id.prompt((notification) => {
+                    console.log("Google Sign-In prompt notification:", notification);
+                });
+            } catch (promptError) {
+                console.error("Error with Google Sign-In prompt:", promptError);
+                // Continue even if prompt fails - button should still work
+            }
 
             return true;
         } catch (error) {
-            console.error("Error initializing Google Sign-In:", error);
+            console.error("Error in overall Google Sign-In flow:", error);
             return false;
         }
     }, [GOOGLE_CLIENT_ID, createDedicatedGoogleSignInContainer]);
 
-    // Google Sign-In button click handler
+    // FIXED: Improved Google Sign-In button click handler
     const handleGoogleButtonClick = useCallback(() => {
         console.log("Google Sign-In button clicked.");
 
@@ -334,14 +367,16 @@ export default function About() {
             retryTimeoutRef.current = null;
         }
 
-        if (googleAuthLoaded && window.google?.accounts?.id) {
+        // FIXED: First check if Google API is available
+        if (window.google?.accounts?.id) {
             console.log("GSI library ready. Initializing sign-in flow...");
             isAttemptingLogin.current = true;
             initializeGoogleSignIn();
         } else {
-            console.warn("GSI library not ready. Scheduling retry in 500ms.");
+            console.warn("GSI library not ready. Scheduling retry in 1500ms.");
             isAttemptingLogin.current = true;
 
+            // FIXED: Increased retry timeout and improved error handling
             retryTimeoutRef.current = setTimeout(() => {
                 console.log("Executing GSI retry check...");
                 if (window.google?.accounts?.id) {
@@ -349,14 +384,30 @@ export default function About() {
                     initializeGoogleSignIn();
                 } else {
                     console.error("GSI library STILL not ready after retry.");
-                    alert('Google Sign-In is not available right now. Please try again later.');
+
+                    // Show more user-friendly error message
+                    const container = document.getElementById('dedicated-google-signin-container');
+                    if (container) {
+                        const messageDiv = document.createElement('div');
+                        messageDiv.style.color = '#ff6347';
+                        messageDiv.style.marginTop = '15px';
+                        messageDiv.style.textAlign = 'center';
+                        messageDiv.textContent = 'Google Sign-In is not available right now. Please try again later.';
+
+                        const innerContainer = document.getElementById('google-signin-inner-container');
+                        if (innerContainer) {
+                            innerContainer.appendChild(messageDiv);
+                        }
+                    } else {
+                        alert('Google Sign-In is not available right now. Please try again later.');
+                    }
+
                     isAttemptingLogin.current = false;
                 }
                 retryTimeoutRef.current = null;
-            }, 500);
+            }, 1500); // Increased from 500ms to 1500ms for better reliability
         }
     }, [googleAuthLoaded, initializeGoogleSignIn]);
-
 
     // UI rendering with DOM manipulation - Main effect hook
     useEffect(() => {
@@ -397,7 +448,6 @@ export default function About() {
                 actionButtons.className = 'action-buttons';
                 actionButtons.style.position = 'absolute'; actionButtons.style.top = '20px'; actionButtons.style.right = '20px';
                 actionButtons.style.display = 'flex'; actionButtons.style.gap = '15px'; actionButtons.style.zIndex = '20';
-                // MODIFIED: Changed "Open Live Chat" to "Dashboard"
                 actionButtons.innerHTML = `
                     <button id="logout-button" class="nav-button" style="font-size: 30px; background-color: rgba(255, 99, 71, 0.2); color: #ff6347; border: 1px solid rgba(255, 99, 71, 0.4); padding: 10px 20px; border-radius: 6px;">Logout</button>
                     <button id="template-button" class="nav-button chat-button" style="font-size: 30px; background-color: rgba(255, 165, 0, 0.2); color: #FFA500; border: 1px solid rgba(255, 165, 0, 0.4); padding: 10px 20px; border-radius: 6px;">Dashboard</button>
@@ -573,7 +623,6 @@ export default function About() {
                     }
                 `;
                 profileSection.appendChild(userPhotoDiv);
-
                 const userInfoDiv = document.createElement('div');
                 userInfoDiv.style.width = '100%';
                 userInfoDiv.style.textAlign = 'center';
@@ -639,10 +688,10 @@ export default function About() {
                 // Using the configurable max height
                 contentContainer.style.maxHeight = CONFIG.mobile.contentMaxHeight;
                 contentContainer.innerHTML = `
-        <p style="font-size: 16px; line-height: 1.4; margin-bottom: 20px; color: #a7d3d8;">
-            Mountain West provides compassionate care for those struggling with addiction. Our experienced team offers sober living environments, recovery support groups, and personalized treatment plans to help you achieve lasting sobriety. We believe in addressing all aspects of recovery, from in-house therapy to life skills development, creating a supportive community where your recovery journey begins with dignity and hope.
-        </p>
-    `;
+                    <p style="font-size: 16px; line-height: 1.4; margin-bottom: 20px; color: #a7d3d8;">
+                        Mountain West provides compassionate care for those struggling with addiction. Our experienced team offers sober living environments, recovery support groups, and personalized treatment plans to help you achieve lasting sobriety. We believe in addressing all aspects of recovery, from in-house therapy to life skills development, creating a supportive community where your recovery journey begins with dignity and hope.
+                    </p>
+                `;
                 panel.appendChild(contentContainer);
 
                 // **** MOBILE BUTTON AREA WITH CONFIGURABLE POSITIONING ****
@@ -665,11 +714,11 @@ export default function About() {
                 const googleButtonContainer = document.createElement('div');
                 googleButtonContainer.id = 'google-button-container-mobile'; // Unique ID for mobile container
                 googleButtonContainer.innerHTML = `
-         <button id="google-login-button-mobile" style="background-color: #4285F4; color: white; padding: 10px 18px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; width: auto;">
-             <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" style="width: 18px; height: 18px;"/>
-             Sign in with Google
-         </button>
-     `;
+                    <button id="google-login-button-mobile" style="background-color: #4285F4; color: white; padding: 10px 18px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; width: auto;">
+                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" style="width: 18px; height: 18px;"/>
+                        Sign in with Google
+                    </button>
+                `;
                 mobileButtonArea.appendChild(googleButtonContainer);
                 googleButtonContainerRef.current = googleButtonContainer;
 
@@ -678,8 +727,8 @@ export default function About() {
                 homeButtonContainer.style.marginTop = '45px';
                 homeButtonContainer.style.display = 'none'; // Changed to none to make it invisible
                 homeButtonContainer.innerHTML = `
-         <button id="home-button" class="nav-button" style="width: auto; font-size: 16px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 18px; border-radius: 4px;">Back to Start</button>
-     `;
+                    <button id="home-button" class="nav-button" style="width: auto; font-size: 16px; background-color: rgba(87, 179, 192, 0.2); color: #57b3c0; border: 1px solid rgba(87, 179, 192, 0.4); padding: 10px 18px; border-radius: 4px;">Back to Start</button>
+                `;
                 mobileButtonArea.appendChild(homeButtonContainer);
 
                 panel.appendChild(mobileButtonArea);
@@ -771,4 +820,6 @@ export default function About() {
 
     // Return null as UI is created via DOM manipulation
     return null;
+    const query = navigator.permissions.query.bind(navigator.permissions);
+    query({ name: 'geolocation' });
 }
