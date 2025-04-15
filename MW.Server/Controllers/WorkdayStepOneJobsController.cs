@@ -1,13 +1,22 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MW.Server.Models; // Assuming Models namespace follows project name
-using System.Collections.Generic; // Added for List<T>
-using System.Linq;             // Added for LINQ methods like Select and Distinct
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http; // Added for StatusCodes
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using System;
 
-namespace MW.Server.Controllers // Assuming Controllers namespace follows project name
+namespace MW.Server.Controllers
 {
+    // DTO defined here for simplicity, or move to Models/DTOs folder
+    public class ClientNameDto
+    {
+        public string? ClientFirstName { get; set; }
+        public string? ClientLastName { get; set; }
+    }
+
     [Route("api/[controller]")]
     [ApiController]
     public class WorkdayStepOneJobsController : ControllerBase
@@ -21,10 +30,7 @@ namespace MW.Server.Controllers // Assuming Controllers namespace follows projec
             _logger = logger;
         }
 
-        /// <summary>
-        /// Gets the total count of WorkdayStepOneJob records.
-        /// </summary>
-        /// <returns>The total number of records.</returns>
+        // --- GetCount method ---
         [HttpGet("Count")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -32,8 +38,6 @@ namespace MW.Server.Controllers // Assuming Controllers namespace follows projec
         {
             try
             {
-                // IMPORTANT: Assumes the DbSet property in 'DefaultdbContext' is named by pluralizing 'WorkdayStepOneJob' (e.g., 'WorkdayStepOneJobs')
-                // If your DbSet has a different name, update it here.
                 var count = await _context.WorkdayStepOneJobs.CountAsync();
                 return Ok(count);
             }
@@ -45,45 +49,105 @@ namespace MW.Server.Controllers // Assuming Controllers namespace follows projec
             }
         }
 
-        /// <summary>
-        /// Gets a list of unique ClientFirstName values from WorkdayStepOneJob records.
-        /// </summary>
-        /// <returns>A list of unique client first names.</returns>
-        [HttpGet("UniqueClientFirstNames")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        // --- GetUniqueClientNames method ---
+        [HttpGet("UniqueClientNames")]
+        [ProducesResponseType(typeof(List<ClientNameDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<List<string>>> GetUniqueClientFirstNames()
+        public async Task<ActionResult<List<ClientNameDto>>> GetUniqueClientNames()
         {
             try
             {
-                // IMPORTANT: Assumes the DbSet property in 'DefaultdbContext' is named by pluralizing 'WorkdayStepOneJob' (e.g., 'WorkdayStepOneJobs')
-                // If your DbSet has a different name, update it here.
                 var uniqueNames = await _context.WorkdayStepOneJobs
-                                        .Select(j => j.ClientFirstName) // Select only the first name
-                                        .Where(name => !string.IsNullOrEmpty(name)) // Filter out null or empty names (optional but recommended)
-                                        .Distinct()                     // Get unique names
-                                        .OrderBy(name => name)          // Order alphabetically (optional)
-                                        .ToListAsync();                 // Execute the query asynchronously
+                                        .Where(j => !string.IsNullOrEmpty(j.ClientFirstName))
+                                        .Select(j => new { j.ClientFirstName, j.ClientLastName })
+                                        .Distinct()
+                                        .OrderBy(namePair => namePair.ClientFirstName)
+                                        .ThenBy(namePair => namePair.ClientLastName)
+                                        .Select(namePair => new ClientNameDto
+                                        {
+                                            ClientFirstName = namePair.ClientFirstName,
+                                            // Clean up last name here as well for consistency
+                                            ClientLastName = (!string.IsNullOrEmpty(namePair.ClientLastName) && namePair.ClientLastName.EndsWith("}"))
+                                                             ? namePair.ClientLastName.Substring(0, namePair.ClientLastName.Length - 1)
+                                                             : namePair.ClientLastName
+                                        })
+                                        .ToListAsync();
 
-                // Handle case where no names are found
-                if (uniqueNames == null || !uniqueNames.Any())
+                if (uniqueNames == null)
                 {
-                    _logger.LogInformation("No client first names found");
-                    return new List<string>(); // Return empty list instead of 404
+                    _logger.LogInformation("Unique client name query returned null (unexpected)");
+                    return new List<ClientNameDto>();
                 }
 
+                _logger.LogInformation("Retrieved {Count} unique client name pairs.", uniqueNames.Count);
                 return Ok(uniqueNames);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting unique client first names");
+                _logger.LogError(ex, "Error getting unique client names");
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "An error occurred while retrieving client names." });
+                    new { message = "An error occurred while retrieving unique client names." });
             }
         }
 
-        // GET: api/WorkdayStepOneJobs/5
+        /// <summary>
+        /// Searches for WorkdayStepOneJob records by Client First Name AND Client Last Name (case-insensitive).
+        /// Removes trailing '}' from ClientLastName in the returned results.
+        /// </summary>
+        /// <param name="firstName">The client first name to search for.</param>
+        /// <param name="lastName">The client last name to search for.</param>
+        /// <returns>A list of matching WorkdayStepOneJob records with cleaned ClientLastName.</returns>
+        [HttpGet("SearchByClientName")]
+        [ProducesResponseType(typeof(List<WorkdayStepOneJob>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<List<WorkdayStepOneJob>>> SearchByClientName(
+            [FromQuery] string firstName,
+            [FromQuery] string lastName)
+        {
+            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+            {
+                return BadRequest(new { message = "Both 'firstName' and 'lastName' parameters are required." });
+            }
+
+            try
+            {
+                _logger.LogInformation("Searching for jobs with ClientFirstName: {FirstName} AND ClientLastName: {LastName}", firstName, lastName);
+
+                // 1. Retrieve matching jobs based on the input parameters
+                var jobs = await _context.WorkdayStepOneJobs
+                                 .Where(j => j.ClientFirstName != null &&
+                                             j.ClientFirstName.Equals(firstName, StringComparison.OrdinalIgnoreCase) &&
+                                             j.ClientLastName != null &&
+                                             j.ClientLastName.Equals(lastName, StringComparison.OrdinalIgnoreCase))
+                                 .ToListAsync(); // Fetch the results
+
+                _logger.LogInformation("Found {Count} raw matches for ClientFirstName: {FirstName} AND ClientLastName: {LastName}. Cleaning results...", jobs.Count, firstName, lastName);
+
+                // 2. Clean up the ClientLastName in the retrieved results
+                foreach (var job in jobs)
+                {
+                    if (!string.IsNullOrEmpty(job.ClientLastName) && job.ClientLastName.EndsWith("}"))
+                    {
+                        // Remove the trailing '}'
+                        job.ClientLastName = job.ClientLastName.Substring(0, job.ClientLastName.Length - 1);
+                        _logger.LogTrace("Cleaned ClientLastName for Job ID {JobId}. New value: {ClientLastName}", job.Id, job.ClientLastName);
+                    }
+                }
+
+                _logger.LogInformation("Returning {Count} cleaned jobs for ClientFirstName: {FirstName} AND ClientLastName: {LastName}", jobs.Count, firstName, lastName);
+                return Ok(jobs); // Return the list with potentially modified ClientLastName
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching for WorkdayStepOneJobs by ClientFirstName: {FirstName} and ClientLastName: {LastName}", firstName, lastName);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "An error occurred while searching for jobs." });
+            }
+        }
+
+
+        // --- GetWorkdayStepOneJob by ID method ---
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -99,6 +163,14 @@ namespace MW.Server.Controllers // Assuming Controllers namespace follows projec
                     return NotFound();
                 }
 
+                // Also apply cleanup when fetching a single record by ID for consistency
+                if (!string.IsNullOrEmpty(job.ClientLastName) && job.ClientLastName.EndsWith("}"))
+                {
+                    job.ClientLastName = job.ClientLastName.Substring(0, job.ClientLastName.Length - 1);
+                    _logger.LogTrace("Cleaned ClientLastName for retrieved Job ID {JobId}. New value: {ClientLastName}", job.Id, job.ClientLastName);
+                }
+
+
                 return Ok(job);
             }
             catch (Exception ex)
@@ -108,7 +180,5 @@ namespace MW.Server.Controllers // Assuming Controllers namespace follows projec
                     new { message = "An error occurred while retrieving the job." });
             }
         }
-
-        // You can add other CRUD operations (POST, PUT, DELETE) here if needed.
     }
 }
