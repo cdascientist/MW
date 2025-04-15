@@ -13,7 +13,7 @@
             margin: 0;
             padding: 0;
             height: 100%;
-            overflow: hidden; /* Prevent scrolling */
+            overflow: hidden; /* Prevent BODY scrolling */
             font-family: "Open Sans", Arial, sans-serif;
             width: 100vw;
             height: 100vh;
@@ -107,7 +107,8 @@
 
         /* HUD Styles - REVISED WITH LOWER Z-INDEX */
         div {
-            position: absolute;
+            /* General div reset - careful with this */
+            /* position: absolute; /* Commenting out might be safer unless needed */
             display: block;
             box-sizing: border-box;
             margin: 0;
@@ -122,8 +123,29 @@
                 box-sizing: border-box;
             }
 
+        /* Ensuring specific elements that NEED absolute positioning still have it */
+        #intro-overlay, #logo-container, #mountain, #west, .loader, .menu-toggle, .sliding-menu, .menu-content-section,
+        .target, .hud, .orange, .notches, .notch, .circle, .topnotches, .bottomnotches, .center, .top, .bottom, .blue,
+        #root, .center-text, .callout, .ui-overlay, .flat-panel, .flat-panel::before {
+            position: absolute; /* Keep absolute/fixed positioning for layout critical elements */
+        }
+
+        .menu-toggle, .sliding-menu, .ui-overlay, #intro-overlay, .target {
+            position: fixed; /* Keep fixed for elements relative to viewport */
+        }
+
+        .flat-panel, .panel-header, .panel-content, .header-in-panel, .content-container,
+        .action-buttons, #google-button-container, .nav-button, .profile-container,
+        .content-section, .buttons-row, #dedicated-google-signin-container,
+        #google-signin-inner-container, .login-container, .google-button-container,
+        .panel-text, p, .menu-content, .menu-items, .menu-item, .status-grid, .status-item,
+        .nav-list, .nav-item, h2, .slack-link {
+            position: relative; /* Use relative for stacking context or default flow where appropriate */
+        }
+
+
         .target {
-            position: fixed;
+            /* position: fixed; */ /* Already set above */
             width: 50%;
             height: 50%;
             z-index: 1;
@@ -147,7 +169,7 @@
 
         /* CRITICAL: Change HUD to negative z-index to ensure it stays below everything */
         .hud {
-            position: relative;
+            /* position: relative; */ /* Changed to absolute above */
             width: min(80vmin,800px);
             height: min(80vmin,800px);
             transform-origin: center center;
@@ -155,7 +177,24 @@
             animation: hud-3d 2s 4s ease-in-out forwards;
             pointer-events: none;
             z-index: -10;
+            /* Need to re-center HUD since body is flex container */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* Start centered */
+            animation: hud-center-then-3d 2s 4s ease-in-out forwards; /* Combine centering */
         }
+
+        /* New animation to handle initial centering then 3D effect */
+        @keyframes hud-center-then-3d {
+            0% {
+                transform: translate(-50%, -50%) perspective(500px) rotateX(0) rotateY(0) rotateZ(0) scale(1);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) perspective(500px) rotateX(10deg) rotateY(-10deg) rotateZ(0) scale(.75);
+            }
+        }
+
 
         .circle {
             border-radius: 50%;
@@ -431,7 +470,7 @@
 
         /* CRITICAL: React root gets a very high z-index and pointer-events: all */
         #root {
-            position: absolute;
+            /* position: absolute; */ /* Already set above */
             top: 50%;
             left: 50%;
             transform: translate(-50%,-50%);
@@ -446,11 +485,11 @@
             text-align: center;
             z-index: 1000;
             pointer-events: all;
-            overflow: hidden;
+            overflow: hidden; /* Prevent react root itself from scrolling */
         }
 
         .center-text {
-            position: absolute;
+            /* position: absolute; */ /* Already set above */
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -463,7 +502,7 @@
         }
 
         .callout {
-            position: absolute;
+            /* position: absolute; */ /* Already set above */
             opacity: 0;
             width: 0;
             height: 5vw;
@@ -488,7 +527,7 @@
             }
 
             .callout div {
-                position: relative;
+                /* position: relative; */ /* Already set above */
                 display: block;
                 overflow: visible;
             }
@@ -503,7 +542,7 @@
 
         /* Menu styles - VERY HIGH Z-INDEX */
         .menu-toggle {
-            position: fixed;
+            /* position: fixed; */ /* Already set above */
             top: 20px;
             right: 20px;
             z-index: 10001;
@@ -511,7 +550,7 @@
             height: 25px;
             cursor: pointer;
         }
-
+            /* menu toggle bars */
             .menu-toggle span {
                 position: absolute;
                 width: 100%;
@@ -531,7 +570,7 @@
                 .menu-toggle span:nth-child(3) {
                     top: 20px;
                 }
-
+            /* active state (X) */
             .menu-toggle.active span:nth-child(1) {
                 transform: rotate(45deg) translate(8px,8px);
             }
@@ -545,46 +584,50 @@
             }
 
         .sliding-menu {
-            position: fixed;
+            /* position: fixed; */ /* Already set above */
             top: 0;
             right: -80%;
             width: 80%;
-            max-width: 400px;
-            height: 100vh;
+            max-width: 400px; /* Limit width on larger screens */
+            height: 100vh; /* Full viewport height */
             background: rgba(13,20,24,.9);
             backdrop-filter: blur(8px);
             transition: right .3s ease;
-            z-index: 10000;
+            z-index: 10000; /* Below toggle but above most content */
             border-left: 1px solid rgba(87,179,192,.3);
-            overflow-y: auto; /* Make sure the menu is scrollable */
-            pointer-events: auto;
+            /* --- KEY STYLE FOR SCROLL --- */
+            overflow-y: auto; /* Make the menu scrollable vertically if content overflows */
+            /* --- END KEY STYLE --- */
+            pointer-events: auto; /* Allow interaction */
+            -webkit-overflow-scrolling: touch; /* Optional: Smooth scrolling on iOS */
         }
-
+            /* Active state for menu */
             .sliding-menu.active {
-                right: 0;
+                right: 0; /* Slide in */
             }
 
         /* Styles inside the menu */
         .menu-content, .menu-items, .menu-item, .menu-content-section, .status-grid,
         .status-item, .nav-list, .nav-item, h2, .slack-link {
-            position: relative;
+            /* position: relative; */ /* Already set above */
             display: block;
-            overflow: visible;
+            overflow: visible; /* Allow content like dropdowns to show */
         }
 
         .menu-content {
             width: 100%;
-            min-height: 100%;
-            padding: 80px 0 40px;
+            min-height: 100%; /* Ensure it tries to fill menu height */
+            padding: 80px 20px 40px 20px; /* Adjust padding */
             display: flex;
             flex-direction: column;
             color: #57b3c0;
+            box-sizing: border-box; /* Include padding in height calculation */
         }
 
         .menu-items {
             display: flex;
             flex-direction: column;
-            padding: 0 40px;
+            padding: 0 20px; /* Match content padding */
             margin-bottom: 30px;
         }
 
@@ -594,11 +637,12 @@
             border: 1px solid rgba(87,179,192,.2);
             cursor: pointer;
             transition: all .3s ease;
-            font-size: 1.8em;
+            font-size: 1.6em; /* Adjusted for better mobile fit */
             letter-spacing: 2px;
             background: rgba(87,179,192,.1);
             text-align: left;
             border-radius: 4px;
+            color: #a7d3d8; /* Ensure text color */
         }
 
             .menu-item:hover {
@@ -610,15 +654,17 @@
                 background: rgba(87,179,192,.3);
                 border-color: rgba(87,179,192,.4);
                 box-shadow: 0 0 15px rgba(87,179,192,.2);
+                color: #ffffff;
             }
+        /* Highlight active */
 
         .menu-content-section {
-            display: none;
-            padding: 0 40px;
+            display: none; /* Hide sections by default */
+            padding: 0 20px; /* Match content padding */
         }
 
             .menu-content-section.active {
-                display: block;
+                display: block; /* Show active section */
             }
 
         .status-grid {
@@ -644,14 +690,15 @@
             .status-item h3 {
                 color: #57b3c0;
                 margin: 0 0 10px;
-                font-size: 1.6em;
+                font-size: 1.4em;
             }
-
+            /* Adjusted size */
             .status-item p {
                 margin: 0;
                 color: #a7d3d8;
-                font-size: 1.5em;
+                font-size: 1.3em;
             }
+        /* Adjusted size */
 
         .nav-list {
             list-style: none;
@@ -660,12 +707,12 @@
         }
 
         .nav-item {
-            padding: 15px;
-            margin: 10px 0;
+            padding: 12px 15px; /* Adjusted padding */
+            margin: 8px 0; /* Adjusted margin */
             border-bottom: 1px solid rgba(87,179,192,.1);
             transition: all .3s ease;
             color: #a7d3d8;
-            font-size: 1.6em;
+            font-size: 1.4em; /* Adjusted size */
         }
 
             .nav-item:hover {
@@ -673,70 +720,81 @@
                 padding-left: 20px;
             }
 
+        /* --- START JOB SEARCH BUTTON --- */
+        /* This item will be visible and styled like other .nav-items */
+        /* It should be scrollable into view on mobile if menu content is long */
+        /* No specific rule needed to make it visible, relies on parent layout */
+        /* Removed the empty rule: .nav-item a[href*="mountainwestjobsearch.com"] {} */
+
         h2 {
             color: #57b3c0;
             margin: 0;
             padding: 20px 0;
-            font-size: 2em;
+            font-size: 1.8em; /* Adjusted size */
             border-bottom: 1px solid rgba(87,179,192,.2);
         }
 
-        .slack-link {
+        .slack-link { /* Also applies to the YouTube link */
             display: flex;
             align-items: center;
             text-decoration: none;
-            color: #a7d3d8;
+            color: #a7d3d8; /* Inherit nav-item color */
             transition: all 0.3s ease;
+            width: 100%; /* Ensure it takes full width for hover */
         }
 
             .slack-link:hover {
                 color: #ffffff;
             }
+        /* Brighter on hover */
 
         .slack-icon, .youtube-icon {
-            width: 30px;
-            height: 30px;
-            margin-right: 15px;
+            width: 24px; /* Slightly smaller icon */
+            height: 24px;
+            margin-right: 10px; /* Adjusted spacing */
             vertical-align: middle;
+            flex-shrink: 0; /* Prevent icon shrinking */
         }
 
-        /* Make Start Job Search link invisible */
-        .nav-item a[href*="mountainwestjobsearch.com"] {
-           
+        .slack-link span {
+            flex-grow: 1; /* Allow text to take remaining space */
+            word-break: break-word; /* Prevent long text overflow */
         }
+
 
         /* CRITICAL FIX: UI overlays with panel masking layer */
         .ui-overlay {
-            position: fixed;
+            /* position: fixed; */ /* Already set above */
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
-            z-index: 900 !important;
+            pointer-events: none; /* Pass clicks through overlay */
+            z-index: 900 !important; /* High z-index */
         }
 
         /* CRITICAL FIX: Make panels 35% more transparent (0.455 instead of 0.7) */
         .flat-panel {
-            position: relative; /* Create stacking context */
+            /* position: relative; */ /* Create stacking context - Already set above */
             top: 50px;
             left: 50px;
             width: 75%;
             height: 75%;
-            background-color: rgba(13, 20, 24, 0.455); /* 35% more transparent than original 0.7 */
+            background-color: rgba(13, 20, 24, 0.455); /* 35% more transparent */
             border-radius: 12px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
             padding: 20px;
             color: white;
-            pointer-events: auto;
-            z-index: 901 !important;
+            pointer-events: auto; /* Allow interaction with panel */
+            z-index: 901 !important; /* Above overlay */
             isolation: isolate; /* Create stacking context for children */
+            overflow: auto; /* Allow panel itself to scroll if content overflows */
         }
 
             /* Create a pseudo-element mask behind panel content */
             .flat-panel::before {
                 content: "";
-                position: absolute;
+                /* position: absolute; */ /* Already set above */
                 top: 0;
                 left: 0;
                 width: 100%;
@@ -758,8 +816,8 @@
         .profile-container,
         .content-section,
         .buttons-row {
-            position: relative;
-            z-index: 902 !important;
+            /* position: relative; */ /* Already set above */
+            z-index: 902 !important; /* Above panel background/mask */
             background-color: transparent; /* Let panel background show through */
         }
 
@@ -768,14 +826,15 @@
         #google-signin-inner-container,
         .login-container,
         .google-button-container {
-            z-index: 950 !important;
-            position: relative;
+            z-index: 950 !important; /* Ensure auth buttons are clickable */
+            /* position: relative; */ /* Already set above */
         }
 
         /* Additional fixes for transparent panel content */
-        .panel-text, p {
-            position: relative;
-            z-index: 5;
+        .panel-text, p { /* Keep p relative for potential stacking needs */
+            /* position: relative; */ /* Already set above */
+            z-index: 5; /* Ensure text is above any negative z-index elements */
+            color: #FFF; /* Ensure text color is white */
         }
 
         /* Animations (Unchanged) */
@@ -874,17 +933,7 @@
                 opacity: 1;
             }
         }
-
-        @keyframes hud-3d {
-            0% {
-                transform: perspective(500px) rotateX(0) rotateY(0) rotateZ(0) scale(1);
-            }
-
-            100% {
-                transform: perspective(500px) rotateX(10deg) rotateY(-10deg) rotateZ(0) scale(.75);
-            }
-        }
-
+        /* @keyframes hud-3d { 0% { transform: perspective(500px) rotateX(0) rotateY(0) rotateZ(0) scale(1); } 100% { transform: perspective(500px) rotateX(10deg) rotateY(-10deg) rotateZ(0) scale(.75); } } */ /* Replaced by hud-center-then-3d */
         @keyframes notches-3d {
             0% {
                 transform: perspective(500px) translate3d(0,0,0);
@@ -951,43 +1000,56 @@
             }
 
             .center-text {
-                font-size: 4em;
+                font-size: 3em;
                 width: 90%;
             }
+            /* Adjusted size */
 
+            /* Menu adjustments */
             .menu-item {
-                font-size: 1.8em;
-            }
-
-            .nav-item {
-                font-size: 1.6em;
-            }
-
-            h2 {
-                font-size: 2em;
-            }
-
-            .status-item h3 {
-                font-size: 1.6em;
-            }
-
-            .status-item p {
                 font-size: 1.5em;
             }
-
-            .slack-icon, .youtube-icon {
-                width: 30px;
-                height: 30px;
-                margin-right: 15px;
+            /* Further adjust size */
+            .nav-item {
+                font-size: 1.3em;
             }
+            /* Further adjust size */
+            h2 {
+                font-size: 1.6em;
+            }
+            /* Further adjust size */
+            .status-item h3 {
+                font-size: 1.3em;
+            }
+            /* Further adjust size */
+            .status-item p {
+                font-size: 1.2em;
+            }
+            /* Further adjust size */
+            .slack-icon, .youtube-icon {
+                width: 22px;
+                height: 22px;
+                margin-right: 8px;
+            }
+
+            .menu-content {
+                padding: 70px 15px 30px 15px;
+            }
+            /* Less padding on mobile */
+            .sliding-menu {
+                width: 85%;
+            }
+            /* Slightly wider menu on mobile */
+
 
             .title {
-                font-size: 2.5em;
+                font-size: 2em;
             }
-
+            /* Adjusted size */
             .callout.left div, .callout.right div {
-                font-size: 1.4em;
+                font-size: 1.2em;
             }
+            /* Adjusted size */
 
             .hud {
                 width: min(90vmin, 400px);
@@ -995,20 +1057,48 @@
             }
 
             body, html {
-                font-size: min(2vw, 14px);
+                font-size: min(2.5vw, 14px);
             }
+            /* Slightly larger base font on mobile */
 
             .flat-panel {
                 width: 90%;
-                height: 87.75%;
+                /* height: 87.75%; */ /* Let height be determined by content, up to viewport minus margins */
+                max-height: calc(100vh - 40px); /* Limit height to viewport minus top/bottom margin */
                 top: 20px;
-                left: 5%;
+                left: 5%; /* Center horizontally */
+                margin-bottom: 20px; /* Add margin at bottom */
                 padding: 15px;
-                overflow-y: auto;
+                overflow-y: auto; /* Ensure panel scrolls if content exceeds max-height */
+            }
+        }
+
+        @media (max-width: 480px) {
+            #mountain, #west {
+                font-size: 3rem;
+                letter-spacing: 0.5rem;
             }
 
-            /* No changes needed for .loader specific to mobile, */
-            /* as the absolute centering should work viewport-relative */
+            .menu-item {
+                font-size: 1.4em;
+            }
+
+            .nav-item {
+                font-size: 1.2em;
+            }
+
+            h2 {
+                font-size: 1.5em;
+            }
+
+            .sliding-menu {
+                width: 90%;
+            }
+            /* Even wider on very small screens */
+            .flat-panel {
+                width: 95%;
+                left: 2.5%;
+            }
         }
     </style>
 </head>
@@ -1018,11 +1108,8 @@
         <div id="logo-container">
             <div id="mountain">MOUNTAIN</div>
             <div id="west">WEST</div>
-            <!-- The .loader element will be added here dynamically by JS -->
-            <!-- Its CSS rule already handles centering -->
+            <!-- Loader will be added here by JS -->
         </div>
-        <!-- OR the loader might be appended directly here, -->
-        <!-- either way, the CSS rule targets .loader for centering -->
     </div>
 
     <!-- Menu toggle button -->
@@ -1032,18 +1119,21 @@
         <span></span>
     </div>
 
-    <!-- Sliding menu -->
+    <!-- Sliding menu (Scrollable due to overflow-y: auto in CSS) -->
     <div class="sliding-menu">
         <div class="menu-content">
+            <!-- Menu Tabs -->
             <div class="menu-items">
-                <div class="menu-item" data-target="navigation">NAVIGATION</div>
+                <div class="menu-item active" data-target="navigation">NAVIGATION</div> <!-- Default active -->
                 <div class="menu-item" data-target="system-status">SYSTEM STATUS</div>
             </div>
 
-            <div class="menu-content-section" id="navigation">
+            <!-- Navigation Section -->
+            <div class="menu-content-section active" id="navigation">
+                <!-- Default active -->
                 <h2>Navigation Controls</h2>
                 <ul class="nav-list">
-                    <li class="nav-item">Job Search</li>
+                    <li class="nav-item">Job Search</li> <!-- Static text -->
                     <li class="nav-item">
                         <a href="https://youtu.be/a6ZCCd5f5OM?si=-Ie8GWffyJSEYpih" target="_blank" class="slack-link">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/8/8b/YouTube_dark_icon_%282017%29.svg" alt="YouTube" class="youtube-icon">
@@ -1051,14 +1141,27 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <!-- Start Job Search Button/Link -->
                         <a href="https://mountainwestjobsearch.com:5678/form/0c43de0f-bb48-4973-860a-fee3b1deb280" target="_blank" class="slack-link">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg" alt="Slack" class="slack-icon">
-                            <span>Start Job Search</span>
+                            <span>Start Job Search</span> <!-- This text should be visible -->
                         </a>
                     </li>
+                    <!-- Add more items here if needed to test scrolling -->
+                    <!-- <li class="nav-item">Dummy Item 1</li>
+                    <li class="nav-item">Dummy Item 2</li>
+                    <li class="nav-item">Dummy Item 3</li>
+                    <li class="nav-item">Dummy Item 4</li>
+                    <li class="nav-item">Dummy Item 5</li>
+                    <li class="nav-item">Dummy Item 6</li>
+                    <li class="nav-item">Dummy Item 7</li>
+                    <li class="nav-item">Dummy Item 8</li>
+                    <li class="nav-item">Dummy Item 9</li>
+                    <li class="nav-item">Dummy Item 10</li> -->
                 </ul>
             </div>
 
+            <!-- System Status Section -->
             <div class="menu-content-section" id="system-status">
                 <h2>System Status Overview</h2>
                 <div class="status-grid">
@@ -1066,6 +1169,11 @@
                         <h3>Engine Status</h3>
                         <p>Operating at 97% efficiency</p>
                     </div>
+                    <!-- Add more items here if needed to test scrolling -->
+                    <!-- <div class="status-item"><h3>Sensor Array</h3><p>Online</p></div>
+                    <div class="status-item"><h3>Comms Link</h3><p>Stable</p></div>
+                    <div class="status-item"><h3>Power Core</h3><p>Nominal</p></div>
+                    <div class="status-item"><h3>Life Support</h3><p>Active</p></div> -->
                 </div>
             </div>
         </div>
@@ -1079,38 +1187,25 @@
 
     <!-- HUD interface -->
     <div class="hud">
+        <!-- HUD Orange Layer -->
         <div class="orange">
-            <div class="notches">
-                <div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div>
-            </div>
-            <div class="circle outer"></div>
-            <div class="circle outer1"></div>
-            <div class="circle outer2"></div>
-            <div class="circle outer3"></div>
-            <div class="circle inner"></div>
-            <div class="circle inner2"></div>
-            <div class="circle inner3"></div>
-            <div class="topnotches">
-                <div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div>
-            </div>
-            <div class="bottomnotches">
-                <div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div>
-            </div>
-            <div class="center">
-                <div class="top left"></div><div class="top right"></div><div class="bottom left"></div><div class="bottom right"></div>
-            </div>
+            <div class="notches"><div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div></div>
+            <div class="circle outer"></div><div class="circle outer1"></div><div class="circle outer2"></div><div class="circle outer3"></div><div class="circle inner"></div><div class="circle inner2"></div><div class="circle inner3"></div>
+            <div class="topnotches"><div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div></div>
+            <div class="bottomnotches"><div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div></div>
+            <div class="center"><div class="top left"></div><div class="top right"></div><div class="bottom left"></div><div class="bottom right"></div></div>
         </div>
+        <!-- HUD Blue Layer -->
         <div class="blue">
             <div class="circle inner1"></div>
-            <div class="notches">
-                <div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div>
-            </div>
+            <div class="notches"><div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div></div>
             <div class="circle inner2"></div>
             <!-- React App Mount Point -->
             <div id="root">
                 <!-- React app content will be injected here -->
             </div>
-            <script type="module" src="/src/main.jsx"></script>
+            <!-- Ensure React script is loaded -->
+            <script type="module" src="/src/main.jsx"></script> <!-- Check path if needed -->
         </div>
 
         <!-- Center text on top of everything -->
@@ -1118,6 +1213,7 @@
             <!-- Content can be dynamic -->
         </div>
 
+        <!-- Callouts -->
         <div class="callout left">
             <div class="title" style="color: #57b3c0;">SYSTEM ONLINE</div>
             <div style="color: #57b3c0;">Status: Active</div>
@@ -1135,103 +1231,176 @@
             const mountain = document.getElementById('mountain');
             const west = document.getElementById('west');
             const overlay = document.getElementById('intro-overlay');
+            const logoContainer = document.getElementById('logo-container'); // Get container for loader
 
-            if (!mountain || !west || !overlay) {
+            if (!mountain || !west || !overlay || !logoContainer) { // Check logoContainer too
                 console.error("Intro animation elements missing.");
-                if (overlay) overlay.style.display = 'none';
+                if (overlay) overlay.style.display = 'none'; // Hide overlay if setup fails
                 return;
             }
 
-            // Position mountain and west 15% higher
+            // Position mountain and west higher
+            mountain.style.position = 'absolute'; // Ensure positioning context
             mountain.style.left = '50%';
             mountain.style.transform = 'translateX(-50%)';
-            mountain.style.top = '15%'; // Changed from 30% to 15%
+            mountain.style.top = '15%'; // Higher position
 
+            west.style.position = 'absolute'; // Ensure positioning context
             west.style.left = '50%';
             west.style.transform = 'translateX(-50%)';
-            west.style.top = '40%'; // Changed from 55% to 40%
+            west.style.top = '40%'; // Higher position
 
-            // Add circular loading animation instead of text
-            // The CSS class '.loader' handles the centering.
+            // Add circular loading animation inside logo container
             const loadingSpinner = document.createElement('div');
             loadingSpinner.className = 'loader';
-            overlay.appendChild(loadingSpinner); // Appends to #intro-overlay
+            // Append to logo-container instead of overlay for better relative positioning if needed
+            logoContainer.appendChild(loadingSpinner);
+            // CSS already centers it relative to its container (logo-container) if container is positioned
 
-            const assetsToPreload = [];
+            const assetsToPreload = []; // Keep if actual asset preloading is needed
 
             function startAnimation() {
-                console.log("All assets loaded, starting animation");
+                console.log("All assets 'loaded', starting animation");
 
-                // Remove loading spinner when done
+                // Remove loading spinner
                 if (loadingSpinner && loadingSpinner.parentNode) {
                     loadingSpinner.remove();
                 }
 
+                // Fade in words
                 setTimeout(() => {
                     console.log("Fading in words");
-                    mountain.style.transition = 'opacity 0.8s ease-out'; // Made much faster
-                    west.style.transition = 'opacity 0.8s ease-out'; // Made much faster
+                    mountain.style.transition = 'opacity 0.8s ease-out';
+                    west.style.transition = 'opacity 0.8s ease-out';
                     mountain.style.opacity = '1';
                     west.style.opacity = '1';
-                }, 200); // Made faster
+                }, 200); // Faster fade in start
 
+                // Slide words out
                 setTimeout(() => {
                     console.log("Sliding words");
-                    mountain.style.transition = 'opacity 0.8s ease-out, transform 0.2s ease-in-out'; // Made much faster
-                    west.style.transition = 'opacity 0.8s ease-out, transform 0.2s ease-in-out'; // Made much faster
+                    mountain.style.transition = 'opacity 0.8s ease-out, transform 0.2s ease-in-out'; // Faster slide
+                    west.style.transition = 'opacity 0.8s ease-out, transform 0.2s ease-in-out'; // Faster slide
                     const screenWidth = window.innerWidth;
-                    mountain.style.transform = `translateX(-${screenWidth + 500}px)`;
-                    west.style.transform = `translateX(${screenWidth + 500}px)`;
-                }, 1500); // Made much faster
+                    // Adjust transform for absolute positioning from center
+                    mountain.style.transform = `translateX(calc(-50% - ${screenWidth + 500}px))`;
+                    west.style.transform = `translateX(calc(-50% + ${screenWidth + 500}px))`;
+                }, 1500); // Faster slide start
 
+                // Fade out overlay
                 setTimeout(() => {
-                    console.log("Showing content");
+                    console.log("Fading overlay");
                     overlay.style.opacity = '0';
-                    overlay.style.pointerEvents = 'none';
-                }, 2000); // Made much faster
+                    overlay.style.pointerEvents = 'none'; // Disable interaction after fade starts
+                }, 2000); // Faster overlay fade start
 
+                // Remove overlay from layout
                 setTimeout(() => {
+                    console.log("Hiding overlay");
                     overlay.style.display = 'none';
-                    // Keep overflow hidden to prevent page scrolling
+                    // Ensure body remains non-scrollable
                     document.body.style.overflow = 'hidden';
-                }, 2500); // Made much faster
+                }, 2500); // Faster overlay removal
             }
 
             function preloadAssets() {
-                console.log("Preloading assets");
+                console.log("Preloading assets (using FontFaceObserver simulation)");
+                // Simulate font loading - replace with actual preloading if needed
                 const fontPreloader = new FontFaceObserver('Open Sans');
                 assetsToPreload.push(fontPreloader.load());
 
                 Promise.all(assetsToPreload)
                     .then(() => {
-                        setTimeout(startAnimation, 500); // Made much faster
+                        setTimeout(startAnimation, 500); // Faster start after "preload"
                     })
                     .catch(err => {
                         console.error('Failed to preload some assets:', err);
-                        setTimeout(startAnimation, 800); // Made much faster
+                        setTimeout(startAnimation, 800); // Faster fallback start
                     });
             }
 
-            setTimeout(preloadAssets, 50); // Made faster
-
+            // Simulate FontFaceObserver for timing
             function FontFaceObserver(family) {
                 this.load = function () {
                     return new Promise((resolve) => {
-                        setTimeout(resolve, 400); // Made much faster
+                        // Simulate load time
+                        setTimeout(resolve, 400); // Faster simulation
                     });
                 };
             }
+
+            setTimeout(preloadAssets, 50); // Start preload quickly
+
         });
 
-        // Initialize menu functionality (Original Script)
+        // Initialize menu functionality (Original Script - Verified)
         document.addEventListener('DOMContentLoaded', () => {
-            const menuToggle = document.querySelector('.menu-toggle'); const slidingMenu = document.querySelector('.sliding-menu');
-            if (!menuToggle || !slidingMenu) { console.error('Menu toggle or sliding menu element not found.'); return; }
-            menuToggle.addEventListener('click', function () { this.classList.toggle('active'); slidingMenu.classList.toggle('active'); console.log('Menu toggle clicked. Active:', slidingMenu.classList.contains('active')); });
-            const menuItems = slidingMenu.querySelectorAll('.menu-item'); const contentSections = slidingMenu.querySelectorAll('.menu-content-section');
-            if (menuItems.length === 0 || contentSections.length === 0) { console.warn('No menu items or content sections found.'); return; }
-            menuItems.forEach(item => { item.addEventListener('click', function () { const currentActiveItem = slidingMenu.querySelector('.menu-item.active'); const currentActiveSection = slidingMenu.querySelector('.menu-content-section.active'); if (currentActiveItem) { currentActiveItem.classList.remove('active'); } if (currentActiveSection) { currentActiveSection.classList.remove('active'); } this.classList.add('active'); const targetId = this.getAttribute('data-target'); const targetSection = document.getElementById(targetId); if (targetSection) { targetSection.classList.add('active'); } else { console.error('Target content section not found:', targetId); } }); });
-            if (!slidingMenu.querySelector('.menu-item.active') && menuItems.length > 0) { menuItems[0].classList.add('active'); const firstTargetId = menuItems[0].getAttribute('data-target'); const firstSection = document.getElementById(firstTargetId); if (firstSection && !firstSection.classList.contains('active')) { firstSection.classList.add('active'); } }
+            const menuToggle = document.querySelector('.menu-toggle');
+            const slidingMenu = document.querySelector('.sliding-menu');
+
+            if (!menuToggle || !slidingMenu) {
+                console.error('Menu toggle or sliding menu element not found.');
+                return;
+            }
+
+            // Toggle menu visibility
+            menuToggle.addEventListener('click', function () {
+                this.classList.toggle('active');
+                slidingMenu.classList.toggle('active');
+                console.log('Menu toggle clicked. Active:', slidingMenu.classList.contains('active'));
+            });
+
+            // Handle menu item clicks (tab switching)
+            const menuItems = slidingMenu.querySelectorAll('.menu-item');
+            const contentSections = slidingMenu.querySelectorAll('.menu-content-section');
+
+            if (menuItems.length === 0 || contentSections.length === 0) {
+                console.warn('No menu items or content sections found.');
+                // return; // Continue even if empty, maybe sections added later
+            }
+
+            menuItems.forEach(item => {
+                item.addEventListener('click', function () {
+                    // Deactivate currently active item and section
+                    const currentActiveItem = slidingMenu.querySelector('.menu-item.active');
+                    const currentActiveSection = slidingMenu.querySelector('.menu-content-section.active');
+
+                    if (currentActiveItem) {
+                        currentActiveItem.classList.remove('active');
+                    }
+                    if (currentActiveSection) {
+                        currentActiveSection.classList.remove('active');
+                    }
+
+                    // Activate clicked item and corresponding section
+                    this.classList.add('active');
+                    const targetId = this.getAttribute('data-target');
+                    const targetSection = document.getElementById(targetId);
+
+                    if (targetSection) {
+                        targetSection.classList.add('active');
+                    } else {
+                        console.error('Target content section not found:', targetId);
+                    }
+                });
+            });
+
+            // Ensure the first item and section are active by default if none are marked
+            // Check if an active item already exists before setting default
+            if (!slidingMenu.querySelector('.menu-item.active') && menuItems.length > 0) {
+                console.log("Setting default active menu item.");
+                menuItems[0].classList.add('active');
+                const firstTargetId = menuItems[0].getAttribute('data-target');
+                const firstSection = document.getElementById(firstTargetId);
+                // Check if firstSection exists and isn't already active
+                if (firstSection && !firstSection.classList.contains('active')) {
+                    const currentActiveSection = slidingMenu.querySelector('.menu-content-section.active');
+                    if (currentActiveSection) { currentActiveSection.classList.remove('active'); } // Deactivate others
+                    firstSection.classList.add('active');
+                }
+            } else if (slidingMenu.querySelector('.menu-item.active')) {
+                console.log("Menu item already active, no default set.");
+            }
         });
     </script>
 </body>
