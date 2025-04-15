@@ -2,6 +2,7 @@
  * LoggedInTemplate.jsx - Template component for logged-in pages
  * Updated with 35% larger panel and text for desktop only
  * Fixed layout to prevent content from covering buttons
+ * Removed borders around sections and pushed Template Main Content up
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -93,7 +94,8 @@ export default function LoggedInTemplate() {
         const buttonStackGap = isMobile ? '10px' : '15px';
 
         // Content top position (pushed down to avoid overlap)
-        const contentTopMargin = isMobile ? '150px' : '170px'; // Increased margin to push content down
+        // MODIFIED: Reduced top margin to push content up
+        const contentTopMargin = isMobile ? '120px' : '130px'; // Reduced from 150px/170px
 
         // Standard button style (base styles for all buttons)
         const standardButtonStyle = {
@@ -163,7 +165,7 @@ export default function LoggedInTemplate() {
                 className: 'content-container',
                 style: {
                     width: '100%',
-                    marginTop: contentTopMargin, // Added explicit top margin to avoid overlap
+                    marginTop: contentTopMargin, // MODIFIED: Reduced top margin to push content up
                     opacity: 0, // Start with opacity 0 for animation
                     transform: 'translateY(30px)', // Start below for animation
                     position: 'relative',
@@ -237,7 +239,15 @@ export default function LoggedInTemplate() {
             },
             contentHeading: { style: { fontSize: headingFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#57b3c0', fontWeight: 'bold', } },
             contentText: { style: { fontSize: textFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#c0d0d3', lineHeight: '1.6', } },
-            contentSection: { style: { backgroundColor: 'rgba(87, 179, 192, 0.05)', padding: isMobile ? '15px' : '20px', borderRadius: '8px', marginBottom: isMobile ? '15px' : '20px', border: '1px solid rgba(87, 179, 192, 0.1)', } },
+            contentSection: {
+                style: {
+                    backgroundColor: 'rgba(87, 179, 192, 0.05)',
+                    padding: isMobile ? '15px' : '20px',
+                    borderRadius: '8px',
+                    marginBottom: isMobile ? '15px' : '20px',
+                    // MODIFIED: Removed the border property completely
+                }
+            },
             contentSectionHeading: { style: { fontSize: sectionHeadingFontSize, marginBottom: '10px', color: '#57b3c0', fontWeight: '600', } },
         };
     };
