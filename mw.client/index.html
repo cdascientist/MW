@@ -101,13 +101,11 @@
             top: 50%; /* Center vertically relative to #intro-overlay */
             left: 50%; /* Center horizontally relative to #intro-overlay */
             transform: translate(-50%, -50%); /* Fine-tune to exact center */
-            /* Adding a z-index ensures it's visually above other positioned siblings if needed */
             z-index: 2001;
         }
 
         /* HUD Styles - REVISED WITH LOWER Z-INDEX */
         div {
-            /* General div reset - careful with this */
             display: block;
             box-sizing: border-box;
             margin: 0;
@@ -126,11 +124,11 @@
         #intro-overlay, #logo-container, #mountain, #west, .loader, .menu-toggle, .sliding-menu, .menu-content-section,
         .target, .hud, .orange, .notches, .notch, .circle, .topnotches, .bottomnotches, .center, .top, .bottom, .blue,
         #root, .center-text, .callout, .ui-overlay, .flat-panel, .flat-panel::before {
-            position: absolute; /* Keep absolute/fixed positioning for layout critical elements */
+            position: absolute;
         }
 
         .menu-toggle, .sliding-menu, .ui-overlay, #intro-overlay, .target {
-            position: fixed; /* Keep fixed for elements relative to viewport */
+            position: fixed;
         }
 
         .flat-panel, .panel-header, .panel-content, .header-in-panel, .content-container,
@@ -139,12 +137,11 @@
         #google-signin-inner-container, .login-container, .google-button-container,
         .panel-text, p, .menu-content, .menu-items, .menu-item, .status-grid, .status-item,
         .nav-list, .nav-item, h2, .slack-link {
-            position: relative; /* Use relative for stacking context or default flow where appropriate */
+            position: relative;
         }
 
 
         .target {
-            /* position: fixed; */ /* Already set above */
             width: 50%;
             height: 50%;
             z-index: 1;
@@ -166,24 +163,20 @@
                 right: 0;
             }
 
-        /* CRITICAL: Change HUD to negative z-index to ensure it stays below everything */
+        /* CRITICAL: Change HUD to negative z-index */
         .hud {
-            /* position: relative; */ /* Changed to absolute above */
             width: min(80vmin,800px);
             height: min(80vmin,800px);
             transform-origin: center center;
             transform-style: preserve-3d;
-            animation: hud-3d 2s 4s ease-in-out forwards;
             pointer-events: none;
             z-index: -10;
-            /* Need to re-center HUD since body is flex container */
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%); /* Start centered */
             animation: hud-center-then-3d 2s 4s ease-in-out forwards; /* Combine centering */
         }
 
-        /* New animation to handle initial centering then 3D effect */
         @keyframes hud-center-then-3d {
             0% {
                 transform: translate(-50%, -50%) perspective(500px) rotateX(0) rotateY(0) rotateZ(0) scale(1);
@@ -235,7 +228,6 @@
                 background: #555555;
             }
 
-        /* Notch positions */
         .notch1 {
             transform: rotate(45deg);
         }
@@ -284,7 +276,6 @@
             transform: rotate(375deg);
         }
 
-        /* Circle elements */
         .outer {
             top: 0;
             left: 0;
@@ -469,7 +460,6 @@
 
         /* CRITICAL: React root gets a very high z-index and pointer-events: all */
         #root {
-            /* position: absolute; */ /* Already set above */
             top: 50%;
             left: 50%;
             transform: translate(-50%,-50%);
@@ -482,13 +472,13 @@
             font-size: 1.6em;
             font-weight: bold;
             text-align: center;
-            z-index: 1000;
-            pointer-events: all;
+            z-index: 1000; /* Base z-index for React content */
+            pointer-events: all; /* Allows interaction with React components */
             overflow: hidden; /* Prevent react root itself from scrolling */
+            position: absolute; /* Keep absolute positioning */
         }
 
         .center-text {
-            /* position: absolute; */ /* Already set above */
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -501,7 +491,6 @@
         }
 
         .callout {
-            /* position: absolute; */ /* Already set above */
             opacity: 0;
             width: 0;
             height: 5vw;
@@ -526,7 +515,6 @@
             }
 
             .callout div {
-                /* position: relative; */ /* Already set above */
                 display: block;
                 overflow: visible;
             }
@@ -541,7 +529,6 @@
 
         /* Menu styles - VERY HIGH Z-INDEX */
         .menu-toggle {
-            /* position: fixed; */ /* Already set above */
             top: 20px;
             right: 20px;
             z-index: 10001;
@@ -549,7 +536,7 @@
             height: 25px;
             cursor: pointer;
         }
-            /* menu toggle bars */
+
             .menu-toggle span {
                 position: absolute;
                 width: 100%;
@@ -569,7 +556,7 @@
                 .menu-toggle span:nth-child(3) {
                     top: 20px;
                 }
-            /* active state (X) */
+
             .menu-toggle.active span:nth-child(1) {
                 transform: rotate(45deg) translate(8px,8px);
             }
@@ -582,104 +569,93 @@
                 transform: rotate(-45deg) translate(7px,-7px);
             }
 
-        /****** MENU CONFIGURATION - Start of adjustable section ******/
-        /* Adjust these values to control menu positioning and behavior */
+        /****** MENU CONFIGURATION ******/
         .sliding-menu {
-            /* position: fixed; */ /* Already set above */
             top: 0;
-            right: -80%; /* Starting position (off-screen) */
-            width: 80%; /* Width of the menu */
-            max-width: 400px; /* Maximum width on larger screens */
-            height: 100vh; /* Full viewport height */
-            background: rgba(13,20,24,.9); /* Menu background color and opacity */
+            right: -80%;
+            width: 80%;
+            max-width: 400px;
+            height: 100vh;
+            background: rgba(13,20,24,.9);
             backdrop-filter: blur(8px);
             transition: right .3s ease;
-            z-index: 10000; /* Below toggle but above most content */
+            z-index: 10000;
             border-left: 1px solid rgba(87,179,192,.3);
-            overflow-y: auto; /* Make the menu scrollable vertically */
-            pointer-events: auto; /* Allow interaction */
-            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            overflow-y: auto;
+            pointer-events: auto;
+            -webkit-overflow-scrolling: touch;
         }
-            /* Active state for menu */
+
             .sliding-menu.active {
-                right: 0; /* Slide in position */
+                right: 0;
             }
 
-        /* Main menu content container */
         .menu-content {
             width: 100%;
-            min-height: 100%; /* Ensure it tries to fill menu height */
-            padding: 80px 20px 40px 20px; /* Top/bottom/side padding - ADJUST TOP PADDING HERE */
+            min-height: 100%;
+            padding: 80px 20px 40px 20px;
             display: flex;
             flex-direction: column;
             color: #57b3c0;
-            box-sizing: border-box; /* Include padding in height calculation */
+            box-sizing: border-box;
         }
 
-        /* Menu tabs (Navigation, System Status) */
         .menu-items {
             display: flex;
             flex-direction: column;
-            padding: 0 20px; /* Match content padding */
-            margin-bottom: 30px; /* Space below tabs */
+            padding: 0 20px;
+            margin-bottom: 30px;
         }
 
-        /* Individual menu tab */
         .menu-item {
             padding: 15px 20px;
             margin: 5px 0;
             border: 1px solid rgba(87,179,192,.2);
             cursor: pointer;
             transition: all .3s ease;
-            font-size: 1.6em; /* Font size for tab text */
+            font-size: 1.6em;
             letter-spacing: 2px;
             background: rgba(87,179,192,.1);
             text-align: left;
             border-radius: 4px;
-            color: #a7d3d8; /* Text color */
+            color: #a7d3d8;
         }
 
-        /* Menu section containers (Navigation, System Status) */
         .menu-content-section {
-            display: none; /* Hide sections by default */
-            /****** MENU CONTENT WIDTH AND POSITION ADJUSTMENTS ******/
-            padding: 0; /* Remove side padding to take full width */
-            margin: 120px auto 0 auto; /* Push down significantly more (from 60px to 120px) */
-            width: 80%; /* Bring in the width by 20% */
-            transform: scale(1.2); /* Make content 20% larger */
-            transform-origin: top center; /* Scale from the top center */
+            display: none;
+            padding: 0;
+            margin: 120px auto 0 auto;
+            width: 80%;
+            transform: scale(1.2);
+            transform-origin: top center;
         }
 
             .menu-content-section.active {
-                display: block; /* Show active section */
+                display: block;
             }
 
-        /* Section title (e.g. "Navigation Controls") */
         h2 {
             color: #57b3c0;
             margin: 0;
-            padding: 20px 20px; /* Added horizontal padding to match adjusted width */
-            font-size: 1.8em; /* Adjusted size */
+            padding: 20px 20px;
+            font-size: 1.8em;
             border-bottom: 1px solid rgba(87,179,192,.2);
         }
 
-        /* Styling for nav-list after scaling adjustment */
         .nav-list {
             list-style: none;
-            padding: 15px 20px; /* Adjusted padding with sides to counter full width */
+            padding: 15px 20px;
             margin: 0;
         }
 
-        /* Individual navigation items need inner padding after width adjustment */
         .nav-item {
-            padding: 12px 15px; /* Padding inside nav items */
-            margin: 8px 0; /* Margin between nav items - ADJUST FOR ITEM SPACING */
+            padding: 12px 15px;
+            margin: 8px 0;
             border-bottom: 1px solid rgba(87,179,192,.1);
             transition: all .3s ease;
             color: #a7d3d8;
-            font-size: 1.4em; /* Font size for navigation items */
+            font-size: 1.4em;
         }
-        /****** MENU CONFIGURATION - End of adjustable section ******/
 
         .menu-item:hover {
             background: rgba(87,179,192,.2);
@@ -698,9 +674,9 @@
             padding-left: 20px;
         }
 
-        /* EXPLICITLY DISPLAY START JOB SEARCH LINK */
+        /* --- Always display Start Job Search link --- */
         .nav-item a[href*="mountainwestjobsearch.com"] {
-            display: flex !important; /* Always display */
+            display: flex !important; /* Use flex to align icon and text */
         }
 
         .status-grid {
@@ -728,59 +704,65 @@
                 margin: 0 0 10px;
                 font-size: 1.4em;
             }
-            /* Adjusted size */
+
             .status-item p {
                 margin: 0;
                 color: #a7d3d8;
                 font-size: 1.3em;
             }
-        /* Adjusted size */
 
         .slack-link { /* Also applies to the YouTube link */
             display: flex;
             align-items: center;
             text-decoration: none;
-            color: #a7d3d8; /* Inherit nav-item color */
+            color: #a7d3d8;
             transition: all 0.3s ease;
-            width: 100%; /* Ensure it takes full width for hover */
+            width: 100%;
         }
 
             .slack-link:hover {
                 color: #ffffff;
             }
-        /* Brighter on hover */
 
-        /* Make icons bigger */
         .slack-icon, .youtube-icon {
-            width: 30px; /* Increased from 24px */
-            height: 30px; /* Increased from 24px */
-            margin-right: 12px; /* Slightly increased spacing */
+            width: 30px;
+            height: 30px;
+            margin-right: 12px;
             vertical-align: middle;
-            flex-shrink: 0; /* Prevent icon shrinking */
+            flex-shrink: 0;
         }
 
         .slack-link span {
-            flex-grow: 1; /* Allow text to take remaining space */
-            word-break: break-word; /* Prevent long text overflow */
+            flex-grow: 1;
+            word-break: break-word;
         }
 
 
-        /* CRITICAL FIX: UI overlays with panel masking layer */
+        /* --- Mobile sign-in area rule removed --- */
+        /*
+        #mobile-signin-area {
+            display: none !important;
+        }
+        */
+
+        /* UI overlays with panel masking layer */
         .ui-overlay {
-            /* position: fixed; */ /* Already set above */
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* Pass clicks through overlay */
-            z-index: 900 !important; /* High z-index */
+            pointer-events: none; /* Overlays don't capture clicks by default */
+            z-index: 900; /* Below panels and root content */
+            position: fixed; /* Keep overlay fixed */
         }
 
-        /* CRITICAL FIX: Make panels 35% more transparent (0.455 instead of 0.7) */
+        /* Panels - more transparent */
         .flat-panel {
-            /* position: relative; */ /* Create stacking context - Already set above */
-            top: 50px;
-            left: 50px;
+            /* Position is now relative within the ui-overlay or root */
+            position: absolute; /* Changed from fixed/absolute */
+            top: 50%; /* Centering within the container */
+            left: 50%;
+            transform: translate(-50%, -50%); /* Centering transform */
             width: 75%;
             height: 75%;
             background-color: rgba(13, 20, 24, 0.455); /* 35% more transparent */
@@ -788,16 +770,17 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
             padding: 20px;
             color: white;
-            pointer-events: auto; /* Allow interaction with panel */
-            z-index: 901 !important; /* Above overlay */
-            isolation: isolate; /* Create stacking context for children */
-            overflow: auto; /* Allow panel itself to scroll if content overflows */
+            pointer-events: auto; /* Panels capture clicks */
+            z-index: 901; /* Above ui-overlay, below root */
+            isolation: isolate;
+            /* --- SCROLLING ADDED/CONFIRMED --- */
+            overflow: auto; /* Enable scrolling when content overflows */
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
         }
 
-            /* Create a pseudo-element mask behind panel content */
-            .flat-panel::before {
+            .flat-panel::before { /* Mask */
                 content: "";
-                /* position: absolute; */ /* Already set above */
+                position: absolute; /* Position relative to panel */
                 top: 0;
                 left: 0;
                 width: 100%;
@@ -808,39 +791,28 @@
                 pointer-events: none;
             }
 
-        /* Ensure all panel contents are above HUD with proper masking */
-        .panel-header,
-        .panel-content,
-        .header-in-panel,
-        .content-container,
-        .action-buttons,
-        #google-button-container,
-        .nav-button,
-        .profile-container,
-        .content-section,
-        .buttons-row {
-            /* position: relative; */ /* Already set above */
-            z-index: 902 !important; /* Above panel background/mask */
-            background-color: transparent; /* Let panel background show through */
+        /* Panel contents */
+        .panel-header, .panel-content, .header-in-panel, .content-container,
+        .action-buttons, #google-button-container, .nav-button, .profile-container,
+        .content-section, .buttons-row {
+            z-index: 902; /* Above panel background/mask */
+            background-color: transparent;
+            position: relative; /* Ensure stacking context */
         }
 
         /* Google auth elements */
-        #dedicated-google-signin-container,
-        #google-signin-inner-container,
-        .login-container,
-        .google-button-container {
+        #dedicated-google-signin-container, #google-signin-inner-container,
+        .login-container, .google-button-container {
             z-index: 950 !important; /* Ensure auth buttons are clickable */
-            /* position: relative; */ /* Already set above */
         }
 
-        /* Additional fixes for transparent panel content */
-        .panel-text, p { /* Keep p relative for potential stacking needs */
-            /* position: relative; */ /* Already set above */
-            z-index: 5; /* Ensure text is above any negative z-index elements */
-            color: #FFF; /* Ensure text color is white */
+        /* Text inside panel */
+        .panel-text, p {
+            z-index: 5; /* Relative z-index within content */
+            color: #FFF;
         }
 
-        /* Animations (Unchanged) */
+        /* --- Animations --- */
         @keyframes glow-orange {
             0% {
                 filter: drop-shadow(0 0 0 transparent);
@@ -936,7 +908,7 @@
                 opacity: 1;
             }
         }
-        /* @keyframes hud-3d { 0% { transform: perspective(500px) rotateX(0) rotateY(0) rotateZ(0) scale(1); } 100% { transform: perspective(500px) rotateX(10deg) rotateY(-10deg) rotateZ(0) scale(.75); } } */ /* Replaced by hud-center-then-3d */
+
         @keyframes notches-3d {
             0% {
                 transform: perspective(500px) translate3d(0,0,0);
@@ -995,7 +967,7 @@
             }
         }
 
-        /* Mobile responsiveness */
+        /* --- Mobile responsiveness --- */
         @media (max-width: 768px) {
             #mountain, #west {
                 font-size: 4rem;
@@ -1006,55 +978,49 @@
                 font-size: 3em;
                 width: 90%;
             }
-            /* Adjusted size */
 
-            /* Menu adjustments */
             .menu-item {
                 font-size: 1.5em;
             }
-            /* Further adjust size */
+
             .nav-item {
                 font-size: 1.3em;
             }
-            /* Further adjust size */
+
             h2 {
                 font-size: 1.6em;
             }
-            /* Further adjust size */
+
             .status-item h3 {
                 font-size: 1.3em;
             }
-            /* Further adjust size */
+
             .status-item p {
                 font-size: 1.2em;
             }
-            /* Further adjust size */
+
             .slack-icon, .youtube-icon {
                 width: 22px;
                 height: 22px;
                 margin-right: 8px;
             }
 
-            /****** MOBILE MENU CONFIGURATION ******/
             .menu-content {
-                padding: 70px 15px 30px 15px; /* ADJUST TOP PADDING FOR MOBILE */
+                padding: 70px 15px 30px 15px;
             }
-            /* Less padding on mobile */
+
             .sliding-menu {
                 width: 85%;
-                right: -85%; /* Ensure it's fully off-screen */
+                right: -85%;
             }
-            /* Slightly wider menu on mobile */
-
 
             .title {
                 font-size: 2em;
             }
-            /* Adjusted size */
+
             .callout.left div, .callout.right div {
                 font-size: 1.2em;
             }
-            /* Adjusted size */
 
             .hud {
                 width: min(90vmin, 400px);
@@ -1064,17 +1030,18 @@
             body, html {
                 font-size: min(2.5vw, 14px);
             }
-            /* Slightly larger base font on mobile */
 
+            /* --- SCROLLING: Ensure mobile panel height allows scrolling --- */
             .flat-panel {
                 width: 90%;
-                /* height: 87.75%; */ /* Let height be determined by content, up to viewport minus margins */
-                max-height: calc(100vh - 40px); /* Limit height to viewport minus top/bottom margin */
-                top: 20px;
-                left: 5%; /* Center horizontally */
-                margin-bottom: 20px; /* Add margin at bottom */
+                /* Limit height to slightly less than viewport to ensure scrollbar appears */
+                max-height: calc(100vh - 40px); /* Adjust 40px if needed */
+                top: 50%; /* Keep centered for mobile */
+                left: 50%;
+                transform: translate(-50%, -50%); /* Keep centered */
+                margin-bottom: 0; /* Remove bottom margin if centered */
                 padding: 15px;
-                overflow-y: auto; /* Ensure panel scrolls if content exceeds max-height */
+                overflow-y: auto; /* Ensure vertical scroll is enabled */
             }
         }
 
@@ -1098,12 +1065,13 @@
 
             .sliding-menu {
                 width: 90%;
-                right: -90%; /* Ensure it's fully off-screen on very small devices */
+                right: -90%;
             }
-            /* Even wider on very small screens */
+
             .flat-panel {
                 width: 95%;
-                left: 2.5%;
+                /* Centering handles left offset */
+                /* max-height ensures scrolling, width adjusted */
             }
         }
     </style>
@@ -1192,11 +1160,6 @@
             <div class="circle inner1"></div>
             <div class="notches"><div class="notch notch1"></div><div class="notch notch2"></div><div class="notch notch3"></div><div class="notch notch4"></div><div class="notch notch5"></div><div class="notch notch6"></div><div class="notch notch7"></div><div class="notch notch8"></div><div class="notch notch9"></div><div class="notch notch10"></div><div class="notch notch11"></div><div class="notch notch12"></div></div>
             <div class="circle inner2"></div>
-            <!-- React App Mount Point - NO LONGER NEEDED AS WE HAVE THE MAIN ROOT DIV -->
-            <!-- <div id="root">
-            </div> -->
-            <!-- Script moved to after the body -->
-            <!-- <script type="module" src="/src/main.jsx"></script> -->
         </div>
 
         <!-- Center text on top of everything -->
@@ -1217,120 +1180,85 @@
 
     <!-- React Root Div - REQUIRED FOR REACT APPLICATION -->
     <div id="root">
+        <!-- React app renders here -->
     </div>
     <script type="module" src="/src/main.jsx"></script>
 
+    <!-- Initial JS for Intro Animation & Menu -->
     <script>
-        // Initialize preloader and animation (Modified as requested)
+        // Initialize preloader and animation
         document.addEventListener('DOMContentLoaded', () => {
             console.log("Preloading starting");
             const mountain = document.getElementById('mountain');
             const west = document.getElementById('west');
             const overlay = document.getElementById('intro-overlay');
-            const logoContainer = document.getElementById('logo-container'); // Get container for loader
+            const logoContainer = document.getElementById('logo-container');
 
-            if (!mountain || !west || !overlay || !logoContainer) { // Check logoContainer too
+            if (!mountain || !west || !overlay || !logoContainer) {
                 console.error("Intro animation elements missing.");
-                if (overlay) overlay.style.display = 'none'; // Hide overlay if setup fails
+                if (overlay) overlay.style.display = 'none';
                 return;
             }
 
             // Position mountain and west higher
-            mountain.style.position = 'absolute'; // Ensure positioning context
-            mountain.style.left = '50%';
-            mountain.style.transform = 'translateX(-50%)';
-            mountain.style.top = '15%'; // Higher position
+            mountain.style.position = 'absolute'; mountain.style.left = '50%'; mountain.style.transform = 'translateX(-50%)'; mountain.style.top = '15%';
+            west.style.position = 'absolute'; west.style.left = '50%'; west.style.transform = 'translateX(-50%)'; west.style.top = '40%';
 
-            west.style.position = 'absolute'; // Ensure positioning context
-            west.style.left = '50%';
-            west.style.transform = 'translateX(-50%)';
-            west.style.top = '40%'; // Higher position
-
-            // Add circular loading animation inside logo container
+            // Add circular loading animation
             const loadingSpinner = document.createElement('div');
             loadingSpinner.className = 'loader';
-            // Append to logo-container instead of overlay for better relative positioning if needed
             logoContainer.appendChild(loadingSpinner);
-            // CSS already centers it relative to its container (logo-container) if container is positioned
 
-            const assetsToPreload = []; // Keep if actual asset preloading is needed
+            const assetsToPreload = [];
 
             function startAnimation() {
                 console.log("All assets 'loaded', starting animation");
+                if (loadingSpinner && loadingSpinner.parentNode) { loadingSpinner.remove(); }
 
-                // Remove loading spinner
-                if (loadingSpinner && loadingSpinner.parentNode) {
-                    loadingSpinner.remove();
-                }
-
-                // Fade in words
-                setTimeout(() => {
+                setTimeout(() => { // Fade in words
                     console.log("Fading in words");
-                    mountain.style.transition = 'opacity 0.8s ease-out';
-                    west.style.transition = 'opacity 0.8s ease-out';
-                    mountain.style.opacity = '1';
-                    west.style.opacity = '1';
-                }, 200); // Faster fade in start
+                    mountain.style.transition = 'opacity 0.8s ease-out'; west.style.transition = 'opacity 0.8s ease-out';
+                    mountain.style.opacity = '1'; west.style.opacity = '1';
+                }, 200);
 
-                // Slide words out
-                setTimeout(() => {
+                setTimeout(() => { // Slide words out
                     console.log("Sliding words");
-                    mountain.style.transition = 'opacity 0.8s ease-out, transform 0.2s ease-in-out'; // Faster slide
-                    west.style.transition = 'opacity 0.8s ease-out, transform 0.2s ease-in-out'; // Faster slide
+                    mountain.style.transition = 'opacity 0.8s ease-out, transform 0.2s ease-in-out';
+                    west.style.transition = 'opacity 0.8s ease-out, transform 0.2s ease-in-out';
                     const screenWidth = window.innerWidth;
-                    // Adjust transform for absolute positioning from center
                     mountain.style.transform = `translateX(calc(-50% - ${screenWidth + 500}px))`;
                     west.style.transform = `translateX(calc(-50% + ${screenWidth + 500}px))`;
-                }, 1500); // Faster slide start
+                }, 1500);
 
-                // Fade out overlay
-                setTimeout(() => {
+                setTimeout(() => { // Fade out overlay
                     console.log("Fading overlay");
-                    overlay.style.opacity = '0';
-                    overlay.style.pointerEvents = 'none'; // Disable interaction after fade starts
-                }, 2000); // Faster overlay fade start
+                    overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none';
+                }, 2000);
 
-                // Remove overlay from layout
-                setTimeout(() => {
+                setTimeout(() => { // Remove overlay
                     console.log("Hiding overlay");
-                    overlay.style.display = 'none';
-                    // Ensure body remains non-scrollable
-                    document.body.style.overflow = 'hidden';
-                }, 2500); // Faster overlay removal
+                    overlay.style.display = 'none'; document.body.style.overflow = 'hidden';
+                }, 2500);
             }
 
             function preloadAssets() {
-                console.log("Preloading assets (using FontFaceObserver simulation)");
-                // Simulate font loading - replace with actual preloading if needed
+                console.log("Preloading assets (simulation)");
+                // Using a dummy observer if FontFaceObserver is not available
+                const FontFaceObserver = window.FontFaceObserver || function (family) {
+                    this.load = () => new Promise((resolve) => { setTimeout(resolve, 400); }); // Simulate load
+                };
                 const fontPreloader = new FontFaceObserver('Open Sans');
                 assetsToPreload.push(fontPreloader.load());
 
                 Promise.all(assetsToPreload)
-                    .then(() => {
-                        setTimeout(startAnimation, 500); // Faster start after "preload"
-                    })
-                    .catch(err => {
-                        console.error('Failed to preload some assets:', err);
-                        setTimeout(startAnimation, 800); // Faster fallback start
-                    });
+                    .then(() => { setTimeout(startAnimation, 500); })
+                    .catch(err => { console.error('Failed to preload:', err); setTimeout(startAnimation, 800); });
             }
 
-            // Simulate FontFaceObserver for timing
-            function FontFaceObserver(family) {
-                this.load = function () {
-                    return new Promise((resolve) => {
-                        // Simulate load time
-                        setTimeout(resolve, 400); // Faster simulation
-                    });
-                };
-            }
-
-            setTimeout(preloadAssets, 50); // Start preload quickly
-
+            setTimeout(preloadAssets, 50);
         });
 
         // Initialize menu functionality
-        // ****** MENU SCRIPT CONFIGURATION - Adjust menu behavior here ******
         document.addEventListener('DOMContentLoaded', () => {
             const menuToggle = document.querySelector('.menu-toggle');
             const slidingMenu = document.querySelector('.sliding-menu');
@@ -1340,40 +1268,29 @@
                 return;
             }
 
-            // Toggle menu visibility
             menuToggle.addEventListener('click', function () {
                 this.classList.toggle('active');
                 slidingMenu.classList.toggle('active');
                 console.log('Menu toggle clicked. Active:', slidingMenu.classList.contains('active'));
             });
 
-            // Handle menu item clicks (tab switching)
             const menuItems = slidingMenu.querySelectorAll('.menu-item');
             const contentSections = slidingMenu.querySelectorAll('.menu-content-section');
 
             if (menuItems.length === 0 || contentSections.length === 0) {
                 console.warn('No menu items or content sections found.');
-                // return; // Continue even if empty, maybe sections added later
             }
 
             menuItems.forEach(item => {
                 item.addEventListener('click', function () {
-                    // Deactivate currently active item and section
                     const currentActiveItem = slidingMenu.querySelector('.menu-item.active');
                     const currentActiveSection = slidingMenu.querySelector('.menu-content-section.active');
+                    if (currentActiveItem) currentActiveItem.classList.remove('active');
+                    if (currentActiveSection) currentActiveSection.classList.remove('active');
 
-                    if (currentActiveItem) {
-                        currentActiveItem.classList.remove('active');
-                    }
-                    if (currentActiveSection) {
-                        currentActiveSection.classList.remove('active');
-                    }
-
-                    // Activate clicked item and corresponding section
                     this.classList.add('active');
                     const targetId = this.getAttribute('data-target');
                     const targetSection = document.getElementById(targetId);
-
                     if (targetSection) {
                         targetSection.classList.add('active');
                     } else {
@@ -1382,28 +1299,22 @@
                 });
             });
 
-            // Ensure the first item and section are active by default if none are marked
-            // Check if an active item already exists before setting default
+            // Ensure default active item/section
             if (!slidingMenu.querySelector('.menu-item.active') && menuItems.length > 0) {
                 console.log("Setting default active menu item.");
                 menuItems[0].classList.add('active');
                 const firstTargetId = menuItems[0].getAttribute('data-target');
                 const firstSection = document.getElementById(firstTargetId);
-                // Check if firstSection exists and isn't already active
                 if (firstSection && !firstSection.classList.contains('active')) {
                     const currentActiveSection = slidingMenu.querySelector('.menu-content-section.active');
-                    if (currentActiveSection) { currentActiveSection.classList.remove('active'); } // Deactivate others
+                    if (currentActiveSection) currentActiveSection.classList.remove('active');
                     firstSection.classList.add('active');
                 }
             } else if (slidingMenu.querySelector('.menu-item.active')) {
                 console.log("Menu item already active, no default set.");
             }
 
-            // Ensure "Start Job Search" link is always visible
-            const jobSearchLink = document.querySelector('.nav-item a[href*="mountainwestjobsearch.com"]');
-            if (jobSearchLink) {
-                jobSearchLink.style.display = 'flex'; // Ensure it's visible
-            }
+            // Ensure "Start Job Search" link visibility is handled by CSS rule
         });
     </script>
 </body>

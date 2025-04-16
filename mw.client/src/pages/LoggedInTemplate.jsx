@@ -33,7 +33,8 @@ export default function LoggedInTemplate() {
             } catch (error) { console.error('LoggedInTemplate: Failed to parse saved user data:', error); localStorage.removeItem('mw_isLoggedIn'); localStorage.removeItem('mw_userData'); }
         } else { setIsLoggedIn(false); setUserData(null); }
         setLoading(false);
-        if (!isAuthenticated && !loading) { console.warn("LoggedInTemplate: Auth check complete, user not authenticated. Redirecting..."); redirectToLogin("Not authenticated after check"); }
+        // COMMENTED OUT: Authorization check and redirection
+        // if (!isAuthenticated && !loading) { console.warn("LoggedInTemplate: Auth check complete, user not authenticated. Redirecting..."); redirectToLogin("Not authenticated after check"); }
     }, []);
 
     // Redirect function
@@ -272,6 +273,11 @@ export default function LoggedInTemplate() {
     // ====================================
     useEffect(() => {
         if (loading) { return; }
+        // NOTE: Because the auth check is commented out, this component might attempt
+        // to render even if isLoggedIn is false or userData is null.
+        // The check below prevents rendering UI elements if that's the case.
+        // If you need to *force* the UI for testing without login, you might need
+        // to manually set isLoggedIn=true and provide dummy userData in the auth useEffect.
         if (!isLoggedIn || !userData) {
             if (overlayRef.current && overlayRef.current.parentNode) {
                 overlayRef.current.remove(); overlayRef.current = null;

@@ -1,704 +1,614 @@
 /**
  * About.jsx - Component for the About page with Google authentication
- * (Revision 32 - Fixed mobile button issues)
+ * (Refactored - Fixes applied for rendering issues)
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import "../style/AboutStyle.css"; // Ensure this CSS doesn't conflict
+import "../style/AboutStyle.css"; // <--- ADD THIS LINE
 
 export default function About() {
+    // ====================================
+    // 1. COMPONENT SETUP & STATE INITIALIZATION
+    // ====================================
     const navigate = useNavigate();
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [userData, setUserData] = useState(null);
+
+    // **Initialize state directly from localStorage**
+    const [isLoggedIn, setIsLoggedIn] = useState(() => {
+        const loggedIn = localStorage.getItem('mw_isLoggedIn') === 'true';
+        // Also check if data exists and is parsable, otherwise treat as logged out
+        const storedData = localStorage.getItem('mw_userData');
+        if (loggedIn && storedData) {
+            try {
+                JSON.parse(storedData); // Try parsing
+                return true;
+            } catch (e) {
+                console.error('About.jsx: Initial parse error:', e);
+                localStorage.clear(); // Clear invalid state
+                return false;
+            }
+        }
+        return false;
+    });
+
+    const [userData, setUserData] = useState(() => {
+        if (localStorage.getItem('mw_isLoggedIn') === 'true') {
+            const storedData = localStorage.getItem('mw_userData');
+            try {
+                return storedData ? JSON.parse(storedData) : null;
+            } catch (e) {
+                // Error handled by isLoggedIn initializer, return null
+                return null;
+            }
+        }
+        return null;
+    });
+
     const [googleAuthLoaded, setGoogleAuthLoaded] = useState(false);
     const isAttemptingLogin = useRef(false);
     const retryTimeoutRef = useRef(null);
+    const overlayRef = useRef(null); // Ref for the overlay created by this component
 
-    // Google Client ID
+    // Constants
     const GOOGLE_CLIENT_ID = "7074654684-866fnk2dp7c23e54nt35o5o3uvlm6fbl.apps.googleusercontent.com";
+    const OVERLAY_CLASS_NAME = 'about-ui-overlay'; // Specific class for this overlay
+    const MOBILE_SIGNIN_AREA_ID = 'about-mobile-signin-area'; // Specific ID for mobile area
 
-    // *** CONFIGURABLE POSITIONING VARIABLES ***
-    const CONFIG = {
-        desktop: {
-            contentTopMargin: '-100px',
-            contentMaxHeight: '55vh', // Reduced by 25% (from 60vh to 45vh)
-            contentBottomPadding: '150px', // Padding at bottom of content area
-            loggedInContentTopPosition: '-70px',
-            userInfoTopPosition: '-120px',
-            loggedInContentHeight: 'calc(100% - 180px)',
-            buttonBottomPosition: '50px',
-            buttonLeftPosition: '50px',
-            buttonZIndex: '9999999', // Extreme z-index for button
-            buttonWidth: '280px' // Width of the button
-        },
-        mobile: {
-            headerHeight: '60px',
-            contentMaxHeight: '55vh', // Added this line - Reduced by 25% (from 60vh to 45vh)
-            contentBottomSpace: '140px', // Space to leave at bottom for button area
-            contentPaddingBottom: '80px', // Padding at bottom of content
-            buttonAreaHeight: '100px',
-            buttonBottomPosition: '10%', // Changed from '0' to '10%' - moving the button up by 10%
-            buttonAreaBackground: 'rgba(13, 20, 24, 0.8)',
-            buttonZIndex: '9995', // Just below menu's 10000
-            buttonWidth: '240px' // Width of the button
-        }
-    };
-    // *** END CONFIGURABLE POSITIONING VARIABLES ***
+    // --- Text Content (Specific to About) ---
+    const loggedOutText = "Mountain West provides compassionate care for those struggling with addiction. Our experienced team offers sober living environments, recovery support groups, and personalized treatment plans to help you achieve lasting sobriety. We believe in addressing all aspects of recovery, from in-house therapy to life skills development, creating a supportive community where your recovery journey begins with dignity and hope.";
+    const loggedInParagraph1 = "You're logged in to the Mountain West application. This secure area allows you to access platform features.";
+    const loggedInParagraph2 = "From here, you can navigate to the user dashboard or other available sections.";
 
-    // --- Lorem Ipsum Text --- (unchanged)
-    const loremIpsumText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia";
+    // ====================================
+    // 2. AUTHENTICATION & GSI LOGIC
+    // ====================================
 
-    // Check initial login state
-    useEffect(() => {
-        const savedLoginStatus = localStorage.getItem('mw_isLoggedIn');
-        const savedUserData = localStorage.getItem('mw_userData');
-        if (savedLoginStatus === 'true' && savedUserData) {
-            try {
-                const parsedUserData = JSON.parse(savedUserData);
-                setUserData(parsedUserData);
-                setIsLoggedIn(true);
-            } catch (error) {
-                console.error('Failed to parse saved user data:', error);
-                localStorage.removeItem('mw_isLoggedIn');
-                localStorage.removeItem('mw_userData');
-            }
-        }
-    }, []);
-
-    // JWT token decoder
+    // JWT decoder (same as before)
     const decodeJwtResponse = (token) => {
         try {
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const base64Url = token.split('.')[1]; const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
             const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
             return JSON.parse(jsonPayload);
-        } catch (error) {
-            console.error('Failed to decode JWT token:', error);
-            return { name: 'User', email: '' };
-        }
+        } catch (e) { console.error('JWT Error:', e); return null; }
     };
 
-    // Aggressive removal of Google Sign-In Modal
-    const removeDedicatedContainer = () => {
-        const container = document.getElementById('dedicated-google-signin-container');
-        if (container && document.body.contains(container)) {
-            console.log("Attempting remove GSI container.");
-            try {
-                document.body.removeChild(container);
-            } catch (e) {
-                console.warn("Error removing GSI container:", e);
-            }
-        }
-    };
-
-    // Set up Google Sign-In Script
+    // Google Sign-In Script Setup & Initialization (same as before)
     useEffect(() => {
+        console.log("About.jsx: GSI Initialization useEffect running.");
         window.handleGoogleSignIn = (response) => {
-            isAttemptingLogin.current = false;
-            removeDedicatedContainer();
-            if (response && response.credential) {
-                console.log("GSI success:", response);
-                const decodedToken = decodeJwtResponse(response.credential);
-                setUserData(decodedToken);
-                setIsLoggedIn(true);
-                localStorage.setItem('mw_isLoggedIn', 'true');
-                localStorage.setItem('mw_userData', JSON.stringify(decodedToken));
+            console.log("About.jsx: handleGoogleSignIn callback triggered.");
+            if (response?.credential) {
+                const decoded = decodeJwtResponse(response.credential);
+                if (decoded) {
+                    setUserData(decoded); // Update state
+                    setIsLoggedIn(true); // Update state
+                    localStorage.setItem('mw_isLoggedIn', 'true');
+                    localStorage.setItem('mw_userData', JSON.stringify(decoded));
+                    console.log("About.jsx: GSI Sign-In Successful.");
+                } else {
+                    console.error("About.jsx: GSI Decode Failed");
+                    // Clear state if decode fails after successful Google sign-in attempt
+                    setIsLoggedIn(false);
+                    setUserData(null);
+                    localStorage.clear();
+                }
             } else {
-                console.warn('GSI failed/cancelled.');
+                console.warn('About.jsx: GSI Sign-In Cancelled or Failed in Google UI.');
             }
+            isAttemptingLogin.current = false;
         };
 
-        const loadGoogleScript = () => {
-            if (!document.getElementById('google-signin-script')) {
-                const script = document.createElement('script');
-                script.src = 'https://accounts.google.com/gsi/client';
-                script.id = 'google-signin-script';
-                script.async = true;
-                script.defer = true;
-                let timeoutId = null;
-                script.onload = () => {
-                    if (timeoutId) clearTimeout(timeoutId);
-                    if (window.google?.accounts?.id) {
+        const initializeGoogle = () => {
+            if (window.google?.accounts?.id) {
+                try {
+                    window.google.accounts.id.initialize({
+                        client_id: GOOGLE_CLIENT_ID, callback: window.handleGoogleSignIn,
+                        auto_select: false, cancel_on_tap_outside: true, context: 'signin'
+                    });
+                    if (!googleAuthLoaded) {
+                        console.log('About.jsx: GSI Initialized.');
                         setGoogleAuthLoaded(true);
-                        console.log('GSI script loaded & API ready.');
-                    } else {
-                        setTimeout(() => {
-                            if (window.google?.accounts?.id) {
-                                setGoogleAuthLoaded(true);
-                                console.log('GSI API ready after delay.');
-                            } else {
-                                console.warn('GSI API failed init post-load.');
-                            }
-                        }, 500);
                     }
-                };
-                script.onerror = () => {
-                    if (timeoutId) clearTimeout(timeoutId);
-                    console.error('Failed to load GSI script.');
-                };
-                timeoutId = setTimeout(() => {
-                    if (!window.google?.accounts?.id && !googleAuthLoaded) {
-                        console.warn('GSI API init timeout');
-                    }
-                }, 5000);
-                document.head.appendChild(script);
-            } else if (window.google?.accounts?.id && !googleAuthLoaded) {
-                setGoogleAuthLoaded(true);
-                console.log('GSI script existed & API ready.');
-            } else if (!googleAuthLoaded) {
-                console.log('GSI script exists, awaiting API init.');
-            }
+                } catch (error) { console.error('About.jsx: Error during GSI initialization:', error); }
+            } else { console.error('About.jsx: GSI init failed: google.accounts.id missing.'); }
         };
 
-        loadGoogleScript();
+        // Script loading logic (remains the same)
+        if (!document.getElementById('google-signin-script')) {
+            const script = document.createElement('script');
+            script.src = 'https://accounts.google.com/gsi/client'; script.id = 'google-signin-script';
+            script.async = true; script.defer = true;
+            script.onload = () => { console.log('About.jsx: GSI Script loaded.'); initializeGoogle(); };
+            script.onerror = () => console.error('About.jsx: GSI script load failed.');
+            document.head.appendChild(script);
+        } else if (window.google?.accounts?.id && !googleAuthLoaded) {
+            console.log('About.jsx: GSI Script exists, initializing.');
+            initializeGoogle();
+        } else if (googleAuthLoaded) {
+            console.log('About.jsx: GSI already initialized.');
+        }
 
         return () => {
+            console.log("About.jsx: GSI useEffect cleanup.");
             delete window.handleGoogleSignIn;
             if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
-            removeDedicatedContainer();
-            const googleElements = document.querySelectorAll('[id^="credential_picker_container"], #mobile-google-signin-overlay, #google-signin-custom-styles');
-            googleElements.forEach(el => el.parentNode?.removeChild(el));
+            document.querySelectorAll('[id^="credential_picker_container"]').forEach(el => el.parentNode?.removeChild(el));
+            document.querySelectorAll('.g_id_signin').forEach(el => el.parentNode?.removeChild(el));
         };
-    }, [googleAuthLoaded]);
+    }, [googleAuthLoaded]); // Depends only on googleAuthLoaded
 
-    // Initialize Google Sign-In when the library is loaded
-    useEffect(() => {
-        if (googleAuthLoaded && window.google?.accounts?.id) {
-            console.log("Initializing Google Sign-In...");
-
-            // Configure Google Sign-In
-            window.google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                callback: window.handleGoogleSignIn,
-                auto_select: false,
-                cancel_on_tap_outside: true
-            });
-
-            console.log("Google Sign-In initialized successfully");
-        }
-    }, [googleAuthLoaded, GOOGLE_CLIENT_ID]);
-
-    // Logout handler
+    // Logout handler (same as before)
     const handleLogout = useCallback(() => {
-        isAttemptingLogin.current = false;
-        if (retryTimeoutRef.current) {
-            clearTimeout(retryTimeoutRef.current);
-            retryTimeoutRef.current = null;
-        }
+        console.log("About.jsx: handleLogout called.");
         window.google?.accounts?.id.disableAutoSelect();
         setUserData(null);
-        setIsLoggedIn(false);
-        localStorage.removeItem('mw_isLoggedIn');
-        localStorage.removeItem('mw_userData');
-        console.log('User logged out.');
-    }, [setIsLoggedIn, setUserData]);
-
-    // Creates the dedicated modal/overlay
-    const createDedicatedGoogleSignInContainer = useCallback(() => {
-        removeDedicatedContainer();
-        const container = document.createElement('div');
-        container.id = 'dedicated-google-signin-container';
-        Object.assign(container.style, {
-            position: 'fixed',
-            top: '0',
-            left: '0',
-            width: '100vw',
-            height: '100vh',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            zIndex: '9998', // Below maximum z-index, behind menu toggle (10001) but above most UI
-            pointerEvents: 'auto'
-        });
-        const innerContainer = document.createElement('div');
-        innerContainer.id = 'google-signin-inner-container';
-        Object.assign(innerContainer.style, {
-            backgroundColor: 'white',
-            padding: '30px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            minWidth: '300px',
-            maxWidth: '90%'
-        });
-        const title = document.createElement('h3');
-        title.textContent = 'Sign in with Google';
-        Object.assign(title.style, {
-            marginBottom: '20px',
-            color: '#333',
-            fontSize: '1.2em'
-        });
-        innerContainer.appendChild(title);
-        const buttonContainer = document.createElement('div');
-        buttonContainer.id = 'google-button-element-container';
-        innerContainer.appendChild(buttonContainer);
-        const closeButton = document.createElement('button');
-        closeButton.textContent = 'Cancel';
-        Object.assign(closeButton.style, {
-            marginTop: '20px',
-            padding: '8px 16px',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            backgroundColor: '#f2f2f2',
-            cursor: 'pointer',
-            fontSize: '0.9em'
-        });
-        closeButton.addEventListener('click', () => {
-            removeDedicatedContainer();
-            isAttemptingLogin.current = false;
-        });
-        innerContainer.appendChild(closeButton);
-        container.appendChild(innerContainer);
-        document.body.appendChild(container);
-        return buttonContainer;
+        setIsLoggedIn(false); // Update state
+        localStorage.clear();
+        console.log('About.jsx: Logged out.');
+        isAttemptingLogin.current = false;
+        if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
     }, []);
 
-    // Render Google Sign-In button in a specified container
-    const renderGoogleSignInButton = useCallback((containerId) => {
-        if (!googleAuthLoaded || !window.google?.accounts?.id) {
-            console.warn("Cannot render Google Sign-In button - Google Auth not loaded");
-            return false;
-        }
-
-        const container = document.getElementById(containerId);
-        if (!container) {
-            console.error(`Container ${containerId} not found`);
-            return false;
-        }
-
-        try {
-            console.log(`Rendering Google Sign-In button in ${containerId}`);
-            window.google.accounts.id.renderButton(container, {
-                type: 'standard',
-                theme: 'outline',
-                size: 'large',
-                text: 'signin_with',
-                shape: 'rectangular',
-                logo_alignment: 'left',
-                width: containerId.includes('mobile') ? CONFIG.mobile.buttonWidth : CONFIG.desktop.buttonWidth
-            });
-            return true;
-        } catch (error) {
-            console.error("Error rendering Google Sign-In button:", error);
-            return false;
-        }
-    }, [googleAuthLoaded, CONFIG]);
-
-    // Handle Google Sign-In button click
+    // Handle Mobile Google Sign-In Button Click (same as before)
     const handleGoogleButtonClick = useCallback(() => {
-        console.log("Google Sign-In button clicked");
-        if (!googleAuthLoaded || !window.google?.accounts?.id) {
-            console.warn("Google Auth not loaded, cannot start sign-in");
+        console.log("About.jsx: Mobile Google button clicked.");
+        if (isAttemptingLogin.current) {
+            console.log("About.jsx: Already attempting login.");
             return;
         }
-
+        if (!googleAuthLoaded || !window.google?.accounts?.id) {
+            console.warn("About.jsx: GSI not ready for mobile prompt. Retrying...");
+            isAttemptingLogin.current = true;
+            retryTimeoutRef.current = setTimeout(() => {
+                isAttemptingLogin.current = false;
+                if (googleAuthLoaded && window.google?.accounts?.id) {
+                    console.log("About.jsx: Retrying mobile prompt...");
+                    handleGoogleButtonClick();
+                } else {
+                    alert('Google Sign-In failed to load. Please refresh.');
+                }
+            }, 700);
+            return;
+        }
         isAttemptingLogin.current = true;
+        try {
+            console.log("About.jsx: Calling google.accounts.id.prompt()...");
+            window.google.accounts.id.prompt((notification) => {
+                if (notification.isNotDisplayed()) console.warn(`About.jsx: GSI prompt not displayed: ${notification.getNotDisplayedReason()}`);
+                else if (notification.isSkippedMoment()) console.warn(`About.jsx: GSI prompt skipped: ${notification.getSkippedReason()}`);
+                else if (notification.isDismissedMoment()) console.log(`About.jsx: GSI prompt dismissed: ${notification.getDismissedReason()}`);
+                else console.log("About.jsx: GSI prompt displayed or moment recognized.");
+                // Reset flag ONLY if prompt fails immediately or is dismissed without user action
+                if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
+                    isAttemptingLogin.current = false;
+                }
+                // isAttemptingLogin is reset in handleGoogleSignIn upon success/failure/cancel
+            });
+        } catch (e) {
+            console.error("About.jsx: Error calling GSI prompt:", e);
+            isAttemptingLogin.current = false; // Reset on catch
+            alert("Error initiating Google Sign-In.");
+        }
+    }, [googleAuthLoaded]);
 
-        // Create a dedicated container for sign-in
-        const buttonContainer = createDedicatedGoogleSignInContainer();
-
-        // Render the Google Sign-In button in the modal
-        setTimeout(() => {
-            if (buttonContainer) {
-                window.google.accounts.id.renderButton(buttonContainer, {
-                    type: 'standard',
-                    theme: 'outline',
-                    size: 'large',
-                    text: 'signin_with',
-                    shape: 'rectangular',
-                    logo_alignment: 'left',
-                    width: 240
-                });
-
-                // You can also prompt the One Tap UI if desired
-                // window.google.accounts.id.prompt();
-            }
-        }, 0);
-    }, [googleAuthLoaded, createDedicatedGoogleSignInContainer]);
-
-    // Main UI rendering effect
-    useEffect(() => {
+    // ====================================
+    // 3. STYLING CONFIGURATION (Animations Removed)
+    // ====================================
+    const getStyles = useCallback(() => { // useCallback might be slightly better if styles were expensive
         const isMobile = window.innerWidth <= 768;
-        const overlay = document.createElement('div');
-        overlay.className = 'ui-overlay';
-        overlay.style.zIndex = '9999';
 
-        const panel = document.createElement('div');
-        panel.className = 'flat-panel';
-        panel.style.overflow = 'hidden'; // Changed from 'auto' to 'hidden'
-        panel.style.position = 'relative'; // Important for internal positioning
+        // --- Define spacing & positioning values ---
+        const panelPaddingTop = isMobile ? '100px' : '130px'; // Adjusted for profile/button space
+        const panelPaddingSides = isMobile ? '15px' : '40px';
+        const panelPaddingBottom = isMobile ? '30px' : '50px';
 
-        // Ensure job search link visibility is controlled by login state
-        const jobSearchLink = document.querySelector('.nav-item a[href*="mountainwestjobsearch.com"]');
-        if (jobSearchLink) {
-            jobSearchLink.style.display = isLoggedIn ? 'flex' : 'none';
-        }
+        const desktopPanelWidth = isMobile ? '95%' : 'calc(85% * 1.35)';
+        const desktopPanelHeight = isMobile ? '90vh' : 'calc(85vh * 1.35)';
+        const desktopMaxWidth = isMobile ? '1200px' : 'calc(1200px * 1.35)';
 
-        // --- UI Creation ---
-        if (!isMobile) {
-            // ================== DESKTOP VIEW ==================
-            const panelHeader = document.createElement('div');
-            panelHeader.className = 'panel-header';
-            panelHeader.style.visibility = isLoggedIn ? 'hidden' : 'visible';
-            panelHeader.innerHTML = '<h2 class="panel-title" style="font-size: 45px;">Mountain West</h2>';
-            panel.appendChild(panelHeader);
+        const headingFontSize = isMobile ? '20px' : 'calc(24px * 1.35)';
+        const textFontSize = isMobile ? '15px' : 'calc(16px * 1.35)';
+        const userNameFontSize = isMobile ? '15px' : 'calc(17px * 1.35)';
+        const userEmailFontSize = isMobile ? '11px' : 'calc(13px * 1.35)';
+        const buttonFontSize = isMobile ? '12px' : 'calc(14px * 1.35)';
 
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'header-in-panel';
-            headerDiv.innerHTML = `<header style="background-color: transparent; padding: 0.5rem; color: #57b3c0; text-align: center;"><h1 style="font-size: 55px;"></h1></header>`;
-            panel.appendChild(headerDiv);
+        const profileTop = isMobile ? '20px' : '30px';
+        const profileLeft = panelPaddingSides;
+        const buttonStackTop = isMobile ? '15px' : '25px';
+        const buttonStackRight = panelPaddingSides;
+        const buttonStackGap = isMobile ? '10px' : '15px';
 
-            if (isLoggedIn && userData) {
-                // Desktop Logged In UI
-                // (unchanged for now)
-            } else {
-                // Desktop Logged Out UI
-                const contentContainer = document.createElement('div');
-                contentContainer.className = 'content-container';
-                Object.assign(contentContainer.style, {
-                    padding: '30px',
-                    marginTop: CONFIG.desktop.contentTopMargin,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflowY: 'scroll', // Changed to scroll for better visibility of scrollbars
-                    maxHeight: CONFIG.desktop.contentMaxHeight,
-                    position: 'relative',
-                    zIndex: '5',
-                    paddingBottom: CONFIG.desktop.contentBottomPadding,
-                    pointerEvents: 'auto',
+        // Content top position needs to be below profile/buttons
+        const contentTopMargin = isMobile ? '80px' : '100px'; // Example: Adjust based on actual height of profile/buttons
+
+        const standardButtonStyle = {
+            fontSize: buttonFontSize, padding: isMobile ? '5px 10px' : '8px 15px',
+            borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap',
+            width: 'fit-content', pointerEvents: 'auto',
+            transition: 'transform 0.2s ease, background-color 0.2s ease', // Keep hover/active transitions
+            display: 'inline-block'
+        };
+
+        const desktopGsiHostStyle = {
+            width: isMobile ? '0' : '280px', // Use desktop button width from old config
+            position: 'relative', minHeight: isMobile ? '0' : '40px',
+            display: isMobile ? 'none' : 'block'
+        };
+
+        return {
+            overlay: {
+                className: `ui-overlay ${OVERLAY_CLASS_NAME}`,
+                style: {
+                    zIndex: '9999', position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
+                    pointerEvents: 'none', // Overlay non-interactive
+                    display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    padding: isMobile ? '10px' : '50px', boxSizing: 'border-box',
+                }
+            },
+            panel: {
+                className: 'flat-panel about-panel',
+                style: {
+                    position: 'relative', width: desktopPanelWidth, maxWidth: desktopMaxWidth,
+                    height: desktopPanelHeight, backgroundColor: 'rgba(13, 20, 24, 0.9)',
+                    borderRadius: '12px', boxShadow: '0 6px 15px rgba(0, 0, 0, 0.3)',
+                    paddingTop: panelPaddingTop, paddingLeft: panelPaddingSides,
+                    paddingRight: panelPaddingSides, paddingBottom: panelPaddingBottom,
+                    color: 'white', pointerEvents: 'auto', overflowY: 'auto', // Panel interactive, allow scroll
                     boxSizing: 'border-box',
-                    WebkitOverflowScrolling: 'touch',
-                    msOverflowStyle: '-ms-autohiding-scrollbar', // Better scrollbars for IE
-                });
+                    // opacity: 1, // Default visible - REMOVED explicit opacity 0
+                    WebkitOverflowScrolling: 'touch'
+                }
+            },
+            profileContainer: { // Only shown when logged in
+                style: {
+                    position: 'absolute', top: profileTop, left: profileLeft,
+                    display: 'flex', alignItems: 'center', gap: '15px',
+                    zIndex: 10,
+                    visibility: isLoggedIn ? 'visible' : 'hidden', // Control visibility directly
+                    // opacity: 1, transform: 'none', // Default visible - REMOVED animation props
+                }
+            },
+            buttonStackContainer: { // Container for top-right buttons or desktop GSI
+                style: {
+                    position: 'absolute', top: buttonStackTop, right: buttonStackRight,
+                    display: 'flex', flexDirection: 'column', gap: buttonStackGap,
+                    zIndex: 100, alignItems: 'flex-end',
+                    pointerEvents: 'auto', // Allow clicks within this stack
+                    // opacity: 1, transform: 'none', // Default visible - REMOVED animation props
+                }
+            },
+            contentContainer: {
+                className: 'content-container',
+                style: {
+                    width: '100%',
+                    marginTop: contentTopMargin, // Adjust this based on profile/button height
+                    position: 'relative', zIndex: 5,
+                    // opacity: 1, transform: 'none', // Default visible - REMOVED animation props
+                }
+            },
+            // Sub-element styles (unchanged from previous refactor)
+            profilePhoto: { style: { width: isMobile ? '45px' : '60px', height: isMobile ? '45px' : '60px', borderRadius: '50%', border: '2px solid #57b3c0', objectFit: 'cover', flexShrink: 0 } },
+            profilePhotoPlaceholder: { style: { width: isMobile ? '45px' : '60px', height: isMobile ? '45px' : '60px', borderRadius: '50%', backgroundColor: '#57b3c0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: isMobile ? '18px' : '24px', flexShrink: 0 } },
+            userInfo: { style: { display: 'flex', flexDirection: 'column', textAlign: 'left' } },
+            userName: { style: { margin: '0', fontSize: userNameFontSize, color: '#a7d3d8', fontWeight: '500' } },
+            userEmail: { style: { margin: '2px 0 0 0', fontSize: userEmailFontSize, color: '#7a9a9e' } },
+            logoutButton: { className: 'nav-button logout-button', style: { ...standardButtonStyle, backgroundColor: 'rgba(255, 99, 71, 0.2)', color: '#ff6347', border: '1px solid rgba(255, 99, 71, 0.4)' } },
+            dashboardButton: { className: 'nav-button dashboard-button', style: { ...standardButtonStyle, backgroundColor: 'rgba(255, 165, 0, 0.2)', color: '#FFA500', border: '1px solid rgba(255, 165, 0, 0.4)' } },
+            desktopGsiHost: { id: 'google-button-host-desktop', style: desktopGsiHostStyle },
+            contentHeading: { style: { fontSize: headingFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#57b3c0', fontWeight: 'bold' } },
+            contentText: { style: { fontSize: textFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#c0d0d3', lineHeight: '1.6' } },
+            loggedOutTitle: { style: { fontSize: headingFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#57b3c0', fontWeight: 'bold', textAlign: 'center' } },
+        };
+    }, [isLoggedIn]); // Re-calculate styles if login state changes (for profile visibility)
 
-                contentContainer.innerHTML = `<p style="font-size: 35px; line-height: 1.4; margin-bottom: 40px; color: #a7d3d8; overflow-wrap: break-word;">${loremIpsumText}</p>`;
-                panel.appendChild(contentContainer);
+    // ====================================
+    // 4. UI RENDERING EFFECT (Animations Removed)
+    // ====================================
+    useEffect(() => {
+        console.log(`About.jsx: UI Render/Effect Start. isLoggedIn: ${isLoggedIn}`);
 
-                // **Desktop_NoLogin_Buttons**
-                const leftButtonStack = document.createElement('div');
-                Object.assign(leftButtonStack.style, {
-                    position: 'absolute',
-                    left: CONFIG.desktop.buttonLeftPosition,
-                    bottom: CONFIG.desktop.buttonBottomPosition,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '20px',
-                    zIndex: CONFIG.desktop.buttonZIndex
-                });
+        // Prevent duplicate UI creation if effect runs unexpectedly
+        if (document.querySelector(`.${OVERLAY_CLASS_NAME}`)) {
+            console.log("About.jsx: Overlay already exists, skipping creation.");
+            // It might be prudent to remove the existing one and recreate if state changed significantly
+            // Or, update the existing elements instead of full recreate (more complex)
+            return;
+        }
+        // Also clear the ref if we find an overlay but the ref is not set (e.g., after hot-reload)
+        if (!overlayRef.current && document.querySelector(`.${OVERLAY_CLASS_NAME}`)) {
+            console.warn("About.jsx: Found existing overlay without ref. Potential stale element.");
+            // Attempt cleanup of potential stale elements before proceeding
+            document.querySelector(`.${OVERLAY_CLASS_NAME}`)?.remove();
+            document.getElementById(MOBILE_SIGNIN_AREA_ID)?.remove();
+        }
 
-                // Google button container for desktop
-                const googleButtonContainer = document.createElement('div');
-                googleButtonContainer.id = 'google-button-container-desktop';
-                googleButtonContainer.style.width = CONFIG.desktop.buttonWidth + 'px';
-                googleButtonContainer.style.position = 'relative';
-                googleButtonContainer.style.zIndex = CONFIG.desktop.buttonZIndex;
 
-                leftButtonStack.appendChild(googleButtonContainer);
+        const styles = getStyles();
+        const isMobile = window.innerWidth <= 768;
+        let panel; // Declare panel outside try block for potential use in cleanup if needed
 
-                const homeButtonContainer = document.createElement('div');
-                homeButtonContainer.style.width = '280px';
-                homeButtonContainer.style.display = 'none';
-                homeButtonContainer.innerHTML = `<button id="home-button" style="
-                    background-color: rgba(87, 179, 192, 0.2);
-                    color: #57b3c0;
-                    border: 1px solid rgba(87, 179, 192, 0.4);
-                    width: 100%;
-                    padding: 12px 16px;
-                    font-size: 16px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    pointer-events: auto;
-                    z-index: 9999999;
-                ">Back to Start</button>`;
-                leftButtonStack.appendChild(homeButtonContainer);
+        try {
+            // --- Create Overlay and Panel ---
+            console.log("About.jsx: Creating Overlay and Panel elements.");
+            const overlay = document.createElement('div');
+            overlay.className = styles.overlay.className;
+            Object.assign(overlay.style, styles.overlay.style);
+            overlayRef.current = overlay; // Store ref immediately
 
-                panel.appendChild(leftButtonStack);
-            }
-        } else {
-            // ================== MOBILE VIEW ==================
-            const panelHeader = document.createElement('div');
-            panelHeader.className = 'panel-header';
-            panelHeader.style.visibility = isLoggedIn ? 'hidden' : 'visible';
-            panelHeader.innerHTML = '<h2 class="panel-title" style="font-size: 25px;">Mountain West</h2>';
-            panel.appendChild(panelHeader);
+            panel = document.createElement('div');
+            panel.className = styles.panel.className;
+            panel.id = 'about-panel';
+            Object.assign(panel.style, styles.panel.style);
+            overlay.appendChild(panel); // Append panel to overlay
 
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'header-in-panel';
-            headerDiv.innerHTML = `<header style="background-color: transparent; padding: 0.5rem; color: #57b3c0; text-align: center;"><h1 style="font-size: 28px;"></h1></header>`;
-            panel.appendChild(headerDiv);
+            // --- Create Top-Right Button Stack Container ---
+            const buttonStackContainer = document.createElement('div');
+            buttonStackContainer.id = 'about-button-stack';
+            Object.assign(buttonStackContainer.style, styles.buttonStackContainer.style);
+            panel.appendChild(buttonStackContainer);
 
+            // --- Create Top-Left Profile Container ---
+            const profileContainer = document.createElement('div');
+            profileContainer.id = 'about-profile-container';
+            Object.assign(profileContainer.style, styles.profileContainer.style);
+            // Visibility is handled by the style object directly based on isLoggedIn state
+            panel.appendChild(profileContainer);
+
+            // --- Create Flowed Content Area ---
+            const contentContainer = document.createElement('div');
+            contentContainer.id = 'about-content-container';
+            contentContainer.className = styles.contentContainer.className;
+            Object.assign(contentContainer.style, styles.contentContainer.style);
+            panel.appendChild(contentContainer);
+
+
+            // ================= POPULATE BASED ON STATE =================
             if (isLoggedIn && userData) {
-                // Mobile Logged In UI
-                // (unchanged for now)
+                // ****** LOGGED IN STATE ******
+                console.log("About.jsx: Rendering Logged In State Content.");
+
+                // Populate Profile Container
+                const profilePhotoEl = document.createElement(userData.picture ? 'img' : 'div');
+                if (userData.picture) {
+                    profilePhotoEl.src = userData.picture; profilePhotoEl.alt = "Profile";
+                    Object.assign(profilePhotoEl.style, styles.profilePhoto.style);
+                } else {
+                    profilePhotoEl.textContent = userData.name ? userData.name.charAt(0).toUpperCase() : 'U';
+                    Object.assign(profilePhotoEl.style, styles.profilePhotoPlaceholder.style);
+                }
+                profileContainer.appendChild(profilePhotoEl);
+
+                const userInfoDiv = document.createElement('div');
+                Object.assign(userInfoDiv.style, styles.userInfo.style);
+                const userNameEl = document.createElement('h3');
+                Object.assign(userNameEl.style, styles.userName.style);
+                userNameEl.textContent = `${userData.name || 'User'}`;
+                const userEmailEl = document.createElement('p');
+                Object.assign(userEmailEl.style, styles.userEmail.style);
+                userEmailEl.textContent = userData.email || 'No email provided';
+                userInfoDiv.appendChild(userNameEl); userInfoDiv.appendChild(userEmailEl);
+                profileContainer.appendChild(userInfoDiv);
+
+                // Populate Button Stack (Logout/Dashboard)
+                const logoutButton = document.createElement('button');
+                logoutButton.id = 'logout-button'; logoutButton.className = styles.logoutButton.className;
+                Object.assign(logoutButton.style, styles.logoutButton.style);
+                logoutButton.textContent = 'Logout'; logoutButton.onclick = handleLogout;
+                buttonStackContainer.appendChild(logoutButton);
+
+                const dashboardButton = document.createElement('button');
+                dashboardButton.id = 'dashboard-button'; dashboardButton.className = styles.dashboardButton.className;
+                Object.assign(dashboardButton.style, styles.dashboardButton.style);
+                dashboardButton.textContent = 'Dashboard'; dashboardButton.onclick = () => navigate('/loggedintemplate');
+                buttonStackContainer.appendChild(dashboardButton);
+
+                // Populate Content Container
+                const loggedInHeading = document.createElement('h2');
+                Object.assign(loggedInHeading.style, styles.contentHeading.style);
+                loggedInHeading.textContent = "Welcome Back";
+                contentContainer.appendChild(loggedInHeading);
+
+                const loggedInText1 = document.createElement('p');
+                Object.assign(loggedInText1.style, styles.contentText.style);
+                loggedInText1.textContent = loggedInParagraph1;
+                contentContainer.appendChild(loggedInText1);
+
+                const loggedInText2 = document.createElement('p');
+                Object.assign(loggedInText2.style, styles.contentText.style);
+                loggedInText2.textContent = loggedInParagraph2;
+                contentContainer.appendChild(loggedInText2);
+
+
             } else {
-                // Mobile Logged Out UI
-                const contentContainer = document.createElement('div');
-                contentContainer.className = 'content-container';
-                Object.assign(contentContainer.style, {
-                    position: 'absolute',
-                    top: CONFIG.mobile.headerHeight,
-                    bottom: CONFIG.mobile.contentBottomSpace,
-                    left: '15px',
-                    right: '15px',
-                    overflowY: 'scroll', // Changed to scroll for better visibility of scrollbars
-                    width: 'auto',
-                    boxSizing: 'border-box',
-                    zIndex: '10',
-                    maxHeight: CONFIG.mobile.contentMaxHeight, // Added this line to apply maxHeight on mobile
-                    paddingBottom: CONFIG.mobile.contentPaddingBottom,
-                    WebkitOverflowScrolling: 'touch',
-                    pointerEvents: 'auto',
-                    msOverflowStyle: '-ms-autohiding-scrollbar', // Better scrollbars for IE
-                });
+                // ****** LOGGED OUT STATE ******
+                console.log("About.jsx: Rendering Logged Out State Content.");
+                // Profile container is already hidden via its style in getStyles
 
-                contentContainer.innerHTML = `<p style="font-size: 16px; line-height: 1.4; margin-bottom: 20px; color: #a7d3d8; overflow-wrap: break-word;">${loremIpsumText}</p>`;
-                panel.appendChild(contentContainer);
-            }
-        }
-        // --- End of UI Creation ---
+                // Populate Content Container
+                const loggedOutHeading = document.createElement('h2');
+                Object.assign(loggedOutHeading.style, styles.loggedOutTitle.style);
+                loggedOutHeading.textContent = "About Mountain West";
+                contentContainer.appendChild(loggedOutHeading);
 
-        overlay.appendChild(panel);
-        document.body.appendChild(overlay);
+                const loggedOutP = document.createElement('p');
+                Object.assign(loggedOutP.style, styles.contentText.style);
+                loggedOutP.textContent = loggedOutText;
+                contentContainer.appendChild(loggedOutP);
 
-        // --- Mobile-specific UI for Google Sign-In ---
-        if (isMobile) {
-            // First, remove any existing mobile button (to avoid duplicates across page loads)
-            const existingMobileButton = document.querySelector('.mobileButtonArea');
-            if (existingMobileButton) {
-                existingMobileButton.remove();
-            }
+                // Handle Buttons for Logged Out State
+                if (!isMobile) {
+                    // Desktop: Add GSI render host to the top-right stack
+                    console.log("About.jsx: Creating desktop GSI button host.");
+                    const gsiHost = document.createElement('div');
+                    gsiHost.id = styles.desktopGsiHost.id; // 'google-button-host-desktop'
+                    Object.assign(gsiHost.style, styles.desktopGsiHost.style);
+                    buttonStackContainer.appendChild(gsiHost); // Add to top-right
 
-            // Create mobile button area (only on About page and only on mobile)
-            const mobileButtonArea = document.createElement('div');
-            mobileButtonArea.className = 'mobileButtonArea';
-            Object.assign(mobileButtonArea.style, {
-                position: 'fixed',
-                bottom: CONFIG.mobile.buttonBottomPosition,
-                left: '0',
-                width: '100%',
-                height: CONFIG.mobile.buttonAreaHeight,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '15px',
-                zIndex: '9995', // Just below menu's 10000
-                boxSizing: 'border-box',
-                padding: '20px 0',
-                backgroundColor: CONFIG.mobile.buttonAreaBackground,
-                pointerEvents: 'all'
-            });
+                    // Attempt to render the GSI button
+                    const renderDesktopButton = () => {
+                        if (!overlayRef.current || !document.getElementById(styles.desktopGsiHost.id)) {
+                            console.log("About.jsx: Aborting desktop GSI render (unmounted or host removed).");
+                            return; // Check if component still mounted and host exists
+                        }
+                        if (googleAuthLoaded && window.google?.accounts?.id) {
+                            const host = document.getElementById(styles.desktopGsiHost.id);
+                            // Check host exists AGAIN, could be removed between checks
+                            if (host && !host.hasChildNodes()) {
+                                console.log("About.jsx: Rendering desktop GSI button...");
+                                try {
+                                    window.google.accounts.id.renderButton(host, { type: 'standard', theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular', logo_alignment: 'left', width: 280 });
+                                    console.log("About.jsx: Desktop GSI button render initiated.");
+                                } catch (e) { console.error("About.jsx: Desktop GSI render error:", e); if (host) host.innerHTML = 'GSI Render Failed'; }
+                            } else if (host && host.hasChildNodes()) {
+                                console.log("About.jsx: Desktop GSI button host already populated.");
+                            }
+                        } else {
+                            // GSI not loaded yet, show placeholder and retry
+                            const host = document.getElementById(styles.desktopGsiHost.id);
+                            if (host && !host.hasChildNodes()) {
+                                console.log("About.jsx: GSI not ready for desktop button, setting placeholder and retry timer.");
+                                // Basic placeholder style, adapt as needed
+                                host.innerHTML = `<button style='width: 280px; padding:10px; border:1px solid #ccc; border-radius:4px; background:#eee; color:#777; text-align:center; font-size: 14px;' disabled>Loading Sign-In...</button>`;
+                                setTimeout(renderDesktopButton, 500); // Retry rendering
+                            }
+                        }
+                    };
+                    // Use setTimeout to ensure the host element is definitely in the DOM before trying to render
+                    setTimeout(renderDesktopButton, 50);
 
-            // Create Google button for mobile
-            const googleButton = document.createElement('button');
-            googleButton.id = 'google-login-button-mobile';
-            googleButton.type = 'button';
-            Object.assign(googleButton.style, {
-                backgroundColor: 'white',
-                color: '#444',
-                width: CONFIG.mobile.buttonWidth + 'px',
-                borderRadius: '4px',
-                border: '1px solid #ddd',
-                boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-                whiteSpace: 'nowrap',
-                padding: '12px 16px',
-                fontSize: '16px',
-                fontWeight: '500',
-                fontFamily: 'Roboto, sans-serif',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                position: 'relative',
-                zIndex: '9996', // Above container
-                marginTop: '10px',
-                WebkitTapHighlightColor: 'rgba(0,0,0,0.1)',
-                touchAction: 'manipulation',
-                outline: 'none',
-                WebkitAppearance: 'none',
-                pointerEvents: 'auto'
-            });
+                } else {
+                    // Mobile: Create the dedicated button area at the top
+                    console.log("About.jsx: Creating mobile signin area (Top).");
+                    // Clean up any previous instance first
+                    document.getElementById(MOBILE_SIGNIN_AREA_ID)?.remove();
 
-            // Add Google logo and text
-            googleButton.innerHTML = `
-                <img src="https://developers.google.com/identity/images/g-logo.png" 
-                     style="width: 20px; height: 20px; margin-right: 12px;" 
-                     alt="Google logo">
-                Sign in with Google
-            `;
+                    const mobileButtonArea = document.createElement('div');
+                    mobileButtonArea.id = MOBILE_SIGNIN_AREA_ID;
+                    Object.assign(mobileButtonArea.style, {
+                        position: 'fixed', top: '10px', // Top offset
+                        left: '0', width: '100%', height: '60px',
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center', gap: '10px',
+                        zIndex: '9995', padding: '5px 0',
+                        backgroundColor: 'transparent', // Background
+                        pointerEvents: 'auto', boxSizing: 'border-box',
+                    });
 
-            // Add home button container (hidden by default)
-            const homeButtonContainer = document.createElement('div');
-            homeButtonContainer.id = 'homeButtonContainer';
-            homeButtonContainer.style.width = CONFIG.mobile.buttonWidth + 'px';
-            homeButtonContainer.style.display = 'none';
+                    const mobileGoogleButton = document.createElement('button');
+                    mobileGoogleButton.id = 'google-login-button-mobile'; mobileGoogleButton.type = 'button';
+                    Object.assign(mobileGoogleButton.style, {
+                        backgroundColor: '#ffffff', color: '#1f78d1', width: '240px', padding: '10px 18px',
+                        border: '1px solid #dadce0', borderRadius: '4px', fontSize: '16px', fontWeight: '500',
+                        fontFamily: "'Roboto', arial, sans-serif", cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                        pointerEvents: 'auto',
+                        boxShadow: '0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15)'
+                    });
+                    mobileGoogleButton.innerHTML = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style="width:18px;height:18px;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg> Sign in with Google`;
+                    mobileGoogleButton.addEventListener('click', handleGoogleButtonClick);
+                    mobileButtonArea.appendChild(mobileGoogleButton);
 
-            // Create home button
-            const homeButton = document.createElement('button');
-            homeButton.id = 'home-button-mobile';
-            Object.assign(homeButton.style, {
-                backgroundColor: 'rgba(87, 179, 192, 0.2)',
-                color: '#57b3c0',
-                border: '1px solid rgba(87, 179, 192, 0.4)',
-                width: '100%',
-                padding: '10px 14px',
-                fontSize: '14px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                pointerEvents: 'auto',
-                zIndex: '9996'
-            });
-            homeButton.textContent = 'Back to Start';
-            homeButtonContainer.appendChild(homeButton);
-
-            // Append everything
-            mobileButtonArea.appendChild(googleButton);
-            mobileButtonArea.appendChild(homeButtonContainer);
-            document.body.appendChild(mobileButtonArea);
-
-            // Handle mobile button events
-            googleButton.addEventListener('click', function (e) {
-                console.log("Mobile button click event fired!");
-                e.preventDefault();
-                e.stopPropagation();
-                handleGoogleButtonClick();
-            }, { capture: true });
-
-            googleButton.addEventListener('touchend', function (e) {
-                console.log("Mobile button touchend event fired!");
-                e.preventDefault();
-                e.stopPropagation();
-                setTimeout(() => handleGoogleButtonClick(), 10);
-            }, { capture: true });
-
-            // Add visual feedback
-            googleButton.addEventListener('touchstart', function () {
-                this.style.backgroundColor = '#f0f0f0';
-                this.style.transform = 'scale(0.98)';
-            }, { passive: true });
-
-            googleButton.addEventListener('touchend', function () {
-                this.style.backgroundColor = 'white';
-                this.style.transform = 'scale(1)';
-            }, { passive: true });
-
-            // Home button listener
-            if (homeButton) {
-                homeButton.addEventListener('click', () => navigate('/'));
-            }
-        }
-
-        // --- Event Listener Attachment ---
-        const homeButton = document.getElementById('home-button');
-        if (homeButton) homeButton.addEventListener('click', () => navigate('/'));
-
-        if (isLoggedIn) {
-            // Logged in listeners would go here
-        } else {
-            // Desktop button handler
-            const desktopGoogleButton = document.getElementById('google-login-button-desktop');
-            if (desktopGoogleButton) {
-                desktopGoogleButton.addEventListener('click', (e) => {
-                    console.log("Desktop Google button clicked");
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleGoogleButtonClick(e);
-                });
-                // Add hover effect
-                desktopGoogleButton.addEventListener('mouseenter', () => {
-                    desktopGoogleButton.style.backgroundColor = '#f8f8f8';
-                    desktopGoogleButton.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
-                });
-                desktopGoogleButton.addEventListener('mouseleave', () => {
-                    desktopGoogleButton.style.backgroundColor = 'white';
-                    desktopGoogleButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-                });
-            }
-
-            // Render desktop Google button if auth is loaded
-            if (googleAuthLoaded) {
-                renderGoogleSignInButton('google-button-container-desktop');
-            } else {
-                // Set up a watcher to render button once auth is ready
-                const checkAuthInterval = setInterval(() => {
-                    if (googleAuthLoaded && window.google?.accounts?.id) {
-                        renderGoogleSignInButton('google-button-container-desktop');
-                        clearInterval(checkAuthInterval);
+                    // Append mobile area to #root (or body if #root not found)
+                    const rootEl = document.getElementById('root') || document.body;
+                    // Check again it wasn't added somehow between cleanup and here
+                    if (!rootEl.querySelector(`#${MOBILE_SIGNIN_AREA_ID}`)) {
+                        rootEl.appendChild(mobileButtonArea);
+                        console.log("About.jsx: Mobile signin area appended.");
+                    } else {
+                        console.log("About.jsx: Mobile signin area already exists, skipping append.");
                     }
-                }, 500);
-
-                // Clear interval after 10 seconds to prevent infinite checking
-                setTimeout(() => clearInterval(checkAuthInterval), 10000);
+                }
             }
+
+            // --- APPEND Overlay TO #root ---
+            const rootElement = document.getElementById('root');
+            if (rootElement) {
+                // Final check before appending overlay
+                if (!rootElement.contains(overlay)) {
+                    rootElement.appendChild(overlay);
+                    console.log("About.jsx: Overlay successfully appended to #root.");
+                } else {
+                    console.log("About.jsx: Overlay already in #root, skipping append.");
+                }
+            } else {
+                console.error("About.jsx: #root element not found! Cannot append overlay.");
+                // Fallback? Append to body? Might cause issues.
+                // document.body.appendChild(overlay);
+            }
+
+        } catch (error) {
+            console.error("About.jsx: Error during UI element creation or appending:", error);
+            // Attempt cleanup if an error occurred mid-creation
+            if (overlayRef.current && overlayRef.current.parentNode) {
+                try { overlayRef.current.remove(); } catch (e) { }
+                overlayRef.current = null;
+            }
+            document.getElementById(MOBILE_SIGNIN_AREA_ID)?.remove(); // Also try removing mobile area
         }
-        // --- End of Event Listener Attachment ---
 
-        // Make sure scrolling works correctly
-        const contentElements = document.querySelectorAll('.content-container');
-        contentElements.forEach(el => {
-            // Enable touch scrolling on mobile
-            el.addEventListener('touchstart', () => { }, { passive: true });
-            // Enable mouse wheel scrolling
-            el.addEventListener('wheel', () => { }, { passive: true });
-        });
-
-        // Resize handler
+        // ====================================
+        // 5. EVENT HANDLING & CLEANUP
+        // ====================================
         let resizeTimeout;
         const handleResize = () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                window.location.reload();
+                console.log("About.jsx: Triggering reload due to resize.");
+                window.location.reload(); // Still using reload on resize
             }, 250);
         };
         window.addEventListener('resize', handleResize);
 
-        // --- Cleanup function ---
+        // --- Cleanup Function ---
         return () => {
-            // Clean up global click handler
-            delete window.mobileButtonClickHandler;
-
+            console.log("About.jsx: Cleanup running.");
             window.removeEventListener('resize', handleResize);
             clearTimeout(resizeTimeout);
 
-            if (document.body.contains(overlay)) {
+            // --- Specific Cleanup for About.jsx ---
+            // Remove the overlay created by THIS component using its ref primarily
+            const overlayToRemove = overlayRef.current;
+            if (overlayToRemove && overlayToRemove.parentNode) {
                 try {
-                    document.body.removeChild(overlay);
+                    overlayToRemove.parentNode.removeChild(overlayToRemove);
+                    console.log("About.jsx cleanup: Removed overlay via ref.");
                 } catch (e) {
-                    console.error("Error removing overlay:", e);
+                    console.warn("About.jsx cleanup: Error removing overlay via ref", e);
+                }
+            } else {
+                // Fallback if ref is lost or wasn't set correctly
+                const fallbackOverlay = document.querySelector(`.${OVERLAY_CLASS_NAME}`);
+                if (fallbackOverlay && fallbackOverlay.parentNode) {
+                    try {
+                        fallbackOverlay.parentNode.removeChild(fallbackOverlay);
+                        console.log("About.jsx cleanup: Removed overlay via fallback selector.");
+                    } catch (e) {
+                        console.warn("About.jsx cleanup: Error removing overlay via fallback", e);
+                    }
+                } else {
+                    console.log("About.jsx cleanup: Overlay not found for removal via ref or selector.");
                 }
             }
+            overlayRef.current = null; // Clear ref
 
-            // Clean up mobile button
-            const mobileButtonArea = document.querySelector('.mobileButtonArea');
-            if (mobileButtonArea) mobileButtonArea.remove();
-
-            // Ensure Google Sign-In modal is also cleaned up
-            removeDedicatedContainer();
-
-            // Remove any Google artifacts that might be left
-            const googleElements = document.querySelectorAll(
-                '[id^="credential_picker_container"], ' +
-                '[id^="g_a_"], ' +
-                '#google-button-container-desktop, ' +
-                '#google-button-container-mobile, ' +
-                '#google-signin-custom-styles'
-            );
-
-            googleElements.forEach(el => {
-                if (el && el.parentNode) {
-                    try {
-                        el.parentNode.removeChild(el);
-                    } catch (e) {
-                        console.warn("Error removing Google element:", e);
-                    }
+            // Remove the mobile sign-in area by ID
+            const mobileArea = document.getElementById(MOBILE_SIGNIN_AREA_ID);
+            if (mobileArea && mobileArea.parentNode) {
+                try {
+                    mobileArea.parentNode.removeChild(mobileArea);
+                    console.log("About.jsx cleanup: Mobile area removed.");
+                } catch (e) {
+                    console.warn("About.jsx cleanup: Error removing mobile area", e);
                 }
-            });
+            } else {
+                console.log("About.jsx cleanup: Mobile area not found for removal.");
+            }
         };
-    }, [isLoggedIn, userData, navigate, handleLogout, handleGoogleButtonClick, googleAuthLoaded, renderGoogleSignInButton, createDedicatedGoogleSignInContainer, CONFIG, loremIpsumText]); // Dependencies updated
+        // Rerun effect if login state changes (to redraw UI), or GSI load status (for button rendering)
+        // Also include navigate, handleLogout, handleGoogleButtonClick as they are used inside
+        // getStyles is included because it's recalculated based on isLoggedIn
+    }, [isLoggedIn, userData, googleAuthLoaded, navigate, handleLogout, handleGoogleButtonClick, getStyles]);
 
-    return null;
+
+    return null; // Component renders null, UI handled by effect
 }
