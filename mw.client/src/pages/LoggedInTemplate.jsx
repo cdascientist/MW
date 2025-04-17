@@ -4,11 +4,29 @@
  * including proper panel centering and desktop size enhancements.
  * Fixed layout to prevent content from covering buttons.
  * Removed borders around sections and pushed Template Main Content up.
+ * Added mobile-specific adjustments to move content sections up.
+ * Added mobile-specific adjustments to move the Analysis button up, user info down/left.
+ * Placed configuration variables at the top.
+ * Fixed ESLint warnings.
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import "../style/AboutStyle.css"; // Reusing styling from About
+
+// ====================================
+// MOBILE ADJUSTMENT CONFIGURATION
+// ====================================
+// MOBILE: Vertical offset for the 'Template Main Content' heading on mobile screens (negative value moves up).
+const mobileContentHeadingOffsetY = '-110px';
+// MOBILE: Vertical offset for the content section below the main heading on mobile screens (negative value moves up).
+const mobileContentSectionOffsetY = '-110px';
+// MOBILE: Vertical offset for the 'Open Analysis Dashboard' button on mobile screens (negative value moves up).
+const mobileAnalysisButtonOffsetY = '-110px';
+// MOBILE: Vertical offset for the user info (name/email) container on mobile screens (positive value moves down).
+const mobileUserInfoOffsetY = '55px';
+// MOBILE: Horizontal offset for the user info (name/email) container on mobile screens (negative value moves left).
+const mobileUserInfoOffsetX = '-55px';
 
 export default function LoggedInTemplate() {
     // ====================================
@@ -26,14 +44,14 @@ export default function LoggedInTemplate() {
     useEffect(() => {
         const savedLoginStatus = localStorage.getItem('mw_isLoggedIn');
         const savedUserData = localStorage.getItem('mw_userData');
-        let isAuthenticated = false;
+        // let isAuthenticated = false; // Removed as it was unused
 
         if (savedLoginStatus === 'true' && savedUserData) {
             try {
                 const parsedUserData = JSON.parse(savedUserData);
                 setUserData(parsedUserData);
                 setIsLoggedIn(true);
-                isAuthenticated = true;
+                // isAuthenticated = true; // Removed as it was unused
                 console.log("LoggedInTemplate: Retrieved authenticated session from localStorage");
             } catch (error) {
                 console.error('LoggedInTemplate: Failed to parse saved user data:', error);
@@ -49,12 +67,19 @@ export default function LoggedInTemplate() {
         setLoading(false);
 
         // Redirect if not authenticated after checks (Optional, uncomment if needed)
-        // if (!isAuthenticated && !loading) {
-        //     console.warn("LoggedInTemplate: Auth check complete, user not authenticated. Redirecting...");
-        //     navigate('/about'); // Redirect to About/Login page
-        // }
+        // const checkAuthAndRedirect = () => {
+        //     const currentStatus = localStorage.getItem('mw_isLoggedIn') === 'true';
+        //     if (!currentStatus && !loading) { // Ensure loading is finished before redirecting
+        //         console.warn("LoggedInTemplate: Auth check complete, user not authenticated. Redirecting...");
+        //         navigate('/about'); // Redirect to About/Login page
+        //     }
+        // };
+        // // You might want a slight delay or use a different mechanism if loading state updates asynchronously
+        // // setTimeout(checkAuthAndRedirect, 100); // Example delay
+        // checkAuthAndRedirect(); // Or call directly if state updates reliably before this runs
 
-    }, [navigate]); // Added navigate to dependency array
+
+    }, [navigate, loading]); // Added loading to dependency array to potentially re-run check
 
     // ====================================
     // 3. HANDLERS (Logout, Navigation)
@@ -90,6 +115,7 @@ export default function LoggedInTemplate() {
     // 4. STYLING CONFIGURATION (Aligned with About.jsx)
     // ====================================
     const getStyles = () => {
+        // MOBILE: Check if the screen width is mobile size. Used for conditional styling.
         const isMobile = window.innerWidth <= 768;
 
         // Panel dimensions and spacing (consistent with About.jsx)
@@ -150,7 +176,6 @@ export default function LoggedInTemplate() {
                     justifyContent: 'center',
                     alignItems: 'center',
                     boxSizing: 'border-box',
-                    // padding: isMobile ? '10px' : '50px', // Padding can affect centering, removed for direct flexbox centering
                 }
             },
             // Panel style with centering fixes (consistent with About.jsx)
@@ -162,7 +187,7 @@ export default function LoggedInTemplate() {
                     maxWidth: desktopMaxWidth,
                     height: desktopPanelHeight,
                     maxHeight: '90vh', // Consistent max height
-                    backgroundColor: 'rgba(13, 20, 24, 0.65)', // Was 0.9, now 0.65 (25% more transparent)
+                    backgroundColor: 'rgba(13, 20, 24, 0.65)',
                     borderRadius: '12px',
                     boxShadow: '0 6px 15px rgba(0, 0, 0, 0.3)',
                     padding: `${panelPaddingTop} ${panelPaddingSides} ${panelPaddingBottom} ${panelPaddingSides}`,
@@ -171,9 +196,7 @@ export default function LoggedInTemplate() {
                     overflowY: 'auto',
                     boxSizing: 'border-box',
                     opacity: 0, // Start with opacity 0 for animation
-                    // Ensure the panel itself is properly centered by the flex overlay
                     margin: '0 auto',
-                    // Remove absolute positioning that would break centering
                     top: 'auto',
                     left: 'auto',
                     transform: 'none',
@@ -188,8 +211,8 @@ export default function LoggedInTemplate() {
                     alignItems: 'center',
                     gap: '15px',
                     zIndex: 10,
-                    opacity: 0, // Start with opacity 0 for animation
-                    transform: 'translateX(-50px)', // Start off-screen for animation
+                    opacity: 0,
+                    transform: 'translateX(-50px)',
                 }
             },
             buttonStackContainer: {
@@ -200,21 +223,21 @@ export default function LoggedInTemplate() {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: buttonStackGap,
-                    zIndex: 100, // Higher z-index to ensure buttons are above content
+                    zIndex: 100,
                     alignItems: 'flex-end',
-                    opacity: 0, // Start with opacity 0 for animation
-                    transform: 'translateX(50px)', // Start off-screen for animation
+                    opacity: 0,
+                    transform: 'translateX(50px)',
                 }
             },
             contentContainer: {
                 className: 'content-container',
                 style: {
                     width: '100%',
-                    marginTop: contentTopMargin, // Adjusted top margin
-                    opacity: 0, // Start with opacity 0 for animation
-                    transform: 'translateY(30px)', // Start below for animation
+                    marginTop: contentTopMargin,
+                    opacity: 0,
+                    transform: 'translateY(30px)',
                     position: 'relative',
-                    zIndex: 5 // Lower z-index than buttons
+                    zIndex: 5
                 }
             },
             profilePhoto: {
@@ -246,6 +269,9 @@ export default function LoggedInTemplate() {
                     display: 'flex',
                     flexDirection: 'column',
                     textAlign: 'left',
+                    position: 'relative', // Needed for transform positioning
+                    // MOBILE: Apply vertical and horizontal offset transform only on mobile screens using configured variables.
+                    transform: isMobile ? `translate(${mobileUserInfoOffsetX}, ${mobileUserInfoOffsetY})` : 'none',
                 }
             },
             userName: {
@@ -299,8 +325,10 @@ export default function LoggedInTemplate() {
                     backgroundColor: 'rgba(142, 68, 173, 0.2)', // Purple theme
                     color: '#8e44ad',
                     border: '1px solid rgba(142, 68, 173, 0.4)',
-                    // Added margin below for spacing in content area
-                    marginBottom: isMobile ? '15px' : '20px'
+                    marginBottom: isMobile ? '15px' : '20px',
+                    position: 'relative', // Needed for transform positioning
+                    // MOBILE: Apply vertical offset transform only on mobile screens using configured variable.
+                    transform: isMobile ? `translateY(${mobileAnalysisButtonOffsetY})` : 'none',
                 }
             },
             // Content styles (consistent with About.jsx)
@@ -310,6 +338,9 @@ export default function LoggedInTemplate() {
                     marginBottom: isMobile ? '15px' : '20px',
                     color: '#57b3c0',
                     fontWeight: 'bold',
+                    position: 'relative', // Needed for transform positioning
+                    // MOBILE: Apply vertical offset transform only on mobile screens using configured variable.
+                    transform: isMobile ? `translateY(${mobileContentHeadingOffsetY})` : 'none',
                 }
             },
             contentText: {
@@ -326,6 +357,9 @@ export default function LoggedInTemplate() {
                     padding: isMobile ? '15px' : '20px',
                     borderRadius: '8px',
                     marginBottom: isMobile ? '15px' : '20px',
+                    position: 'relative', // Needed for margin adjustments relative to transformed elements
+                    // MOBILE: Apply negative marginTop only on mobile screens using configured variable to move section up.
+                    marginTop: isMobile ? mobileContentSectionOffsetY : '0px',
                     // Border removed as per original LoggedInTemplate request
                 }
             },
@@ -369,6 +403,8 @@ export default function LoggedInTemplate() {
         }
 
         const styles = getStyles();
+        // MOBILE: Get mobile status once for use in hover effect logic.
+        const isMobile = window.innerWidth <= 768; // Define here for use in hover effect logic
         let panel; // Declare panel variable
 
         try {
@@ -450,6 +486,8 @@ export default function LoggedInTemplate() {
             profileContainer.appendChild(profilePhotoEl);
 
             const userInfoDiv = document.createElement('div');
+            userInfoDiv.id = 'user-info-container'; // Add ID for potential targeting
+            // MOBILE: Apply the specific user info styles from getStyles which includes the offset.
             Object.assign(userInfoDiv.style, styles.userInfo.style);
 
             const userNameEl = document.createElement('h3');
@@ -473,6 +511,7 @@ export default function LoggedInTemplate() {
 
             // Main content heading
             const contentHeading = document.createElement('h2');
+            contentHeading.id = 'template-main-content-heading'; // Add ID for clarity
             Object.assign(contentHeading.style, styles.contentHeading.style);
             contentHeading.textContent = "Template Main Content"; // Title for this specific template
             contentContainer.appendChild(contentHeading);
@@ -481,13 +520,15 @@ export default function LoggedInTemplate() {
             const analysisButton = document.createElement('button');
             analysisButton.id = 'analysis-button';
             analysisButton.className = styles.analysisButton.className;
+            // MOBILE: Apply the specific analysis button styles from getStyles which includes the offset.
             Object.assign(analysisButton.style, styles.analysisButton.style);
             analysisButton.textContent = 'Open Analysis Dashboard';
             analysisButton.addEventListener('click', handleAnalysisClick);
             contentContainer.appendChild(analysisButton); // Add analysis button here
 
-            // Example content section
+            // Example content section (This is the section below the main heading)
             const contentSectionDiv = document.createElement('div');
+            contentSectionDiv.id = 'template-example-section'; // Add ID for clarity
             Object.assign(contentSectionDiv.style, styles.contentSection.style);
 
             const contentSectionHeading = document.createElement('h3');
@@ -591,13 +632,17 @@ export default function LoggedInTemplate() {
                     else if (button.id === 'about-home-button') hoverBackgroundColor = 'rgba(87, 179, 192, 0.3)';
                     else if (button.id === 'analysis-button') hoverBackgroundColor = 'rgba(142, 68, 173, 0.3)';
 
+                    // MOBILE: Check button ID and isMobile to apply combined transform on hover for analysis button
+                    const isAnalysisButtonMobile = isMobile && button.id === 'analysis-button';
+                    const mobileOffsetYTransform = isAnalysisButtonMobile ? `translateY(${mobileAnalysisButtonOffsetY}) ` : '';
+
                     button.addEventListener('mouseenter', () => {
-                        button.style.transform = scaleFactor;
+                        button.style.transform = `${mobileOffsetYTransform}${scaleFactor}`; // Combine transforms correctly
                         button.style.backgroundColor = hoverBackgroundColor;
                     });
 
                     button.addEventListener('mouseleave', () => {
-                        button.style.transform = 'scale(1)';
+                        button.style.transform = `${mobileOffsetYTransform}scale(1)`; // Revert scale but maintain Y offset if needed
                         button.style.backgroundColor = originalBackgroundColor;
                     });
                 });
