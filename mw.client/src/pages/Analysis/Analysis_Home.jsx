@@ -7,24 +7,21 @@
  * FIXED: Resolved ESLint no-undef errors for textFontSize by using the value from the styles object.
  * CONFIRMED: Webhook POST request correctly sends the 'job_id' (as 'Id') from the selected job object
  *            obtained via /api/WorkdayStepOneJobs/SearchByClientName in the request body.
- * ADDED: "Review Data" button appears on successful job data send, triggering a full-screen iframe overlay.
+ * REMOVED: "Review Data" button and associated iframe overlay functionality.
  * REVISED: Adjusted panel/section transparency for better visual consistency.
- * FIXED: Corrected iframe overlay rendering logic to ensure it fills the screen and interacts properly
- *        with the main panel managed by useEffect. Ensured main panel DOM is removed when iframe is active.
- * REVISED: Replaced small iframe close 'X' with a larger, more prominent close bar at the top.
- * ADDED: Comment explaining potential issues with embedding external sites like Google due to X-Frame-Options.
  * REVISED: Ensured consistent background transparency for panel and content sections to match screenshot.
- * REVISED: Adjusted iframe close bar styling for better visibility.
  * NEW: Integrated react-force-graph-3d for 3D graph visualization of relational data.
  * FIXED: Corrected graph positioning to render inside the metrics section.
  * NEW: Enhanced graph colors and labels, increased initial zoom by 15%.
  * MOBILE: Added configurable mobile-specific UI element positioning adjustments.
  * MOBILE: Added configurable date formatting and inclusion of Company/Date in metrics text.
  * MOBILE: Ensured graph uses unique colors and labels as specified.
+ * REVISED (Based on Research Request): Ensured react-force-graph-3d uses color-coded nodes based on GRAPH_COLORS and implements node labels via the standard nodeLabel prop (typically shown on hover/tooltip). Added comment regarding persistent labels.
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+// MOBILE, Importing the react-force-graph-3d library for visualization. The specific version (e.g., 1.26.1) should be managed via package.json.
 import ForceGraph3D from 'react-force-graph-3d'; // Note hyphen in package name
 import "../../style/AboutStyle.css"; // Reusing styling
 
@@ -52,6 +49,20 @@ const POSTED_DATE_FORMAT_OPTIONS = {
     minute: '2-digit',
     hour12: true,
 };
+// --- 3D GRAPH CONFIGURATION ---
+// MOBILE, Configuration to control node label visibility. Standard implementation uses tooltips/hover. Set to true to enable standard labels. Type: boolean.
+const ENABLE_GRAPH_NODE_LABELS = true;
+// MOBILE, Configuration to control link label visibility. Standard implementation uses tooltips/hover. Set to true to enable standard labels. Type: boolean.
+const ENABLE_GRAPH_LINK_LABELS = true;
+// MOBILE, Adjusts the default camera zoom level. Smaller values zoom in closer. Default is around ~200. Type: number.
+const GRAPH_INITIAL_CAMERA_DISTANCE = 170; // 15% closer than default
+// MOBILE, Sets the relative size of the nodes in the graph. Type: number.
+const GRAPH_NODE_RELATIVE_SIZE = 5;
+// MOBILE, Sets the resolution of the node geometry (higher means smoother spheres). Type: number (power of 2 recommended).
+const GRAPH_NODE_RESOLUTION = 16;
+// MOBILE, Controls the curvature of links between nodes. 0 = straight lines. Type: number (0 to 1).
+const GRAPH_LINK_CURVATURE = 0.2;
+
 
 // --- Unique IDs for Manual Elements ---
 const DROPDOWN_CONTAINER_ID = 'manual-dropdown-container';
@@ -59,9 +70,9 @@ const DROPDOWN_SELECT_ID = 'manual-dropdown-select';
 const METRICS_SECTION_ID = 'manual-metrics-section';
 const SUMMARY_SECTION_ID = 'summary-section'; // ID for the Client & Job Selection section
 const JOBS_DROPDOWN_CONTAINER_ID = 'jobs-dropdown-container';
-const REVIEW_DATA_BUTTON_ID = 'review-data-button';
+// REMOVED: REVIEW_DATA_BUTTON_ID = 'review-data-button';
 const MAIN_PANEL_OVERLAY_CLASS = 'analysis-home-overlay';
-const REVIEW_OVERLAY_ACTIVE_CLASS = 'review-data-overlay-active';
+// REMOVED: REVIEW_OVERLAY_ACTIVE_CLASS = 'review-data-overlay-active';
 const GRAPH_CONTAINER_ID = 'graph-visualization-container';
 
 // API endpoints
@@ -69,8 +80,7 @@ const API_ENDPOINT_CLIENTS = '/api/WorkdayStepOneJobs/UniqueClientNames';
 const API_ENDPOINT_JOBS = '/api/WorkdayStepOneJobs/SearchByClientName';
 const WEBHOOK_URL = 'https://mountainwestjobsearch.com:5678/webhook/95315b81-babb-4998-8f2c-36df08a54eae';
 
-// IMPORTANT NOTE ON IFRAME_URL:
-const IFRAME_URL = 'https://bing.com'; // Using Bing as an example that *might* allow embedding more readily than Google.
+// REMOVED: IFRAME_URL Constant
 
 // --- Enhanced Graph Configuration ---
 // MOBILE, Definition of unique colors used for nodes and links in the 3D graph based on type/group. Type: object.
@@ -92,6 +102,7 @@ const GRAPH_COLORS = {
     DEFAULT_LINK: '#aaaaaa'    // Default gray for links
 };
 
+// MOBILE, Definition of standardized group names for graph entities. Type: object.
 const GRAPH_GROUPS = {
     PERSON: 'Person',
     COMPANY: 'Company',
@@ -146,7 +157,7 @@ export default function Analysis_Home() {
     const [jobs, setJobs] = useState([]);
     const [selectedJob, setSelectedJob] = useState('');
     const [error, setError] = useState(null);
-    const [isReviewOverlayVisible, setIsReviewOverlayVisible] = useState(false);
+    // REMOVED: isReviewOverlayVisible state
     const graphRef = useRef(null);
     const [graphData, setGraphData] = useState({ nodes: [], links: [] });
     const [windowDimensions, setWindowDimensions] = useState({
@@ -265,7 +276,7 @@ export default function Analysis_Home() {
         setUserData(null); setIsLoggedIn(false);
         localStorage.removeItem('mw_isLoggedIn'); localStorage.removeItem('mw_userData');
         setClientNames([]); setSelectedClient(''); setJobs([]); setSelectedJob('');
-        setIsReviewOverlayVisible(false); // Close overlay on logout
+        // REMOVED: setIsReviewOverlayVisible(false); // No longer needed
         navigate('/about');
     }, [navigate]);
 
@@ -276,7 +287,7 @@ export default function Analysis_Home() {
         const value = event.target.value;
         setSelectedJob(''); setSelectedClient(value);
         setWebhookStatus(null); setWebhookResponse(null);
-        setJobs([]); setIsReviewOverlayVisible(false); // Hide overlay if client changes
+        setJobs([]); // REMOVED: setIsReviewOverlayVisible(false); // Hide overlay if client changes
         setGraphData({ nodes: [], links: [] }); // Clear graph data
         if (value && clientNames.length > 0) {
             const nameParts = value.split(' ');
@@ -294,7 +305,7 @@ export default function Analysis_Home() {
         const value = event.target.value; // Job ID string
         setSelectedJob(value);
         setWebhookStatus(null); setWebhookResponse(null);
-        setIsReviewOverlayVisible(false); // Hide overlay if job changes
+        // REMOVED: setIsReviewOverlayVisible(false); // Hide overlay if job changes
         setGraphData({ nodes: [], links: [] }); // Reset graph data when selecting a new job
         console.log("Selected Job ID:", value);
         if (value) {
@@ -360,6 +371,7 @@ export default function Analysis_Home() {
     }, [jobs]);
 
     // Function to process and enhance the graph data for the 3D visualization
+    // MOBILE, Processes raw graph data from API/webhook to apply node colors and labels. Type: Data Preprocessing.
     const processGraphData = (data) => {
         if (!data || !data.nodes || !data.links) {
             return { nodes: [], links: [] };
@@ -402,8 +414,10 @@ export default function Analysis_Home() {
             return {
                 ...node,
                 id: node.id || `node-${Math.random().toString(36).substr(2, 9)}`,
+                // MOBILE, Ensuring node has a 'name' property for use in labels. Type: Data Structure Enhancement.
                 name: node.name || node.label || `Node ${node.id}`,
                 group: nodeGroup, // Standardized group name
+                // MOBILE, Assigning the determined color to the node object. Type: Data Structure Enhancement.
                 color: nodeColor, // Enhanced color scheme
                 // Size based on node importance if available, with better scaling
                 val: node.importance || node.value || node.val || node.size || 1.5,
@@ -453,10 +467,12 @@ export default function Analysis_Home() {
                 source: sourceExists ? link.source : processedNodes[0]?.id,
                 target: targetExists ? link.target : processedNodes[0]?.id,
                 // Enhanced color based on relationship type
+                // MOBILE, Assigning the determined color to the link object. Type: Data Structure Enhancement.
                 color: linkColor,
                 // Enhanced width based on relationship strength with better scaling
                 value: link.importance || link.value || link.weight || link.strength || 1,
                 // Description for potential tooltip/label
+                // MOBILE, Ensuring link has a 'label' property for use in labels. Type: Data Structure Enhancement.
                 label: link.label || link.type || 'connects to',
                 type: link.type || 'connection'
             };
@@ -519,6 +535,11 @@ export default function Analysis_Home() {
             border: `1px solid ${sectionBorder}`,
             position: 'relative' // Add position for proper stacking context
         };
+
+        // MOBILE, Dynamic height calculation for graph container based on expansion state and screen size. Type: Responsive Styling.
+        const graphContainerHeight = isGraphExpanded ?
+            (isMobile ? '400px' : '500px') :
+            (isMobile ? '300px' : '400px');
 
         return {
             // --- Existing Styles (with transparency adjustments) ---
@@ -633,7 +654,7 @@ export default function Analysis_Home() {
                     display: 'flex',
                     flexDirection: 'column',
                     textAlign: 'left',
-                    // MOBILE, Applies vertical (down) and horizontal (left) offsets to the user info block specifically on mobile.
+                    // MOBILE, Applies vertical (down) and horizontal (left) offsets to the user info block specifically on mobile. Type: UI Styling.
                     ...(isMobile && {
                         marginTop: MOBILE_USER_INFO_TOP_OFFSET,
                         marginLeft: MOBILE_USER_INFO_LEFT_OFFSET,
@@ -690,7 +711,7 @@ export default function Analysis_Home() {
                     marginBottom: isMobile ? '15px' : '20px',
                     color: '#57b3c0',
                     fontWeight: 'bold',
-                    // MOBILE, Applies a negative top margin to move the title up on mobile screens.
+                    // MOBILE, Applies a negative top margin to move the title up on mobile screens. Type: UI Styling.
                     ...(isMobile && {
                         marginTop: MOBILE_TITLE_TOP_OFFSET,
                         position: 'relative', // Ensure margin affects layout flow
@@ -713,7 +734,7 @@ export default function Analysis_Home() {
             summarySectionStyle: {
                 style: {
                     ...baseContentSectionStyle, // Start with base styles
-                    // MOBILE, Applies a negative top margin to move the Client & Job Selection section up on mobile screens.
+                    // MOBILE, Applies a negative top margin to move the Client & Job Selection section up on mobile screens. Type: UI Styling.
                     ...(isMobile && {
                         marginTop: MOBILE_SUMMARY_SECTION_TOP_OFFSET,
                         position: 'relative', // Ensure margin affects layout flow relative to the title above it
@@ -874,26 +895,12 @@ export default function Analysis_Home() {
                     color: '#a7d3d8',
                 }
             },
-            reviewDataButton: {
-                className: 'nav-button review-data-button',
-                style: {
-                    ...standardButtonStyle,
-                    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-                    color: '#4CAF50',
-                    border: '1px solid rgba(76, 175, 80, 0.4)',
-                    marginTop: '15px',
-                    opacity: '0',
-                    alignSelf: 'flex-start',
-                    maxWidth: '400px',
-                    width: 'auto',
-                    padding: isMobile ? '8px 15px' : '10px 20px',
-                }
-            },
-            // --- New styles for 3D Graph visualization ---
-            graphContainer: {
+            // REMOVED: reviewDataButton style definition
+            // --- Styles for 3D Graph visualization ---
+            graphContainer: { // This style applies to the placeholder div in the main DOM structure
                 style: {
                     width: '100%',
-                    height: isGraphExpanded ? (isMobile ? '400px' : '500px') : (isMobile ? '300px' : '400px'),
+                    height: graphContainerHeight, // Use dynamic height
                     backgroundColor: 'rgba(13, 20, 24, 0.5)',
                     borderRadius: '8px',
                     border: '1px solid rgba(87, 179, 192, 0.3)',
@@ -904,22 +911,28 @@ export default function Analysis_Home() {
                     zIndex: 10, // Important: Set higher z-index for the graph container
                 }
             },
-            graphPlaceholder: {
+            graphPlaceholderText: { // Style for the text shown *before* the graph loads
                 style: {
-                    width: '100%',
-                    height: '300px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: 'rgba(13, 20, 24, 0.5)',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(87, 179, 192, 0.3)',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    zIndex: 5, // Lower than graph container but higher than background
+                    color: '#a7d3d8',
+                    fontSize: textFontSize,
+                    textAlign: 'center',
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: '6',
+                    pointerEvents: 'none', // Allow clicks to pass through if needed
                 }
             },
-            graphControls: {
+            graphReactContainer: { // Style for the div that will contain the React-rendered graph
+                style: {
+                    width: '100%',
+                    height: '100%',
+                    position: 'relative',
+                    zIndex: '20', // Above placeholder text
+                }
+            },
+            graphControls: { // Style for the container holding graph control buttons
                 style: {
                     position: 'absolute',
                     top: '10px',
@@ -929,7 +942,7 @@ export default function Analysis_Home() {
                     gap: '8px'
                 }
             },
-            graphControlButton: {
+            graphControlButton: { // Style for individual graph control buttons
                 style: {
                     ...standardButtonStyle,
                     padding: '4px 8px',
@@ -939,7 +952,7 @@ export default function Analysis_Home() {
                     border: '1px solid rgba(87, 179, 192, 0.4)',
                 }
             },
-            graphLoadingMessage: {
+            graphLoadingMessage: { // Style for loading message *during* graph rendering
                 style: {
                     position: 'absolute',
                     top: '50%',
@@ -956,54 +969,9 @@ export default function Analysis_Home() {
                 }
             },
 
-            // --- IFRAME OVERLAY STYLES (with adjusted Close Bar) ---
-            reviewOverlay: {
-                style: {
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100vw',
-                    height: '100vh',
-                    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'flex-start',
-                    alignItems: 'stretch',
-                    zIndex: 13000,
-                    padding: 0,
-                    boxSizing: 'border-box',
-                }
-            },
-            reviewCloseBar: { // Adjusted close bar for better visibility/style
-                style: {
-                    height: isMobile ? '45px' : '50px',
-                    width: '100%',
-                    backgroundColor: 'rgba(20, 30, 35, 0.9)', // Slightly darker, more opaque bar
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#E0E0E0', // Lighter text color
-                    fontSize: isMobile ? '16px' : '18px',
-                    fontWeight: '600', // Bolder text
-                    cursor: 'pointer',
-                    zIndex: 13001,
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.3)', // More visible border
-                    flexShrink: 0,
-                    transition: 'background-color 0.2s ease',
-                    textShadow: '0 1px 2px rgba(0,0,0,0.5)', // Add text shadow
-                }
-            },
-            reviewIframe: {
-                style: {
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    backgroundColor: '#fff',
-                    flexGrow: 1,
-                }
-            },
+            // REMOVED: reviewOverlay, reviewCloseBar, reviewIframe styles
         };
-    }, [isGraphExpanded]); // Removed redundant windowDimensions dependency
+    }, [isGraphExpanded, windowDimensions.width]); // Depend on isGraphExpanded and window width for responsiveness
 
     // --- Animation Helper ---
     const animateElement = (element, properties, delay = 0) => {
@@ -1023,7 +991,7 @@ export default function Analysis_Home() {
     useEffect(() => {
         if (!selectedClientData) {
             setSelectedJob('');
-            setIsReviewOverlayVisible(false);
+            // REMOVED: setIsReviewOverlayVisible(false);
         }
     }, [selectedClientData]);
 
@@ -1033,7 +1001,7 @@ export default function Analysis_Home() {
     useEffect(() => {
         // --- This effect now ONLY handles the main panel UI ---
         // --- It relies on the transparency settings defined in getStyles() ---
-        console.log(`Analysis_Home: UI Effect START (isReviewOverlayVisible: ${isReviewOverlayVisible})`);
+        console.log(`Analysis_Home: UI Effect START`); // REMOVED: isReviewOverlayVisible log
         // --- Cleanup existing main panel overlay ---
         const existingMainOverlay = document.querySelector(`.${MAIN_PANEL_OVERLAY_CLASS}`);
         if (existingMainOverlay) {
@@ -1045,12 +1013,7 @@ export default function Analysis_Home() {
         }
         document.body.style.overflow = ''; // Reset scroll initially
 
-        // --- Skip main panel build if iframe overlay is active ---
-        if (isReviewOverlayVisible) {
-            console.log("   - Skipping main UI build (iframe overlay active).");
-            document.body.style.overflow = 'hidden'; // Ensure scroll lock
-            return; // JSX rendering handles the iframe overlay
-        }
+        // --- REMOVED: Check for isReviewOverlayVisible to skip build ---
 
         // --- Standard checks (loading, login) ---
         if (loading || !isLoggedIn || !userData) {
@@ -1067,7 +1030,8 @@ export default function Analysis_Home() {
         const handleResize = () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                console.warn("Resize detected...");
+                // Potentially trigger a style recalculation if needed, but getStyles already depends on width
+                console.warn("Resize detected, styles should update via getStyles dependency.");
             }, 250);
         };
 
@@ -1319,34 +1283,13 @@ export default function Analysis_Home() {
                         Object.assign(graphDataInfo.style, styles.graphDataInfo.style);
                         const nodeCount = webhookResponse.nodes?.length ?? 0;
                         const linkCount = webhookResponse.links?.length ?? 0;
-                        graphDataInfo.innerHTML = `<strong>Relational Graph Data Received</strong><br><span style="color: #8bc34a">● ${nodeCount} entities</span> | <span style="color: #ff9800">● ${linkCount} relationships</span>`;
+                        graphDataInfo.innerHTML = `<strong>Relational Graph Data Received</strong><br><span style="color: ${GRAPH_COLORS.DEFAULT}">● ${nodeCount} entities</span> | <span style="color: ${GRAPH_COLORS.DEFAULT_LINK}">● ${linkCount} relationships</span>`;
                         jobsDropdownContainer.appendChild(graphDataInfo);
                     }
 
-                    if (selectedJob && webhookStatus === 'success') {
-                        console.log("   - Webhook success, creating Review Data button.");
-                        const reviewButton = document.createElement('button');
-                        reviewButton.id = REVIEW_DATA_BUTTON_ID;
-                        reviewButton.className = styles.reviewDataButton.className;
-                        Object.assign(reviewButton.style, styles.reviewDataButton.style);
-                        reviewButton.textContent = 'Review Data';
-                        reviewButton.addEventListener('click', () => {
-                            console.log("Review Data button clicked.");
-                            setIsReviewOverlayVisible(true);
-                        });
-                        jobsDropdownContainer.appendChild(reviewButton);
+                    // REMOVED: Review Data button creation and appending logic
+                    // REMOVED: Logic to remove existing review button
 
-                        setTimeout(() => {
-                            const buttonElement = document.getElementById(REVIEW_DATA_BUTTON_ID);
-                            if (buttonElement?.parentNode === jobsDropdownContainer) {
-                                animateElement(buttonElement, { opacity: '1' }, 0);
-                                console.log("   - Fading in Review Data button.");
-                            }
-                        }, 100);
-                    } else {
-                        const existingButton = jobsDropdownContainer.querySelector(`#${REVIEW_DATA_BUTTON_ID}`);
-                        if (existingButton) existingButton.remove();
-                    }
                 }
                 summarySection.appendChild(jobsDropdownContainer);
             }
@@ -1389,8 +1332,11 @@ export default function Analysis_Home() {
                     statusPrefix = `Fetching analysis for: ${clientNameString} - ${jobDesc}...`;
                 } else if (webhookStatus === 'error') {
                     statusPrefix = `Error fetching analysis for: ${clientNameString} - ${jobDesc}.`;
-                } else if (webhookStatus === 'success' && webhookResponse) {
+                } else if (webhookStatus === 'success' && webhookResponse?.nodes?.length > 0) {
+                    // Changed condition to check if nodes actually exist
                     statusPrefix = `Analysis loaded for: ${clientNameString} - ${jobDesc}. Visualization below.`;
+                } else if (webhookStatus === 'success') {
+                    statusPrefix = `Analysis data received for: ${clientNameString} - ${jobDesc}, but no graph entities found.`;
                 } else {
                     statusPrefix = `Ready to analyze: ${clientNameString} - ${jobDesc}.`;
                 }
@@ -1403,24 +1349,23 @@ export default function Analysis_Home() {
             }
             metricsSection.appendChild(metricsText);
 
-            // --- ADD GRAPH PLACEHOLDER (for 3D visualization) ---
-            if (selectedJob && webhookStatus === 'success' && webhookResponse?.nodes && webhookResponse?.links) {
-                const graphContainer = document.createElement('div');
-                graphContainer.id = GRAPH_CONTAINER_ID; // Important: Use the constant ID
-                // Apply styling with proper z-index
-                Object.assign(graphContainer.style, styles.graphPlaceholder.style); // Start with placeholder style
+            // --- ADD GRAPH CONTAINER (placeholder where React will render the graph) ---
+            // Only add the placeholder if we expect graph data
+            if (selectedJob && webhookStatus === 'success') {
+                const graphContainerPlaceholder = document.createElement('div');
+                graphContainerPlaceholder.id = GRAPH_CONTAINER_ID; // Use the constant ID
+                // Apply styling with proper z-index and dynamic height
+                Object.assign(graphContainerPlaceholder.style, styles.graphContainer.style);
 
-                // Add text indicating this is where the graph will appear
+                // Add text indicating this is where the graph will appear (or if none is available)
                 const graphPlaceholderText = document.createElement('div');
-                graphPlaceholderText.textContent = '3D Graph Visualization Will Render Here';
-                graphPlaceholderText.style.color = '#a7d3d8';
-                graphPlaceholderText.style.fontSize = styles.contentText.style.fontSize;
-                graphPlaceholderText.style.textAlign = 'center';
-                graphPlaceholderText.style.position = 'absolute';
-                graphPlaceholderText.style.zIndex = '6';
+                Object.assign(graphPlaceholderText.style, styles.graphPlaceholderText.style);
+                graphPlaceholderText.textContent = (webhookResponse?.nodes?.length > 0)
+                    ? 'Loading 3D Graph Visualization...'
+                    : 'No visualization data available for this job.';
 
-                graphContainer.appendChild(graphPlaceholderText);
-                metricsSection.appendChild(graphContainer);
+                graphContainerPlaceholder.appendChild(graphPlaceholderText);
+                metricsSection.appendChild(graphContainerPlaceholder);
             }
 
             contentContainer.appendChild(metricsSection);
@@ -1479,6 +1424,7 @@ export default function Analysis_Home() {
                 console.log("   - Removing main panel overlay via ref.");
                 mainOverlayToRemove.remove();
             } else {
+                // Fallback check in case ref got detached somehow
                 const existingFromQuery = document.querySelector(`.${MAIN_PANEL_OVERLAY_CLASS}`);
                 if (existingFromQuery) {
                     console.log("   - Removing main panel overlay via querySelector fallback.");
@@ -1492,263 +1438,260 @@ export default function Analysis_Home() {
             panelRef.current = null;
             metricsRef.current = null;
 
-            if (!document.body.classList.contains(REVIEW_OVERLAY_ACTIVE_CLASS)) {
-                document.body.style.overflow = '';
-                console.log("   - Restoring body scroll (iframe overlay not active).");
-            } else {
-                console.log("   - Iframe overlay IS active, keeping scroll locked.");
-            }
+            // Always restore scroll on cleanup now
+            document.body.style.overflow = '';
+            console.log("   - Restoring body scroll.");
 
             console.log("   - Main panel cleanup finished.");
         };
     }, [
         isLoggedIn, userData, loading, clientsLoading, jobsLoading, clientNames,
         selectedClient, selectedClientData, jobs, selectedJob, error,
-        webhookStatus, webhookResponse,
+        webhookStatus, webhookResponse, // Added webhookResponse dependency
         handleLogout, handleChatClick, handleHomeClick, handleClientSelect, handleJobSelect,
         getStyles, // Now includes mobile adjustments based on window width
-        isReviewOverlayVisible,
-        graphData, // Added dependency for 3D graph data
-        isGraphExpanded // Added dependency for graph expansion
+        // REMOVED: isReviewOverlayVisible dependency
     ]);
 
 
     // ====================================
-    // GRAPH3D COMPONENT RENDERER
+    // GRAPH3D COMPONENT RENDERER EFFECT
     // ====================================
     useEffect(() => {
-        // This effect runs when we have graphData and need to render the 3D force graph
-        console.log("Analysis_Home: Graph3D rendering effect running");
+        // This effect runs specifically to render or update the 3D force graph
+        console.log("Analysis_Home: Graph3D rendering effect START");
 
-        if (!graphData.nodes || !graphData.links || !graphData.nodes.length || !selectedJob || !metricsRef.current) {
-            console.log("   - No graph data or no metrics section available, skipping render.");
-            return;
-        }
-
-        if (isReviewOverlayVisible) {
-            console.log("   - Review overlay is visible, skipping graph render.");
-            return;
-        }
-
-        // Find the placeholder container in the DOM
         const graphPlaceholder = document.getElementById(GRAPH_CONTAINER_ID);
-        if (!graphPlaceholder) {
-            console.warn(`   - Cannot find graph placeholder with ID ${GRAPH_CONTAINER_ID}`);
-            return;
+
+        // Conditions to *skip* rendering the graph:
+        // REMOVED: Check for isReviewOverlayVisible
+        if (!selectedJob || webhookStatus !== 'success' || !graphData.nodes || graphData.nodes.length === 0) {
+            console.log("   - Skipping graph render: No valid job/data selected or data is empty.");
+            if (graphPlaceholder) {
+                // Ensure placeholder shows appropriate message if graph isn't rendered
+                const existingReactContainer = document.getElementById(`${GRAPH_CONTAINER_ID}-react`);
+                if (existingReactContainer) existingReactContainer.remove(); // Clean up previous graph if any
+                const placeholderText = graphPlaceholder.querySelector('div'); // Find the inner text div
+                if (placeholderText) {
+                    placeholderText.textContent = (selectedJob && webhookStatus === 'success') ? 'No visualization data available for this job.' : 'Select a job to view visualization.';
+                }
+            }
+            return; // Exit if no nodes or not ready
         }
+        if (!graphPlaceholder) {
+            console.warn(`   - Skipping graph render: Cannot find graph placeholder with ID ${GRAPH_CONTAINER_ID}`);
+            return; // Can't render if the target element isn't in the DOM yet
+        }
+
+        // Proceed with rendering/updating the graph
+        console.log(`   - Rendering/updating graph in container #${GRAPH_CONTAINER_ID}`);
+        const styles = getStyles(); // Get current styles
 
         try {
-            console.log("   - Creating React container for ForceGraph3D");
+            // Find or create the container div where React will mount the graph
+            let graphReactContainer = document.getElementById(`${GRAPH_CONTAINER_ID}-react`);
+            if (!graphReactContainer) {
+                console.log("   - Creating React container for ForceGraph3D");
+                graphReactContainer = document.createElement('div');
+                graphReactContainer.id = `${GRAPH_CONTAINER_ID}-react`;
+                Object.assign(graphReactContainer.style, styles.graphReactContainer.style);
+                graphPlaceholder.appendChild(graphReactContainer); // Append to the placeholder
+            } else {
+                console.log("   - Found existing React container for ForceGraph3D, will update.");
+                // Update styles if needed (e.g., dimensions might change)
+                Object.assign(graphReactContainer.style, styles.graphReactContainer.style);
+            }
 
-            // Clear existing content from placeholder
-            graphPlaceholder.innerHTML = '';
+            // Remove placeholder text now that we are rendering the graph
+            const placeholderText = graphPlaceholder.querySelector('div:not([id])'); // Find the inner text div
+            if (placeholderText) placeholderText.style.display = 'none';
 
-            // Create a container for the graph with proper styling
-            const graphContainer = document.createElement('div');
-            graphContainer.id = `${GRAPH_CONTAINER_ID}-react`;
-            graphContainer.style.width = '100%';
-            graphContainer.style.height = '100%';
-            graphContainer.style.position = 'relative';
-            graphContainer.style.zIndex = '20'; // Ensure proper z-index for visibility
 
-            // Add controls for the graph
-            const controlsContainer = document.createElement('div');
-            controlsContainer.style.position = 'absolute';
-            controlsContainer.style.top = '10px';
-            controlsContainer.style.right = '10px';
-            controlsContainer.style.display = 'flex';
-            controlsContainer.style.gap = '8px';
-            controlsContainer.style.zIndex = '25'; // Above graph
+            // Add/Update graph controls (Expand/Reset View)
+            let controlsContainer = graphReactContainer.querySelector('#graph-controls');
+            if (!controlsContainer) {
+                controlsContainer = document.createElement('div');
+                controlsContainer.id = 'graph-controls';
+                Object.assign(controlsContainer.style, styles.graphControls.style);
+                graphReactContainer.appendChild(controlsContainer);
+            } else {
+                controlsContainer.innerHTML = ''; // Clear previous buttons to rebuild
+            }
 
             // Expand/Collapse button
             const expandButton = document.createElement('button');
             expandButton.textContent = isGraphExpanded ? 'Collapse' : 'Expand';
-            expandButton.style.padding = '4px 8px';
-            expandButton.style.fontSize = '12px';
-            expandButton.style.backgroundColor = 'rgba(13, 20, 24, 0.8)';
-            expandButton.style.color = '#a7d3d8';
-            expandButton.style.border = '1px solid rgba(87, 179, 192, 0.4)';
-            expandButton.style.borderRadius = '4px';
-            expandButton.style.cursor = 'pointer';
-            expandButton.addEventListener('click', () => {
-                setIsGraphExpanded(!isGraphExpanded);
-            });
+            Object.assign(expandButton.style, styles.graphControlButton.style);
+            expandButton.onclick = () => setIsGraphExpanded(!isGraphExpanded); // Use direct onclick or addEventListener
+            controlsContainer.appendChild(expandButton);
 
             // Reset camera button
             const resetButton = document.createElement('button');
             resetButton.textContent = 'Reset View';
-            resetButton.style.padding = '4px 8px';
-            resetButton.style.fontSize = '12px';
-            resetButton.style.backgroundColor = 'rgba(13, 20, 24, 0.8)';
-            resetButton.style.color = '#a7d3d8';
-            resetButton.style.border = '1px solid rgba(87, 179, 192, 0.4)';
-            resetButton.style.borderRadius = '4px';
-            resetButton.style.cursor = 'pointer';
-            resetButton.addEventListener('click', () => {
-                if (graphRef.current) {
+            Object.assign(resetButton.style, styles.graphControlButton.style);
+            resetButton.onclick = () => {
+                if (graphRef.current?.cameraPosition) { // Check if method exists
                     graphRef.current.cameraPosition(
-                        { x: 0, y: 0, z: 200 }, // new position
-                        { x: 0, y: 0, z: 0 },   // look at center
-                        1000                     // transition duration (ms)
+                        { z: GRAPH_INITIAL_CAMERA_DISTANCE }, // Reset to initial configured zoom
+                        { x: 0, y: 0, z: 0 }, // Look at center
+                        1000 // Transition duration
                     );
+                } else {
+                    console.warn("Cannot reset camera: graphRef.current.cameraPosition is not available.");
                 }
-            });
-
-            controlsContainer.appendChild(expandButton);
+            };
             controlsContainer.appendChild(resetButton);
-            graphContainer.appendChild(controlsContainer);
 
-            // Add the container to the DOM
-            graphPlaceholder.appendChild(graphContainer);
-
-            // Update container dimensions based on expanded state
-            const containerHeight = isGraphExpanded ?
-                (window.innerWidth <= 768 ? '400px' : '500px') :
-                (window.innerWidth <= 768 ? '300px' : '400px');
-
-            graphPlaceholder.style.height = containerHeight;
-            graphPlaceholder.style.transition = 'height 0.5s ease-out';
+            // Update placeholder's height based on expansion state (affects layout)
+            graphPlaceholder.style.height = styles.graphContainer.style.height; // Use height from getStyles
 
             // Use React's createRoot to render the ForceGraph3D component
+            // Use dynamic import for ReactDOM to avoid issues if it's not always needed
             import('react-dom/client').then(ReactDOM => {
-                console.log("   - Creating React root for ForceGraph3D");
-                const root = ReactDOM.createRoot(graphContainer);
+                console.log("   - Creating/updating React root for ForceGraph3D");
+
+                // Check if a root already exists for this container
+                let root = graphReactContainer._reactRootContainer;
+                if (!root) {
+                    root = ReactDOM.createRoot(graphReactContainer);
+                    graphReactContainer._reactRootContainer = root; // Store the root instance
+                }
+
+                // Define the node label function based on configuration
+                // MOBILE, Uses config flag ENABLE_GRAPH_NODE_LABELS to enable/disable standard node tooltips/labels. Type: Configurable Feature.
+                const nodeLabelFunction = ENABLE_GRAPH_NODE_LABELS
+                    ? node => `${node.name || node.id}${node.type ? ` (${node.type})` : ''}`
+                    : null; // Set to null to disable labels
+
+                // Define the link label function based on configuration
+                // MOBILE, Uses config flag ENABLE_GRAPH_LINK_LABELS to enable/disable standard link tooltips/labels. Type: Configurable Feature.
+                const linkLabelFunction = ENABLE_GRAPH_LINK_LABELS
+                    ? link => link.label || link.type || 'connects to'
+                    : null; // Set to null to disable link labels
 
                 // Render the ForceGraph3D component with enhanced configuration
                 root.render(
                     <ForceGraph3D
                         ref={graphRef}
                         graphData={graphData}
-                        // MOBILE, Enhanced node label function providing labels for each node based on its name and type. Type: Visualization configuration.
-                        nodeLabel={node => `${node.name || node.id}${node.type ? ` (${node.type})` : ''}`}
+                        // MOBILE, Node label function controlled by config flag. Provides labels (typically on hover/tooltip). Type: Visualization configuration.
+                        nodeLabel={nodeLabelFunction}
                         // MOBILE, Node color determined by the 'color' property set during data processing using unique GRAPH_COLORS. Type: Visualization configuration.
                         nodeColor={node => node.color}
-                        nodeVal={node => node.val}
-                        // MOBILE, Enhanced link label function providing labels for each link. Type: Visualization configuration.
-                        linkLabel={link => link.label || link.type || 'connects to'}
+                        // MOBILE, Node size configured via GRAPH_NODE_RELATIVE_SIZE. Type: Visualization configuration.
+                        nodeVal={node => node.val || 1} // Use processed val, fallback to 1
+                        nodeRelSize={GRAPH_NODE_RELATIVE_SIZE}
+                        // MOBILE, Link label function controlled by config flag. Provides labels (typically on hover/tooltip). Type: Visualization configuration.
+                        linkLabel={linkLabelFunction}
                         // MOBILE, Link color determined by the 'color' property set during data processing using unique GRAPH_COLORS. Type: Visualization configuration.
                         linkColor={link => link.color}
-                        backgroundColor="rgba(10, 15, 20, 0.1)" // Transparent background
-                        width={graphPlaceholder.clientWidth}
-                        height={graphPlaceholder.clientHeight}
+                        backgroundColor="rgba(10, 15, 20, 0.1)" // Slightly transparent background
+                        width={graphPlaceholder.clientWidth > 0 ? graphPlaceholder.clientWidth : 300} // Ensure width is positive
+                        height={graphPlaceholder.clientHeight > 0 ? graphPlaceholder.clientHeight : 300} // Ensure height is positive
                         showNavInfo={true}
                         enableNodeDrag={true}
                         enableNavigationControls={true}
                         linkWidth={link => link.value || 1}
                         linkOpacity={0.7}
                         nodeOpacity={0.9}
-                        nodeRelSize={5}
-                        // Improved warmup and cooldown for better initial layout
+                        // MOBILE, Node resolution configured via GRAPH_NODE_RESOLUTION for smoother spheres. Type: Visual Quality Configuration.
+                        nodeResolution={GRAPH_NODE_RESOLUTION}
+                        // MOBILE, Link curvature configured via GRAPH_LINK_CURVATURE for better visibility. Type: Visual Style Configuration.
+                        linkCurvature={GRAPH_LINK_CURVATURE}
+                        // Improved warmup and cooldown for better initial layout stability
                         warmupTicks={120}
                         cooldownTime={2000}
                         // Node interaction handler
                         onNodeClick={node => {
                             console.log('Clicked node:', node);
-                            // Future enhancement: Show node details panel
+                            // Zoom into node on click example
+                            if (graphRef.current?.cameraPosition) {
+                                graphRef.current.cameraPosition(
+                                    { x: node.x, y: node.y, z: (graphRef.current.cameraPosition().z || GRAPH_INITIAL_CAMERA_DISTANCE) * 0.6 }, // Zoom closer
+                                    { x: node.x, y: node.y, z: node.z }, // Look at node center
+                                    1000
+                                );
+                            }
                         }}
-                        // 15% more zoomed in camera starting position (modifying the default)
-                        cameraPosition={{ z: 170 }} // Default is ~200, reducing by 15%
-                        // Enhanced node resolution for better visuals
-                        nodeResolution={16}
-                        // Better link curvature for clarity in connections
-                        linkCurvature={0.2}
-                        // Dynamic forces to spread out the graph better
+                        // MOBILE, Initial camera zoom level configured via GRAPH_INITIAL_CAMERA_DISTANCE. Type: Visualization Configuration.
+                        cameraPosition={{ z: GRAPH_INITIAL_CAMERA_DISTANCE }}
+                        // Dynamic forces adjustments (can be tuned further)
                         d3AlphaDecay={0.02}
                         d3VelocityDecay={0.3}
                     />
                 );
 
-                console.log("   - ForceGraph3D component rendered successfully");
+                console.log("   - ForceGraph3D component rendered/updated successfully");
+
+                // Initial camera position setting after render (useful if ref wasn't ready initially)
+                setTimeout(() => {
+                    if (graphRef.current && !graphRef.current.cameraPosition().z) { // Check if camera position is default/unset
+                        graphRef.current.cameraPosition({ z: GRAPH_INITIAL_CAMERA_DISTANCE });
+                        console.log("   - Applied initial camera distance post-render.");
+                    }
+                }, 100);
+
+
             }).catch(error => {
                 console.error("   - Error rendering ForceGraph3D component:", error);
+                if (graphPlaceholder) graphPlaceholder.innerHTML = '<p style="color:red; text-align: center; padding: 20px;">Error rendering graph visualization.</p>';
             });
 
         } catch (error) {
             console.error("Error rendering 3D graph:", error);
+            if (graphPlaceholder) graphPlaceholder.innerHTML = '<p style="color:red; text-align: center; padding: 20px;">Critical error during graph setup.</p>';
         }
 
-        // Cleanup function
+        // --- Cleanup function for the GRAPH RENDERER Effect ---
         return () => {
-            console.log("Analysis_Home: Graph3D render effect cleanup");
-            const graphContainer = document.getElementById(`${GRAPH_CONTAINER_ID}-react`);
-            if (graphContainer) {
+            console.log("Analysis_Home: Graph3D render effect CLEANUP running.");
+            const reactContainer = document.getElementById(`${GRAPH_CONTAINER_ID}-react`);
+            if (reactContainer && reactContainer._reactRootContainer) {
+                console.log("   - Unmounting React graph component.");
                 try {
-                    // Attempt to unmount the React component cleanly
-                    import('react-dom/client').then(ReactDOM => {
-                        const root = ReactDOM.getInstance(graphContainer); // This might not work directly with createRoot
-                        if (root) {
-                            root.unmount();
-                            console.log("   - Unmounted React graph component");
-                        } else {
-                            graphContainer.innerHTML = ''; // Fallback: clear innerHTML
-                            console.log("   - Cleared graph container innerHTML (unmount failed or not needed)");
-                        }
-                    }).catch(e => {
-                        console.error("   - Error during React unmount:", e);
-                        graphContainer.innerHTML = ''; // Fallback
-                    }).finally(() => {
-                        if (graphContainer.parentNode) {
-                            graphContainer.remove(); // Ensure container div is removed
-                            console.log("   - Removed React graph container div");
-                        }
-                    });
-                } catch (error) {
-                    console.error("   - Error cleaning up graph container:", error);
-                    if (graphContainer.parentNode) {
-                        graphContainer.remove();
-                    }
+                    reactContainer._reactRootContainer.unmount();
+                    delete reactContainer._reactRootContainer; // Clean up stored root
+                    // Note: We don't remove the reactContainer itself here,
+                    // because the main UI effect might need the placeholder div (GRAPH_CONTAINER_ID)
+                    // to exist for its layout calculations or to show messages.
+                    // The *content* of the reactContainer is unmounted.
+                    // If the graph should fully disappear, the main UI effect should remove GRAPH_CONTAINER_ID.
+                    reactContainer.innerHTML = ''; // Clear any residual content just in case
+                } catch (e) {
+                    console.error("   - Error during React unmount:", e);
+                    reactContainer.innerHTML = ''; // Fallback clear
+                }
+            } else {
+                console.log("   - No React graph component found to unmount.");
+            }
+            // Restore placeholder text if it exists and was hidden
+            if (graphPlaceholder) {
+                const placeholderText = graphPlaceholder.querySelector('div:not([id])');
+                if (placeholderText) {
+                    placeholderText.style.display = ''; // Make visible again
                 }
             }
+            console.log("   - Graph cleanup finished.");
         };
-    }, [graphData, selectedJob, isReviewOverlayVisible, isGraphExpanded, windowDimensions]); // windowDimensions needed here for resize
+    }, [
+        graphData, // Main trigger: redraw if data changes
+        selectedJob, // Need job selected
+        webhookStatus, // Need webhook success
+        // REMOVED: isReviewOverlayVisible dependency
+        isGraphExpanded, // Trigger redraw for size changes
+        windowDimensions, // Trigger redraw on window resize (for width/height props)
+        getStyles // Styles depend on expansion and window size
+    ]);
 
 
     // ====================================
-    // CONDITIONAL JSX RENDERING (IFRAME OVERLAY)
+    // CONDITIONAL JSX RENDERING (REMOVED IFRAME OVERLAY)
     // ====================================
-    if (isReviewOverlayVisible) {
-        const styles = getStyles(); // Get styles including updated close bar
-        console.log("Rendering Review Data Overlay via JSX");
-        document.body.classList.add(REVIEW_OVERLAY_ACTIVE_CLASS); // Mark body
-        document.body.style.overflow = 'hidden'; // Ensure scroll lock
-
-        return (
-            <div style={styles.reviewOverlay.style} className={`review-data-overlay ${REVIEW_OVERLAY_ACTIVE_CLASS}`}>
-                {/* Updated Close Bar */}
-                <div
-                    style={styles.reviewCloseBar.style}
-                    onClick={() => {
-                        console.log("Closing Review Data Overlay via bar click");
-                        setIsReviewOverlayVisible(false); // Trigger state change back
-                        document.body.classList.remove(REVIEW_OVERLAY_ACTIVE_CLASS); // Remove marker class
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(50, 60, 65, 0.95)'} // Darken on hover
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(20, 30, 35, 0.9)'} // Revert from hover
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Close Data Review"
-                >
-                    Close Data Review
-                </div>
-
-                {/* Iframe Area */}
-                <iframe
-                    src={IFRAME_URL}
-                    style={styles.reviewIframe.style}
-                    title="Review Data Visualization"
-                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms" // Standard sandbox
-                >
-                    {/* Fallback content */}
-                    <p style={{ padding: '20px', color: '#333' }}>
-                        The content could not be displayed. This might be because the website ({IFRAME_URL}) prevents embedding, or your browser does not support iframes.
-                    </p>
-                </iframe>
-            </div>
-        );
-    }
+    // REMOVED: The entire `if (isReviewOverlayVisible) { ... }` block.
 
     // --- Default Return ---
-    // The main UI is built entirely within the useEffect hook that manipulates the DOM.
-    // This component's direct return value is null when the iframe isn't visible.
+    // The main UI is built entirely within the primary useEffect hook that manipulates the DOM.
+    // This component's direct return value is null, allowing the useEffect hook full control
+    // over the '#root' or equivalent container.
     return null;
 }

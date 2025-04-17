@@ -17,7 +17,7 @@ const mobileHeaderVerticalOffset = '-35%';
 
 // MOBILE: Additional negative margin-top (in px) to apply to the logged-out content section ("Welcome...") on mobile, pushing it further up.
 // The base margin-top is -40px relative to the header. A value of -30 here will result in a total margin-top of -70px on mobile.
-const mobileLoggedOutContentMarginTopAdjust = 40; // Pushes content up by an extra 40px on mobile
+const mobileLoggedOutContentMarginTopAdjust = 50; // Pushes content up by an extra 40px on mobile
 
 // MOBILE: Top margin (in px) for the 'Sign in with Google' button container on mobile.
 // Use this to push the button down from the text above it.
@@ -25,11 +25,11 @@ const mobileGoogleButtonMarginTop = 110; // Pushes Google button down 110px
 
 // MOBILE: Bottom offset (in px) for the 'Back to Home' button on mobile.
 // Smaller values push the button further down (closer to the bottom edge).
-const mobileHomeButtonBottomOffset = 51; // Positions Home button 51px from bottom edge
+const mobileHomeButtonBottomOffset = 131; // Positions Home button 51px from bottom edge
 
 // MOBILE: Horizontal translation (in px) for the 'Sign in with Google' button container on mobile.
 // Negative values shift left, positive shift right.
-const mobileGoogleButtonTranslateX = -9; // Shifts Google button container left by 9px
+const mobileGoogleButtonTranslateX = -13; // Shifts Google button container left by 9px
 
 // MOBILE: Opacity for the custom 'Sign in with Google' button (fallback) on mobile (0.0 to 1.0).
 // 0.85 means 15% transparent. Note: This might not apply to the official Google rendered button.
