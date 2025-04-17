@@ -175,16 +175,19 @@ Install Dependancies:
 
 
 cd mw.client
-npm install --legacy-peer-deps
 npm list
+npm install --legacy-peer-deps
+
 
 
 # Install the dependencies	
 npm install react-router-dom
 npm install @react-oauth/google
 npm install framer-motion@10.16.16 --save --legacy-peer-deps
+npm install react-force-graph-3d@1.26.1 --legacy-peer-deps
 
 
+npm update
 ******************************************************************************************************
 
 

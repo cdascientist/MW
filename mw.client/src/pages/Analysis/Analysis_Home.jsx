@@ -15,10 +15,14 @@
  * ADDED: Comment explaining potential issues with embedding external sites like Google due to X-Frame-Options.
  * REVISED: Ensured consistent background transparency for panel and content sections to match screenshot.
  * REVISED: Adjusted iframe close bar styling for better visibility.
+ * NEW: Integrated react-force-graph-3d for 3D graph visualization of relational data.
+ * FIXED: Corrected graph positioning to render inside the metrics section.
+ * NEW: Enhanced graph colors and labels, increased initial zoom by 15%.
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ForceGraph3D from 'react-force-graph-3d'; // Note hyphen in package name
 import "../../style/AboutStyle.css"; // Reusing styling
 
 // --- Unique IDs for Manual Elements ---
@@ -30,6 +34,7 @@ const JOBS_DROPDOWN_CONTAINER_ID = 'jobs-dropdown-container';
 const REVIEW_DATA_BUTTON_ID = 'review-data-button';
 const MAIN_PANEL_OVERLAY_CLASS = 'analysis-home-overlay';
 const REVIEW_OVERLAY_ACTIVE_CLASS = 'review-data-overlay-active';
+const GRAPH_CONTAINER_ID = 'graph-visualization-container';
 
 // API endpoints
 const API_ENDPOINT_CLIENTS = '/api/WorkdayStepOneJobs/UniqueClientNames';
@@ -38,6 +43,34 @@ const WEBHOOK_URL = 'https://mountainwestjobsearch.com:5678/webhook/95315b81-bab
 
 // IMPORTANT NOTE ON IFRAME_URL:
 const IFRAME_URL = 'https://bing.com'; // Using Bing as an example that *might* allow embedding more readily than Google.
+
+// --- Enhanced Graph Configuration ---
+const GRAPH_COLORS = {
+    // Entity types
+    PERSON: '#4287f5',         // Bright blue for people
+    COMPANY: '#f5a742',        // Golden/amber for companies
+    JOB: '#9d42f5',            // Purple for jobs
+    SKILL: '#42f59d',          // Mint green for skills
+    EDUCATION: '#f542a7',      // Pink for education entities
+    DEFAULT: '#cccccc',        // Default gray
+
+    // Relationship types
+    WORKS_AT: '#00cc44',       // Green for employment
+    APPLIED_TO: '#ffcc00',     // Yellow for applications 
+    MANAGES: '#ff5500',        // Orange for management
+    HAS_SKILL: '#66ccff',      // Light blue for skills
+    STUDIED_AT: '#ff66cc',     // Pink for education relationships
+    DEFAULT_LINK: '#aaaaaa'    // Default gray for links
+};
+
+const GRAPH_GROUPS = {
+    PERSON: 'Person',
+    COMPANY: 'Company',
+    JOB: 'Job Posting',
+    SKILL: 'Skill',
+    EDUCATION: 'Education',
+    OTHER: 'Other Entity'
+};
 
 export default function Analysis_Home() {
     console.log("Analysis_Home: Component rendering");
@@ -60,9 +93,30 @@ export default function Analysis_Home() {
     const [selectedJob, setSelectedJob] = useState('');
     const [error, setError] = useState(null);
     const [isReviewOverlayVisible, setIsReviewOverlayVisible] = useState(false);
+    const graphRef = useRef(null);
+    const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+    const [windowDimensions, setWindowDimensions] = useState({
+        width: typeof window !== 'undefined' ? window.innerWidth : 800,
+        height: typeof window !== 'undefined' ? window.innerHeight : 600
+    });
+    const [isGraphExpanded, setIsGraphExpanded] = useState(false);
+    const metricsRef = useRef(null);
+
+    // --- Update window dimensions on resize for the 3D graph ---
+    useEffect(() => {
+        const handleResize = () => {
+            setWindowDimensions({
+                width: window.innerWidth,
+                height: window.innerHeight
+            });
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // --- Fetch client names from API ---
-    useEffect(() => { /* ... (unchanged fetch logic) ... */
+    useEffect(() => {
         console.log("Analysis_Home: Fetching client names from API");
         const fetchClientNames = async () => {
             try {
@@ -90,7 +144,7 @@ export default function Analysis_Home() {
     }, [isLoggedIn]);
 
     // --- Fetch jobs by client name from API ---
-    useEffect(() => { /* ... (unchanged fetch logic) ... */
+    useEffect(() => {
         if (!selectedClientData) { setJobs([]); return; }
         console.log("Analysis_Home: Fetching jobs for client:", selectedClientData);
         const fetchJobsByClient = async () => {
@@ -120,7 +174,7 @@ export default function Analysis_Home() {
     }, [selectedClientData]);
 
     // --- Auth useEffect ---
-    useEffect(() => { /* ... (unchanged auth logic) ... */
+    useEffect(() => {
         console.log("Analysis_Home: Auth useEffect running.");
         const savedLoginStatus = localStorage.getItem('mw_isLoggedIn');
         const savedUserData = localStorage.getItem('mw_userData');
@@ -150,7 +204,7 @@ export default function Analysis_Home() {
     }, [navigate]);
 
     // --- Handlers ---
-    const handleLogout = useCallback(() => { /* ... (unchanged logout logic) ... */
+    const handleLogout = useCallback(() => {
         console.log("Logout");
         if (window.google && window.google.accounts && window.google.accounts.id) { window.google.accounts.id.disableAutoSelect(); }
         setUserData(null); setIsLoggedIn(false);
@@ -163,11 +217,12 @@ export default function Analysis_Home() {
     const handleChatClick = useCallback(() => { console.log("Nav chat"); navigate('/chat'); }, [navigate]);
     const handleHomeClick = useCallback(() => { console.log("Nav home"); navigate('/about'); }, [navigate]);
 
-    const handleClientSelect = useCallback((event) => { /* ... (unchanged client select logic) ... */
+    const handleClientSelect = useCallback((event) => {
         const value = event.target.value;
         setSelectedJob(''); setSelectedClient(value);
         setWebhookStatus(null); setWebhookResponse(null);
         setJobs([]); setIsReviewOverlayVisible(false); // Hide overlay if client changes
+        setGraphData({ nodes: [], links: [] }); // Clear graph data
         if (value && clientNames.length > 0) {
             const nameParts = value.split(' ');
             if (nameParts.length >= 2) {
@@ -180,34 +235,174 @@ export default function Analysis_Home() {
         console.log("Selected Client:", value);
     }, [clientNames]);
 
-    const handleJobSelect = useCallback((event) => { /* ... (unchanged job select logic) ... */
+    const handleJobSelect = useCallback((event) => {
         const value = event.target.value; // Job ID string
         setSelectedJob(value);
         setWebhookStatus(null); setWebhookResponse(null);
         setIsReviewOverlayVisible(false); // Hide overlay if job changes
+        setGraphData({ nodes: [], links: [] }); // Reset graph data when selecting a new job
         console.log("Selected Job ID:", value);
         if (value) {
             const selectedJobObject = jobs.find(job => job.Id && job.Id.toString() === value);
             if (selectedJobObject) {
                 console.log("Found selected job object:", selectedJobObject);
                 setWebhookStatus('sending');
-                const webhookData = { Id: selectedJobObject.Id, JobName: selectedJobObject.JobName || "", ClientId: selectedJobObject.ClientId || null, ClientFirstName: selectedJobObject.ClientFirstName || "", ClientLastName: selectedJobObject.ClientLastName || "", Company: selectedJobObject.Company || "", timestamp: new Date().toISOString() };
+                const webhookData = {
+                    Id: selectedJobObject.Id,
+                    JobName: selectedJobObject.JobName || "",
+                    ClientId: selectedJobObject.ClientId || null,
+                    ClientFirstName: selectedJobObject.ClientFirstName || "",
+                    ClientLastName: selectedJobObject.ClientLastName || "",
+                    Company: selectedJobObject.Company || "",
+                    timestamp: new Date().toISOString()
+                };
                 console.log("Sending webhookData to webhook:", webhookData);
-                fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(webhookData) })
+                fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(webhookData)
+                })
                     .then(response => {
-                        if (!response.ok) { return response.text().then(text => { throw new Error(`Webhook error: ${response.status} - ${text}`); }); }
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                throw new Error(`Webhook error: ${response.status} - ${text}`);
+                            });
+                        }
                         console.log("Webhook notification sent successfully with status:", response.status);
-                        setWebhookStatus('success'); return response.json();
+                        setWebhookStatus('success');
+                        return response.json();
                     })
                     .then(data => {
-                        console.log("Webhook response data:", data); setWebhookResponse(data);
-                        if (data?.nodes && data?.links) { console.log(`Received graph data with ${data.nodes.length} nodes and ${data.links.length} links`); }
-                        else { console.log("Webhook response received, but doesn't appear to be graph data:", data); }
+                        console.log("Webhook response data:", data);
+                        setWebhookResponse(data);
+                        if (data?.nodes && data?.links) {
+                            console.log(`Received graph data with ${data.nodes.length} nodes and ${data.links.length} links`);
+                            // Process the data for the 3D graph
+                            const processedData = processGraphData(data);
+                            setGraphData(processedData);
+                        }
+                        else {
+                            console.log("Webhook response received, but doesn't appear to be graph data:", data);
+                        }
                     })
-                    .catch(error => { console.error("Failed to send webhook notification or process response:", error); setWebhookStatus('error'); });
-            } else { console.error("Could not find job object in state for ID:", value); setWebhookStatus('error'); }
-        } else { setWebhookStatus(null); setWebhookResponse(null); }
+                    .catch(error => {
+                        console.error("Failed to send webhook notification or process response:", error);
+                        setWebhookStatus('error');
+                    });
+            } else {
+                console.error("Could not find job object in state for ID:", value);
+                setWebhookStatus('error');
+            }
+        } else {
+            setWebhookStatus(null);
+            setWebhookResponse(null);
+            setGraphData({ nodes: [], links: [] }); // Clear graph data when no job is selected
+        }
     }, [jobs]);
+
+    // Function to process and enhance the graph data for the 3D visualization
+    const processGraphData = (data) => {
+        if (!data || !data.nodes || !data.links) {
+            return { nodes: [], links: [] };
+        }
+
+        // Process nodes - ensure required properties are present and add customizations
+        const processedNodes = data.nodes.map(node => {
+            // Determine node color based on group/type with enhanced colors
+            let nodeColor;
+            let nodeGroup;
+
+            switch (node.group?.toLowerCase()) {
+                case 'person':
+                    nodeColor = GRAPH_COLORS.PERSON;
+                    nodeGroup = GRAPH_GROUPS.PERSON;
+                    break;
+                case 'company':
+                    nodeColor = GRAPH_COLORS.COMPANY;
+                    nodeGroup = GRAPH_GROUPS.COMPANY;
+                    break;
+                case 'job':
+                    nodeColor = GRAPH_COLORS.JOB;
+                    nodeGroup = GRAPH_GROUPS.JOB;
+                    break;
+                case 'skill':
+                    nodeColor = GRAPH_COLORS.SKILL;
+                    nodeGroup = GRAPH_GROUPS.SKILL;
+                    break;
+                case 'education':
+                    nodeColor = GRAPH_COLORS.EDUCATION;
+                    nodeGroup = GRAPH_GROUPS.EDUCATION;
+                    break;
+                default:
+                    nodeColor = node.color || GRAPH_COLORS.DEFAULT;
+                    nodeGroup = node.group || GRAPH_GROUPS.OTHER;
+            }
+
+            // Create enhanced node with better labels and properties
+            return {
+                ...node,
+                id: node.id || `node-${Math.random().toString(36).substr(2, 9)}`,
+                name: node.name || node.label || `Node ${node.id}`,
+                group: nodeGroup, // Standardized group name
+                color: nodeColor, // Enhanced color scheme
+                // Size based on node importance if available, with better scaling
+                val: node.importance || node.value || node.val || node.size || 1.5,
+                // 3D specific properties
+                fx: node.fx, // Fixed X position (optional)
+                fy: node.fy, // Fixed Y position (optional)
+                fz: node.fz,  // Fixed Z position (optional)
+                // Additional metadata for tooltips
+                description: node.description || '',
+                type: nodeGroup
+            };
+        });
+
+        // Process links - ensure source and target references are valid
+        const processedLinks = data.links.map(link => {
+            // Make sure source and target are valid references
+            const sourceExists = processedNodes.some(node => node.id === link.source);
+            const targetExists = processedNodes.some(node => node.id === link.target);
+
+            // Determine link color based on relationship type
+            let linkColor;
+            let linkType = link.type?.toLowerCase();
+
+            switch (linkType) {
+                case 'works_at':
+                    linkColor = GRAPH_COLORS.WORKS_AT;
+                    break;
+                case 'applied_to':
+                    linkColor = GRAPH_COLORS.APPLIED_TO;
+                    break;
+                case 'manages':
+                    linkColor = GRAPH_COLORS.MANAGES;
+                    break;
+                case 'has_skill':
+                    linkColor = GRAPH_COLORS.HAS_SKILL;
+                    break;
+                case 'studied_at':
+                    linkColor = GRAPH_COLORS.STUDIED_AT;
+                    break;
+                default:
+                    linkColor = link.color || GRAPH_COLORS.DEFAULT_LINK;
+            }
+
+            return {
+                ...link,
+                source: sourceExists ? link.source : processedNodes[0]?.id,
+                target: targetExists ? link.target : processedNodes[0]?.id,
+                // Enhanced color based on relationship type
+                color: linkColor,
+                // Enhanced width based on relationship strength with better scaling
+                value: link.importance || link.value || link.weight || link.strength || 1,
+                // Description for potential tooltip/label
+                label: link.label || link.type || 'connects to',
+                type: link.type || 'connection'
+            };
+        }).filter(link => link.source !== link.target); // Filter out self-loops
+
+        return { nodes: processedNodes, links: processedLinks };
+    };
 
     // --- Styling ---
     const getStyles = useCallback(() => {
@@ -232,8 +427,16 @@ export default function Analysis_Home() {
         const buttonStackGap = isMobile ? '10px' : '15px';
         const contentTopMargin = isMobile ? '120px' : '130px';
 
-        const standardButtonStyle = { /* ... (unchanged) ... */
-            fontSize: buttonFontSize, padding: isMobile ? '5px 10px' : '8px 15px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content', pointerEvents: 'auto', transition: 'transform 0.2s ease, background-color 0.2s ease, opacity 0.5s ease-out', display: 'inline-block'
+        const standardButtonStyle = {
+            fontSize: buttonFontSize,
+            padding: isMobile ? '5px 10px' : '8px 15px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            width: 'fit-content',
+            pointerEvents: 'auto',
+            transition: 'transform 0.2s ease, background-color 0.2s ease, opacity 0.5s ease-out',
+            display: 'inline-block'
         };
 
         // --- Define consistent background transparency (MATCHING SCREENSHOT) ---
@@ -248,72 +451,493 @@ export default function Analysis_Home() {
 
         return {
             // --- Existing Styles (with transparency adjustments) ---
-            overlay: { /* ... (unchanged overlay style) ... */ className: `${MAIN_PANEL_OVERLAY_CLASS}`, style: { zIndex: '9999', position: 'fixed', top: '0', left: '0', right: '0', bottom: '0', width: '100vw', height: '100vh', pointerEvents: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center', boxSizing: 'border-box', overflow: 'auto', } },
-            panel: { /* ... (panel style using mainPanelBg) ... */ className: 'flat-panel analysis-home-panel', style: { position: 'relative', width: desktopPanelWidth, maxWidth: desktopMaxWidth, height: desktopPanelHeight, maxHeight: '90vh', backgroundColor: mainPanelBg, borderRadius: '12px', boxShadow: '0 6px 15px rgba(0, 0, 0, 0.3)', padding: `${panelPaddingTop} ${panelPaddingSides} ${panelPaddingBottom} ${panelPaddingSides}`, color: 'white', pointerEvents: 'auto', overflowY: 'auto', boxSizing: 'border-box', opacity: 0, margin: '0 auto', top: 'auto', left: 'auto', transform: 'none', } },
-            profileContainer: { /* ... (unchanged) ... */ style: { position: 'absolute', top: profileTop, left: profileLeft, display: 'flex', alignItems: 'center', gap: '15px', zIndex: 10, opacity: 0, transform: 'translateX(-50px)', } },
-            buttonStackContainer: { /* ... (unchanged) ... */ style: { position: 'absolute', top: buttonStackTop, right: buttonStackRight, display: 'flex', flexDirection: 'column', gap: buttonStackGap, zIndex: 100, alignItems: 'flex-end', opacity: 0, transform: 'translateX(50px)', pointerEvents: 'auto', } },
-            contentContainer: { /* ... (unchanged) ... */ className: 'content-container', style: { width: '100%', marginTop: contentTopMargin, opacity: 0, transform: 'translateY(30px)', position: 'relative', zIndex: 5 } },
-            profilePhoto: { /* ... (unchanged) ... */ style: { width: isMobile ? '45px' : '60px', height: isMobile ? '45px' : '60px', borderRadius: '50%', border: '2px solid #57b3c0', objectFit: 'cover', flexShrink: 0, } },
-            profilePhotoPlaceholder: { /* ... (unchanged) ... */ style: { width: isMobile ? '45px' : '60px', height: isMobile ? '45px' : '60px', borderRadius: '50%', backgroundColor: '#57b3c0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: isMobile ? '18px' : '24px', flexShrink: 0, } },
-            userInfo: { /* ... (unchanged) ... */ style: { display: 'flex', flexDirection: 'column', textAlign: 'left', } },
-            userName: { /* ... (unchanged) ... */ style: { margin: '0', fontSize: userNameFontSize, color: '#a7d3d8', fontWeight: '500', } },
-            userEmail: { /* ... (unchanged) ... */ style: { margin: '2px 0 0 0', fontSize: userEmailFontSize, color: '#7a9a9e', } },
-            logoutButton: { /* ... (unchanged) ... */ className: 'nav-button logout-button', style: { ...standardButtonStyle, backgroundColor: 'rgba(255, 99, 71, 0.2)', color: '#ff6347', border: '1px solid rgba(255, 99, 71, 0.4)' } },
-            chatButton: { /* ... (unchanged) ... */ className: 'nav-button chat-button', style: { ...standardButtonStyle, backgroundColor: 'rgba(255, 165, 0, 0.2)', color: '#FFA500', border: '1px solid rgba(255, 165, 0, 0.4)' } },
-            homeButton: { /* ... (unchanged) ... */ className: 'nav-button home-button', style: { ...standardButtonStyle, backgroundColor: 'rgba(87, 179, 192, 0.2)', color: '#57b3c0', border: '1px solid rgba(87, 179, 192, 0.4)', textDecoration: 'none' } },
-            contentHeading: { /* ... (unchanged) ... */ style: { fontSize: headingFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#57b3c0', fontWeight: 'bold', } },
-            contentText: { /* ... (unchanged) ... */ style: { fontSize: textFontSize, marginBottom: isMobile ? '15px' : '20px', color: '#c0d0d3', lineHeight: '1.6', } },
+            overlay: {
+                className: `${MAIN_PANEL_OVERLAY_CLASS}`,
+                style: {
+                    zIndex: '9999',
+                    position: 'fixed',
+                    top: '0',
+                    left: '0',
+                    right: '0',
+                    bottom: '0',
+                    width: '100vw',
+                    height: '100vh',
+                    pointerEvents: 'auto',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    boxSizing: 'border-box',
+                    overflow: 'auto',
+                }
+            },
+            panel: {
+                className: 'flat-panel analysis-home-panel',
+                style: {
+                    position: 'relative',
+                    width: desktopPanelWidth,
+                    maxWidth: desktopMaxWidth,
+                    height: desktopPanelHeight,
+                    maxHeight: '90vh',
+                    backgroundColor: mainPanelBg,
+                    borderRadius: '12px',
+                    boxShadow: '0 6px 15px rgba(0, 0, 0, 0.3)',
+                    padding: `${panelPaddingTop} ${panelPaddingSides} ${panelPaddingBottom} ${panelPaddingSides}`,
+                    color: 'white',
+                    pointerEvents: 'auto',
+                    overflowY: 'auto',
+                    boxSizing: 'border-box',
+                    opacity: 0,
+                    margin: '0 auto',
+                    top: 'auto',
+                    left: 'auto',
+                    transform: 'none',
+                }
+            },
+            profileContainer: {
+                style: {
+                    position: 'absolute',
+                    top: profileTop,
+                    left: profileLeft,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '15px',
+                    zIndex: 10,
+                    opacity: 0,
+                    transform: 'translateX(-50px)',
+                }
+            },
+            buttonStackContainer: {
+                style: {
+                    position: 'absolute',
+                    top: buttonStackTop,
+                    right: buttonStackRight,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: buttonStackGap,
+                    zIndex: 100,
+                    alignItems: 'flex-end',
+                    opacity: 0,
+                    transform: 'translateX(50px)',
+                    pointerEvents: 'auto',
+                }
+            },
+            contentContainer: {
+                className: 'content-container',
+                style: {
+                    width: '100%',
+                    marginTop: contentTopMargin,
+                    opacity: 0,
+                    transform: 'translateY(30px)',
+                    position: 'relative',
+                    zIndex: 5
+                }
+            },
+            profilePhoto: {
+                style: {
+                    width: isMobile ? '45px' : '60px',
+                    height: isMobile ? '45px' : '60px',
+                    borderRadius: '50%',
+                    border: '2px solid #57b3c0',
+                    objectFit: 'cover',
+                    flexShrink: 0,
+                }
+            },
+            profilePhotoPlaceholder: {
+                style: {
+                    width: isMobile ? '45px' : '60px',
+                    height: isMobile ? '45px' : '60px',
+                    borderRadius: '50%',
+                    backgroundColor: '#57b3c0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: isMobile ? '18px' : '24px',
+                    flexShrink: 0,
+                }
+            },
+            userInfo: {
+                style: {
+                    display: 'flex',
+                    flexDirection: 'column',
+                    textAlign: 'left',
+                }
+            },
+            userName: {
+                style: {
+                    margin: '0',
+                    fontSize: userNameFontSize,
+                    color: '#a7d3d8',
+                    fontWeight: '500',
+                }
+            },
+            userEmail: {
+                style: {
+                    margin: '2px 0 0 0',
+                    fontSize: userEmailFontSize,
+                    color: '#7a9a9e',
+                }
+            },
+            logoutButton: {
+                className: 'nav-button logout-button',
+                style: {
+                    ...standardButtonStyle,
+                    backgroundColor: 'rgba(255, 99, 71, 0.2)',
+                    color: '#ff6347',
+                    border: '1px solid rgba(255, 99, 71, 0.4)'
+                }
+            },
+            chatButton: {
+                className: 'nav-button chat-button',
+                style: {
+                    ...standardButtonStyle,
+                    backgroundColor: 'rgba(255, 165, 0, 0.2)',
+                    color: '#FFA500',
+                    border: '1px solid rgba(255, 165, 0, 0.4)'
+                }
+            },
+            homeButton: {
+                className: 'nav-button home-button',
+                style: {
+                    ...standardButtonStyle,
+                    backgroundColor: 'rgba(87, 179, 192, 0.2)',
+                    color: '#57b3c0',
+                    border: '1px solid rgba(87, 179, 192, 0.4)',
+                    textDecoration: 'none'
+                }
+            },
+            contentHeading: {
+                style: {
+                    fontSize: headingFontSize,
+                    marginBottom: isMobile ? '15px' : '20px',
+                    color: '#57b3c0',
+                    fontWeight: 'bold',
+                }
+            },
+            contentText: {
+                style: {
+                    fontSize: textFontSize,
+                    marginBottom: isMobile ? '15px' : '20px',
+                    color: '#c0d0d3',
+                    lineHeight: '1.6',
+                }
+            },
             // --- Styles using updated background/border ---
-            contentSection: { style: { backgroundColor: sectionBg, padding: isMobile ? '15px' : '20px', borderRadius: '8px', marginBottom: isMobile ? '15px' : '20px', border: `1px solid ${sectionBorder}` } },
-            contentSectionHeading: { /* ... (unchanged) ... */ style: { fontSize: sectionHeadingFontSize, marginBottom: '10px', color: '#57b3c0', fontWeight: '600', } },
-            dropdownContainerStyle: { marginTop: '20px', marginBottom: '25px', padding: '15px', backgroundColor: sectionBg, borderRadius: '8px', border: `1px solid ${sectionBorder}`, zIndex: '50' },
-            jobsDropdownContainerStyle: { display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '25px', marginBottom: '25px', padding: '15px', backgroundColor: jobsSectionBg, borderRadius: '8px', border: `1px solid ${jobsSectionBorder}`, zIndex: '50' },
+            contentSection: {
+                style: {
+                    backgroundColor: sectionBg,
+                    padding: isMobile ? '15px' : '20px',
+                    borderRadius: '8px',
+                    marginBottom: isMobile ? '15px' : '20px',
+                    border: `1px solid ${sectionBorder}`,
+                    position: 'relative' // Add position for proper stacking context
+                }
+            },
+            contentSectionHeading: {
+                style: {
+                    fontSize: sectionHeadingFontSize,
+                    marginBottom: '10px',
+                    color: '#57b3c0',
+                    fontWeight: '600',
+                }
+            },
+            dropdownContainerStyle: {
+                marginTop: '20px',
+                marginBottom: '25px',
+                padding: '15px',
+                backgroundColor: sectionBg,
+                borderRadius: '8px',
+                border: `1px solid ${sectionBorder}`,
+                zIndex: '50'
+            },
+            jobsDropdownContainerStyle: {
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                marginTop: '25px',
+                marginBottom: '25px',
+                padding: '15px',
+                backgroundColor: jobsSectionBg,
+                borderRadius: '8px',
+                border: `1px solid ${jobsSectionBorder}`,
+                zIndex: '50'
+            },
             // --- Other styles (unchanged) ---
-            clientDropdownLabel: { /* ... */ style: { display: 'block', fontSize: isMobile ? '13px' : 'calc(14px * 1.35)', color: '#a7d3d8', marginBottom: '8px', fontWeight: '500', } },
-            jobsDropdownLabel: { /* ... */ style: { display: 'block', fontSize: isMobile ? '13px' : 'calc(14px * 1.35)', color: '#ffd27f', marginBottom: '8px', fontWeight: '500', } },
-            clientDropdownSelect: { /* ... */ style: { display: 'block', width: '100%', maxWidth: '400px', height: '45px', padding: isMobile ? '8px 10px' : '10px 12px', fontSize: '16px', backgroundColor: 'rgba(13, 20, 24, 0.8)', color: '#e0e0e0', border: '1px solid rgba(87, 179, 192, 0.4)', borderRadius: '6px', cursor: 'pointer', marginBottom: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', appearance: 'none', backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: `right ${isMobile ? '10px' : '15px'} center`, backgroundSize: '20px', } },
-            jobsDropdownSelect: { /* ... */ style: { display: 'block', width: '100%', maxWidth: '400px', height: '45px', padding: isMobile ? '8px 10px' : '10px 12px', fontSize: '16px', backgroundColor: 'rgba(13, 20, 24, 0.8)', color: '#e0e0e0', border: '1px solid rgba(255, 165, 0, 0.4)', borderRadius: '6px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', appearance: 'none', backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: `right ${isMobile ? '10px' : '15px'} center`, backgroundSize: '20px', } },
-            loadingText: { /* ... */ style: { fontSize: textFontSize, color: '#a7d3d8', fontStyle: 'italic' } },
-            errorText: { /* ... */ style: { fontSize: textFontSize, color: '#ff6347', marginTop: '10px' } },
-            webhookStatus: { /* ... */ style: { display: 'flex', alignItems: 'center', fontSize: isMobile ? '12px' : 'calc(13px * 1.35)', marginTop: '10px' } },
-            webhookStatusIcon: { /* ... */ sending: { style: { width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#FFD700', marginRight: '8px', animation: 'pulse 1s infinite', } }, success: { style: { width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#4CAF50', marginRight: '8px', } }, error: { style: { width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ff6347', marginRight: '8px', } } },
-            graphDataInfo: { /* ... */ style: { marginTop: '10px', padding: '10px', backgroundColor: 'rgba(76, 175, 80, 0.1)', borderRadius: '6px', border: '1px solid rgba(76, 175, 80, 0.3)', fontSize: textFontSize, color: '#a7d3d8', } },
-            reviewDataButton: { /* ... */ className: 'nav-button review-data-button', style: { ...standardButtonStyle, backgroundColor: 'rgba(76, 175, 80, 0.2)', color: '#4CAF50', border: '1px solid rgba(76, 175, 80, 0.4)', marginTop: '15px', opacity: '0', alignSelf: 'flex-start', maxWidth: '400px', width: 'auto', padding: isMobile ? '8px 15px' : '10px 20px', } },
+            clientDropdownLabel: {
+                style: {
+                    display: 'block',
+                    fontSize: isMobile ? '13px' : 'calc(14px * 1.35)',
+                    color: '#a7d3d8',
+                    marginBottom: '8px',
+                    fontWeight: '500',
+                }
+            },
+            jobsDropdownLabel: {
+                style: {
+                    display: 'block',
+                    fontSize: isMobile ? '13px' : 'calc(14px * 1.35)',
+                    color: '#ffd27f',
+                    marginBottom: '8px',
+                    fontWeight: '500',
+                }
+            },
+            clientDropdownSelect: {
+                style: {
+                    display: 'block',
+                    width: '100%',
+                    maxWidth: '400px',
+                    height: '45px',
+                    padding: isMobile ? '8px 10px' : '10px 12px',
+                    fontSize: '16px',
+                    backgroundColor: 'rgba(13, 20, 24, 0.8)',
+                    color: '#e0e0e0',
+                    border: '1px solid rgba(87, 179, 192, 0.4)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    marginBottom: '10px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    appearance: 'none',
+                    backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>')`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: `right ${isMobile ? '10px' : '15px'} center`,
+                    backgroundSize: '20px',
+                }
+            },
+            jobsDropdownSelect: {
+                style: {
+                    display: 'block',
+                    width: '100%',
+                    maxWidth: '400px',
+                    height: '45px',
+                    padding: isMobile ? '8px 10px' : '10px 12px',
+                    fontSize: '16px',
+                    backgroundColor: 'rgba(13, 20, 24, 0.8)',
+                    color: '#e0e0e0',
+                    border: '1px solid rgba(255, 165, 0, 0.4)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    appearance: 'none',
+                    backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>')`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: `right ${isMobile ? '10px' : '15px'} center`,
+                    backgroundSize: '20px',
+                }
+            },
+            loadingText: {
+                style: {
+                    fontSize: textFontSize,
+                    color: '#a7d3d8',
+                    fontStyle: 'italic'
+                }
+            },
+            errorText: {
+                style: {
+                    fontSize: textFontSize,
+                    color: '#ff6347',
+                    marginTop: '10px'
+                }
+            },
+            webhookStatus: {
+                style: {
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: isMobile ? '12px' : 'calc(13px * 1.35)',
+                    marginTop: '10px'
+                }
+            },
+            webhookStatusIcon: {
+                sending: {
+                    style: {
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        backgroundColor: '#FFD700',
+                        marginRight: '8px',
+                        animation: 'pulse 1s infinite',
+                    }
+                },
+                success: {
+                    style: {
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        backgroundColor: '#4CAF50',
+                        marginRight: '8px',
+                    }
+                },
+                error: {
+                    style: {
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        backgroundColor: '#ff6347',
+                        marginRight: '8px',
+                    }
+                }
+            },
+            graphDataInfo: {
+                style: {
+                    marginTop: '10px',
+                    padding: '10px',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(76, 175, 80, 0.3)',
+                    fontSize: textFontSize,
+                    color: '#a7d3d8',
+                }
+            },
+            reviewDataButton: {
+                className: 'nav-button review-data-button',
+                style: {
+                    ...standardButtonStyle,
+                    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                    color: '#4CAF50',
+                    border: '1px solid rgba(76, 175, 80, 0.4)',
+                    marginTop: '15px',
+                    opacity: '0',
+                    alignSelf: 'flex-start',
+                    maxWidth: '400px',
+                    width: 'auto',
+                    padding: isMobile ? '8px 15px' : '10px 20px',
+                }
+            },
+            // --- New styles for 3D Graph visualization ---
+            graphContainer: {
+                style: {
+                    width: '100%',
+                    height: isGraphExpanded ? (isMobile ? '400px' : '500px') : (isMobile ? '300px' : '400px'),
+                    backgroundColor: 'rgba(13, 20, 24, 0.5)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(87, 179, 192, 0.3)',
+                    overflow: 'hidden',
+                    marginTop: '20px',
+                    position: 'relative',
+                    transition: 'height 0.5s ease-out',
+                    zIndex: 10, // Important: Set higher z-index for the graph container
+                }
+            },
+            graphPlaceholder: {
+                style: {
+                    width: '100%',
+                    height: '300px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'rgba(13, 20, 24, 0.5)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(87, 179, 192, 0.3)',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    zIndex: 5, // Lower than graph container but higher than background
+                }
+            },
+            graphControls: {
+                style: {
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    zIndex: 150, // Higher than graph for controls
+                    display: 'flex',
+                    gap: '8px'
+                }
+            },
+            graphControlButton: {
+                style: {
+                    ...standardButtonStyle,
+                    padding: '4px 8px',
+                    fontSize: isMobile ? '10px' : '12px',
+                    backgroundColor: 'rgba(13, 20, 24, 0.8)',
+                    color: '#a7d3d8',
+                    border: '1px solid rgba(87, 179, 192, 0.4)',
+                }
+            },
+            graphLoadingMessage: {
+                style: {
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    color: '#a7d3d8',
+                    fontSize: textFontSize,
+                    textAlign: 'center',
+                    backgroundColor: 'rgba(13, 20, 24, 0.7)',
+                    padding: '10px 20px',
+                    borderRadius: '4px',
+                    zIndex: 7, // Above placeholder but below controls
+                    whiteSpace: 'nowrap'
+                }
+            },
 
             // --- IFRAME OVERLAY STYLES (with adjusted Close Bar) ---
-            reviewOverlay: { /* ... (unchanged) ... */
-                style: { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.85)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'stretch', zIndex: 13000, padding: 0, boxSizing: 'border-box', }
+            reviewOverlay: {
+                style: {
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'flex-start',
+                    alignItems: 'stretch',
+                    zIndex: 13000,
+                    padding: 0,
+                    boxSizing: 'border-box',
+                }
             },
             reviewCloseBar: { // Adjusted close bar for better visibility/style
                 style: {
-                    height: isMobile ? '45px' : '50px', width: '100%',
+                    height: isMobile ? '45px' : '50px',
+                    width: '100%',
                     backgroundColor: 'rgba(20, 30, 35, 0.9)', // Slightly darker, more opaque bar
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     color: '#E0E0E0', // Lighter text color
-                    fontSize: isMobile ? '16px' : '18px', fontWeight: '600', // Bolder text
-                    cursor: 'pointer', zIndex: 13001,
+                    fontSize: isMobile ? '16px' : '18px',
+                    fontWeight: '600', // Bolder text
+                    cursor: 'pointer',
+                    zIndex: 13001,
                     borderBottom: '1px solid rgba(255, 255, 255, 0.3)', // More visible border
-                    flexShrink: 0, transition: 'background-color 0.2s ease',
+                    flexShrink: 0,
+                    transition: 'background-color 0.2s ease',
                     textShadow: '0 1px 2px rgba(0,0,0,0.5)', // Add text shadow
                 }
             },
-            reviewIframe: { /* ... (unchanged) ... */
-                style: { width: '100%', height: '100%', border: 'none', backgroundColor: '#fff', flexGrow: 1, }
+            reviewIframe: {
+                style: {
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    backgroundColor: '#fff',
+                    flexGrow: 1,
+                }
             },
         };
-    }, []);
+    }, [isGraphExpanded]);
 
     // --- Animation Helper ---
-    const animateElement = (element, properties, delay = 0) => { /* ... (unchanged) ... */
-        if (!element) return; element.style.transition = 'none';
-        // element.offsetHeight; // Force reflow if needed
-        element.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
-        setTimeout(() => { requestAnimationFrame(() => { Object.keys(properties).forEach(prop => { element.style[prop] = properties[prop]; }); }); }, delay);
+    const animateElement = (element, properties, delay = 0) => {
+        if (!element) return;
+        element.style.transition = 'none';
+        setTimeout(() => {
+            requestAnimationFrame(() => {
+                element.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+                Object.keys(properties).forEach(prop => {
+                    element.style[prop] = properties[prop];
+                });
+            });
+        }, delay);
     };
 
     // Reset selected job when client changes
-    useEffect(() => { /* ... (unchanged) ... */
-        if (!selectedClientData) { setSelectedJob(''); setIsReviewOverlayVisible(false); }
+    useEffect(() => {
+        if (!selectedClientData) {
+            setSelectedJob('');
+            setIsReviewOverlayVisible(false);
+        }
     }, [selectedClientData]);
 
     // ====================================
@@ -325,7 +949,13 @@ export default function Analysis_Home() {
         console.log(`Analysis_Home: UI Effect START (isReviewOverlayVisible: ${isReviewOverlayVisible})`);
         // --- Cleanup existing main panel overlay ---
         const existingMainOverlay = document.querySelector(`.${MAIN_PANEL_OVERLAY_CLASS}`);
-        if (existingMainOverlay) { console.log("   - Cleaning up existing main panel overlay."); existingMainOverlay.remove(); overlayRef.current = null; panelRef.current = null; }
+        if (existingMainOverlay) {
+            console.log("   - Cleaning up existing main panel overlay.");
+            existingMainOverlay.remove();
+            overlayRef.current = null;
+            panelRef.current = null;
+            metricsRef.current = null;
+        }
         document.body.style.overflow = ''; // Reset scroll initially
 
         // --- Skip main panel build if iframe overlay is active ---
@@ -347,76 +977,338 @@ export default function Analysis_Home() {
         const styles = getStyles(); // Get styles including transparency adjustments
         let panel = null, overlay = null;
         let resizeTimeout;
-        const handleResize = () => { /* ... (unchanged resize warning) ... */ clearTimeout(resizeTimeout); resizeTimeout = setTimeout(() => { console.warn("Resize detected..."); }, 250); };
+        const handleResize = () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                console.warn("Resize detected...");
+            }, 250);
+        };
 
         try {
             // --- Create Overlay and Panel (using updated styles from getStyles) ---
-            overlay = document.createElement('div'); overlay.className = styles.overlay.className; Object.assign(overlay.style, styles.overlay.style); overlayRef.current = overlay;
-            panel = document.createElement('div'); panel.className = styles.panel.className; panel.id = 'analysis-panel'; Object.assign(panel.style, styles.panel.style); panelRef.current = panel;
+            overlay = document.createElement('div');
+            overlay.className = styles.overlay.className;
+            Object.assign(overlay.style, styles.overlay.style);
+            overlayRef.current = overlay;
+
+            panel = document.createElement('div');
+            panel.className = styles.panel.className;
+            panel.id = 'analysis-panel';
+            Object.assign(panel.style, styles.panel.style);
+            panelRef.current = panel;
 
             // --- Add Profile, Buttons, Content Container (using updated styles) ---
-            // (Code for creating these elements is unchanged, but they will inherit the styles)
-            const buttonStackContainer = document.createElement('div'); Object.assign(buttonStackContainer.style, styles.buttonStackContainer.style); buttonStackContainer.id = 'button-stack'; /* Add buttons */ /* ... */
-            const logoutButton = document.createElement('button'); Object.assign(logoutButton.style, styles.logoutButton.style); logoutButton.className = styles.logoutButton.className; logoutButton.textContent = 'Logout'; logoutButton.addEventListener('click', handleLogout); buttonStackContainer.appendChild(logoutButton);
-            const chatButton = document.createElement('button'); Object.assign(chatButton.style, styles.chatButton.style); chatButton.className = styles.chatButton.className; chatButton.textContent = 'Live Chat'; chatButton.addEventListener('click', handleChatClick); buttonStackContainer.appendChild(chatButton);
-            const homeButton = document.createElement('button'); Object.assign(homeButton.style, styles.homeButton.style); homeButton.className = styles.homeButton.className; homeButton.textContent = 'Back to Home'; homeButton.addEventListener('click', handleHomeClick); buttonStackContainer.appendChild(homeButton);
+            const buttonStackContainer = document.createElement('div');
+            Object.assign(buttonStackContainer.style, styles.buttonStackContainer.style);
+            buttonStackContainer.id = 'button-stack';
+
+            const logoutButton = document.createElement('button');
+            Object.assign(logoutButton.style, styles.logoutButton.style);
+            logoutButton.className = styles.logoutButton.className;
+            logoutButton.textContent = 'Logout';
+            logoutButton.addEventListener('click', handleLogout);
+            buttonStackContainer.appendChild(logoutButton);
+
+            const chatButton = document.createElement('button');
+            Object.assign(chatButton.style, styles.chatButton.style);
+            chatButton.className = styles.chatButton.className;
+            chatButton.textContent = 'Live Chat';
+            chatButton.addEventListener('click', handleChatClick);
+            buttonStackContainer.appendChild(chatButton);
+
+            const homeButton = document.createElement('button');
+            Object.assign(homeButton.style, styles.homeButton.style);
+            homeButton.className = styles.homeButton.className;
+            homeButton.textContent = 'Back to Home';
+            homeButton.addEventListener('click', handleHomeClick);
+            buttonStackContainer.appendChild(homeButton);
+
             panel.appendChild(buttonStackContainer);
 
-            const profileContainer = document.createElement('div'); Object.assign(profileContainer.style, styles.profileContainer.style); profileContainer.id = 'profile-container'; /* Add profile photo/info */ /* ... */
-            const profilePhotoEl = document.createElement(userData.picture ? 'img' : 'div'); if (userData.picture) { profilePhotoEl.src = userData.picture; profilePhotoEl.alt = "Profile"; Object.assign(profilePhotoEl.style, styles.profilePhoto.style); } else { profilePhotoEl.textContent = userData.name ? userData.name.charAt(0).toUpperCase() : 'U'; Object.assign(profilePhotoEl.style, styles.profilePhotoPlaceholder.style); } profileContainer.appendChild(profilePhotoEl);
-            const userInfo = document.createElement('div'); Object.assign(userInfo.style, styles.userInfo.style);
-            const userNameEl = document.createElement('h3'); Object.assign(userNameEl.style, styles.userName.style); userNameEl.textContent = `${userData.name || 'User'}`; userInfo.appendChild(userNameEl);
-            const userEmailEl = document.createElement('p'); Object.assign(userEmailEl.style, styles.userEmail.style); userEmailEl.textContent = `${userData.email || 'No email'}`; userInfo.appendChild(userEmailEl);
+            const profileContainer = document.createElement('div');
+            Object.assign(profileContainer.style, styles.profileContainer.style);
+            profileContainer.id = 'profile-container';
+
+            const profilePhotoEl = document.createElement(userData.picture ? 'img' : 'div');
+            if (userData.picture) {
+                profilePhotoEl.src = userData.picture;
+                profilePhotoEl.alt = "Profile";
+                Object.assign(profilePhotoEl.style, styles.profilePhoto.style);
+            } else {
+                profilePhotoEl.textContent = userData.name ? userData.name.charAt(0).toUpperCase() : 'U';
+                Object.assign(profilePhotoEl.style, styles.profilePhotoPlaceholder.style);
+            }
+            profileContainer.appendChild(profilePhotoEl);
+
+            const userInfo = document.createElement('div');
+            Object.assign(userInfo.style, styles.userInfo.style);
+
+            const userNameEl = document.createElement('h3');
+            Object.assign(userNameEl.style, styles.userName.style);
+            userNameEl.textContent = `${userData.name || 'User'}`;
+            userInfo.appendChild(userNameEl);
+
+            const userEmailEl = document.createElement('p');
+            Object.assign(userEmailEl.style, styles.userEmail.style);
+            userEmailEl.textContent = `${userData.email || 'No email'}`;
+            userInfo.appendChild(userEmailEl);
+
             profileContainer.appendChild(userInfo);
             panel.appendChild(profileContainer);
 
-            const contentContainer = document.createElement('div'); contentContainer.id = 'content-container'; contentContainer.className = styles.contentContainer.className; Object.assign(contentContainer.style, styles.contentContainer.style); /* Add content heading */ /* ... */
-            const contentHeading = document.createElement('h2'); Object.assign(contentHeading.style, styles.contentHeading.style); contentHeading.textContent = "Analysis Dashboard"; contentContainer.appendChild(contentHeading);
+            const contentContainer = document.createElement('div');
+            contentContainer.id = 'content-container';
+            contentContainer.className = styles.contentContainer.className;
+            Object.assign(contentContainer.style, styles.contentContainer.style);
+
+            const contentHeading = document.createElement('h2');
+            Object.assign(contentHeading.style, styles.contentHeading.style);
+            contentHeading.textContent = "Analysis Dashboard";
+            contentContainer.appendChild(contentHeading);
 
 
             // --- CREATE SUMMARY SECTION (using updated styles.contentSection) ---
-            const summarySection = document.createElement('div'); summarySection.id = SUMMARY_SECTION_ID; Object.assign(summarySection.style, styles.contentSection.style); /* Add heading/text */ /* ... */
-            const summaryHeading = document.createElement('h3'); Object.assign(summaryHeading.style, styles.contentSectionHeading.style); summaryHeading.textContent = "Client & Job Selection"; summarySection.appendChild(summaryHeading);
-            const summaryText = document.createElement('p'); Object.assign(summaryText.style, styles.contentText.style); summaryText.textContent = "Select a client, then choose a specific job to analyze relationships and metrics."; summarySection.appendChild(summaryText);
+            const summarySection = document.createElement('div');
+            summarySection.id = SUMMARY_SECTION_ID;
+            Object.assign(summarySection.style, styles.contentSection.style);
+
+            const summaryHeading = document.createElement('h3');
+            Object.assign(summaryHeading.style, styles.contentSectionHeading.style);
+            summaryHeading.textContent = "Client & Job Selection";
+            summarySection.appendChild(summaryHeading);
+
+            const summaryText = document.createElement('p');
+            Object.assign(summaryText.style, styles.contentText.style);
+            summaryText.textContent = "Select a client, then choose a specific job to analyze relationships and metrics.";
+            summarySection.appendChild(summaryText);
 
 
             // --- ADD CLIENT DROPDOWN (using updated styles.dropdownContainerStyle) ---
-            const dropdownContainer = document.createElement('div'); dropdownContainer.id = DROPDOWN_CONTAINER_ID; Object.assign(dropdownContainer.style, styles.dropdownContainerStyle); /* Add label/select */ /* ... */
-            const dropdownLabel = document.createElement('label'); dropdownLabel.htmlFor = DROPDOWN_SELECT_ID; Object.assign(dropdownLabel.style, styles.clientDropdownLabel.style); dropdownLabel.textContent = 'Select Client:'; dropdownContainer.appendChild(dropdownLabel);
-            if (clientsLoading) { /* ... loading text ... */ const loadingText = document.createElement('p'); Object.assign(loadingText.style, styles.loadingText.style); loadingText.textContent = "Loading clients..."; dropdownContainer.appendChild(loadingText); } else { /* ... client select ... */ const clientSelect = document.createElement('select'); clientSelect.id = DROPDOWN_SELECT_ID; Object.assign(clientSelect.style, styles.clientDropdownSelect.style); clientSelect.value = selectedClient; clientSelect.addEventListener('change', handleClientSelect); const defaultOption = document.createElement('option'); defaultOption.value = ""; defaultOption.textContent = "-- Select a client --"; clientSelect.appendChild(defaultOption); if (clientNames?.length > 0) { clientNames.forEach((client) => { const option = document.createElement('option'); const clientNameString = `${client.ClientFirstName} ${client.ClientLastName}`; option.value = clientNameString; option.textContent = clientNameString; clientSelect.appendChild(option); }); } dropdownContainer.appendChild(clientSelect); if (error?.startsWith("Failed to load clients") && clientNames.length === 0) { const errorText = document.createElement('p'); Object.assign(errorText.style, styles.errorText.style); errorText.textContent = error; dropdownContainer.appendChild(errorText); } }
+            const dropdownContainer = document.createElement('div');
+            dropdownContainer.id = DROPDOWN_CONTAINER_ID;
+            Object.assign(dropdownContainer.style, styles.dropdownContainerStyle);
+
+            const dropdownLabel = document.createElement('label');
+            dropdownLabel.htmlFor = DROPDOWN_SELECT_ID;
+            Object.assign(dropdownLabel.style, styles.clientDropdownLabel.style);
+            dropdownLabel.textContent = 'Select Client:';
+            dropdownContainer.appendChild(dropdownLabel);
+
+            if (clientsLoading) {
+                const loadingText = document.createElement('p');
+                Object.assign(loadingText.style, styles.loadingText.style);
+                loadingText.textContent = "Loading clients...";
+                dropdownContainer.appendChild(loadingText);
+            } else {
+                const clientSelect = document.createElement('select');
+                clientSelect.id = DROPDOWN_SELECT_ID;
+                Object.assign(clientSelect.style, styles.clientDropdownSelect.style);
+                clientSelect.value = selectedClient;
+                clientSelect.addEventListener('change', handleClientSelect);
+
+                const defaultOption = document.createElement('option');
+                defaultOption.value = "";
+                defaultOption.textContent = "-- Select a client --";
+                clientSelect.appendChild(defaultOption);
+
+                if (clientNames?.length > 0) {
+                    clientNames.forEach((client) => {
+                        const option = document.createElement('option');
+                        const clientNameString = `${client.ClientFirstName} ${client.ClientLastName}`;
+                        option.value = clientNameString;
+                        option.textContent = clientNameString;
+                        clientSelect.appendChild(option);
+                    });
+                }
+                dropdownContainer.appendChild(clientSelect);
+
+                if (error?.startsWith("Failed to load clients") && clientNames.length === 0) {
+                    const errorText = document.createElement('p');
+                    Object.assign(errorText.style, styles.errorText.style);
+                    errorText.textContent = error;
+                    dropdownContainer.appendChild(errorText);
+                }
+            }
+
             summarySection.appendChild(dropdownContainer);
 
             // --- ADD JOBS DROPDOWN (using updated styles.jobsDropdownContainerStyle) ---
-            if (selectedClientData) { /* ... (logic unchanged, uses updated styles) ... */
-                const jobsDropdownContainer = document.createElement('div'); jobsDropdownContainer.id = JOBS_DROPDOWN_CONTAINER_ID; Object.assign(jobsDropdownContainer.style, styles.jobsDropdownContainerStyle);
-                const jobsLabel = document.createElement('label'); jobsLabel.htmlFor = 'jobs-dropdown-select'; Object.assign(jobsLabel.style, styles.jobsDropdownLabel.style); jobsLabel.textContent = `Select Job for ${selectedClientData.ClientFirstName} ${selectedClientData.ClientLastName}:`; jobsDropdownContainer.appendChild(jobsLabel);
-                if (jobsLoading) { /* ... loading text ... */ const loadingText = document.createElement('p'); Object.assign(loadingText.style, styles.loadingText.style); loadingText.textContent = "Loading jobs..."; jobsDropdownContainer.appendChild(loadingText); }
-                else { /* ... job select, status, button logic ... */
-                    const jobsSelect = document.createElement('select'); jobsSelect.id = 'jobs-dropdown-select'; Object.assign(jobsSelect.style, styles.jobsDropdownSelect.style); jobsSelect.value = selectedJob; jobsSelect.addEventListener('change', handleJobSelect); /* ... options ... */ const defaultJobOption = document.createElement('option'); defaultJobOption.value = ""; defaultJobOption.textContent = "-- Select a job --"; jobsSelect.appendChild(defaultJobOption); if (jobs?.length > 0) { jobs.forEach((job) => { const option = document.createElement('option'); const jobId = job.Id ? job.Id.toString() : ''; option.value = jobId; option.textContent = job.JobName ? `${job.JobName} (ID: ${jobId})` : `Job ID: ${jobId}`; jobsSelect.appendChild(option); }); } else if (!error) { const noJobsOption = document.createElement('option'); noJobsOption.value = ""; noJobsOption.textContent = "No jobs found for this client"; noJobsOption.disabled = true; jobsSelect.appendChild(noJobsOption); } jobsDropdownContainer.appendChild(jobsSelect);
-                    if (error?.startsWith("Failed to load jobs") && jobs.length === 0) { /* ... error text ... */ const errorText = document.createElement('p'); Object.assign(errorText.style, styles.errorText.style); errorText.textContent = error; jobsDropdownContainer.appendChild(errorText); }
-                    if (selectedJob && webhookStatus) { /* ... webhook status ... */ const statusContainer = document.createElement('div'); Object.assign(statusContainer.style, styles.webhookStatus.style); const statusIcon = document.createElement('div'); Object.assign(statusIcon.style, styles.webhookStatusIcon[webhookStatus]?.style || {}); statusContainer.appendChild(statusIcon); const statusText = document.createElement('span'); switch (webhookStatus) { case 'sending': statusText.textContent = 'Sending job data...'; statusText.style.color = '#FFD700'; break; case 'success': statusText.textContent = 'Job data sent successfully.'; statusText.style.color = '#4CAF50'; break; case 'error': statusText.textContent = 'Error sending job data.'; statusText.style.color = '#ff6347'; break; default: statusText.textContent = ''; } statusContainer.appendChild(statusText); jobsDropdownContainer.appendChild(statusContainer); }
-                    if (selectedJob && webhookStatus === 'success' && webhookResponse) { /* ... graph info ... */ const graphDataInfo = document.createElement('div'); Object.assign(graphDataInfo.style, styles.graphDataInfo.style); const nodeCount = webhookResponse.nodes?.length ?? 0; const linkCount = webhookResponse.links?.length ?? 0; graphDataInfo.innerHTML = `<strong>Relational Graph Data Received</strong><br><span style="color: #8bc34a">● ${nodeCount} entities</span> | <span style="color: #ff9800">● ${linkCount} relationships</span>`; jobsDropdownContainer.appendChild(graphDataInfo); }
-                    if (selectedJob && webhookStatus === 'success') { /* ... review button ... */
-                        console.log("   - Webhook success, creating Review Data button."); const reviewButton = document.createElement('button'); reviewButton.id = REVIEW_DATA_BUTTON_ID; reviewButton.className = styles.reviewDataButton.className; Object.assign(reviewButton.style, styles.reviewDataButton.style); reviewButton.textContent = 'Review Data'; reviewButton.addEventListener('click', () => { console.log("Review Data button clicked."); setIsReviewOverlayVisible(true); }); jobsDropdownContainer.appendChild(reviewButton);
-                        setTimeout(() => { const buttonElement = document.getElementById(REVIEW_DATA_BUTTON_ID); if (buttonElement?.parentNode === jobsDropdownContainer) { animateElement(buttonElement, { opacity: '1' }, 0); console.log("   - Fading in Review Data button."); } }, 100);
-                    } else { /* ... remove button if exists ... */ const existingButton = jobsDropdownContainer.querySelector(`#${REVIEW_DATA_BUTTON_ID}`); if (existingButton) existingButton.remove(); }
+            if (selectedClientData) {
+                const jobsDropdownContainer = document.createElement('div');
+                jobsDropdownContainer.id = JOBS_DROPDOWN_CONTAINER_ID;
+                Object.assign(jobsDropdownContainer.style, styles.jobsDropdownContainerStyle);
+
+                const jobsLabel = document.createElement('label');
+                jobsLabel.htmlFor = 'jobs-dropdown-select';
+                Object.assign(jobsLabel.style, styles.jobsDropdownLabel.style);
+                jobsLabel.textContent = `Select Job for ${selectedClientData.ClientFirstName} ${selectedClientData.ClientLastName}:`;
+                jobsDropdownContainer.appendChild(jobsLabel);
+
+                if (jobsLoading) {
+                    const loadingText = document.createElement('p');
+                    Object.assign(loadingText.style, styles.loadingText.style);
+                    loadingText.textContent = "Loading jobs...";
+                    jobsDropdownContainer.appendChild(loadingText);
+                } else {
+                    const jobsSelect = document.createElement('select');
+                    jobsSelect.id = 'jobs-dropdown-select';
+                    Object.assign(jobsSelect.style, styles.jobsDropdownSelect.style);
+                    jobsSelect.value = selectedJob;
+                    jobsSelect.addEventListener('change', handleJobSelect);
+
+                    const defaultJobOption = document.createElement('option');
+                    defaultJobOption.value = "";
+                    defaultJobOption.textContent = "-- Select a job --";
+                    jobsSelect.appendChild(defaultJobOption);
+
+                    if (jobs?.length > 0) {
+                        jobs.forEach((job) => {
+                            const option = document.createElement('option');
+                            const jobId = job.Id ? job.Id.toString() : '';
+                            option.value = jobId;
+                            option.textContent = job.JobName ? `${job.JobName} (ID: ${jobId})` : `Job ID: ${jobId}`;
+                            jobsSelect.appendChild(option);
+                        });
+                    } else if (!error) {
+                        const noJobsOption = document.createElement('option');
+                        noJobsOption.value = "";
+                        noJobsOption.textContent = "No jobs found for this client";
+                        noJobsOption.disabled = true;
+                        jobsSelect.appendChild(noJobsOption);
+                    }
+                    jobsDropdownContainer.appendChild(jobsSelect);
+
+                    if (error?.startsWith("Failed to load jobs") && jobs.length === 0) {
+                        const errorText = document.createElement('p');
+                        Object.assign(errorText.style, styles.errorText.style);
+                        errorText.textContent = error;
+                        jobsDropdownContainer.appendChild(errorText);
+                    }
+
+                    if (selectedJob && webhookStatus) {
+                        const statusContainer = document.createElement('div');
+                        Object.assign(statusContainer.style, styles.webhookStatus.style);
+                        const statusIcon = document.createElement('div');
+                        Object.assign(statusIcon.style, styles.webhookStatusIcon[webhookStatus]?.style || {});
+                        statusContainer.appendChild(statusIcon);
+                        const statusText = document.createElement('span');
+
+                        switch (webhookStatus) {
+                            case 'sending':
+                                statusText.textContent = 'Sending job data...';
+                                statusText.style.color = '#FFD700';
+                                break;
+                            case 'success':
+                                statusText.textContent = 'Job data sent successfully.';
+                                statusText.style.color = '#4CAF50';
+                                break;
+                            case 'error':
+                                statusText.textContent = 'Error sending job data.';
+                                statusText.style.color = '#ff6347';
+                                break;
+                            default:
+                                statusText.textContent = '';
+                        }
+                        statusContainer.appendChild(statusText);
+                        jobsDropdownContainer.appendChild(statusContainer);
+                    }
+
+                    if (selectedJob && webhookStatus === 'success' && webhookResponse) {
+                        const graphDataInfo = document.createElement('div');
+                        Object.assign(graphDataInfo.style, styles.graphDataInfo.style);
+                        const nodeCount = webhookResponse.nodes?.length ?? 0;
+                        const linkCount = webhookResponse.links?.length ?? 0;
+                        graphDataInfo.innerHTML = `<strong>Relational Graph Data Received</strong><br><span style="color: #8bc34a">● ${nodeCount} entities</span> | <span style="color: #ff9800">● ${linkCount} relationships</span>`;
+                        jobsDropdownContainer.appendChild(graphDataInfo);
+                    }
+
+                    if (selectedJob && webhookStatus === 'success') {
+                        console.log("   - Webhook success, creating Review Data button.");
+                        const reviewButton = document.createElement('button');
+                        reviewButton.id = REVIEW_DATA_BUTTON_ID;
+                        reviewButton.className = styles.reviewDataButton.className;
+                        Object.assign(reviewButton.style, styles.reviewDataButton.style);
+                        reviewButton.textContent = 'Review Data';
+                        reviewButton.addEventListener('click', () => {
+                            console.log("Review Data button clicked.");
+                            setIsReviewOverlayVisible(true);
+                        });
+                        jobsDropdownContainer.appendChild(reviewButton);
+
+                        setTimeout(() => {
+                            const buttonElement = document.getElementById(REVIEW_DATA_BUTTON_ID);
+                            if (buttonElement?.parentNode === jobsDropdownContainer) {
+                                animateElement(buttonElement, { opacity: '1' }, 0);
+                                console.log("   - Fading in Review Data button.");
+                            }
+                        }, 100);
+                    } else {
+                        const existingButton = jobsDropdownContainer.querySelector(`#${REVIEW_DATA_BUTTON_ID}`);
+                        if (existingButton) existingButton.remove();
+                    }
                 }
                 summarySection.appendChild(jobsDropdownContainer);
             }
             contentContainer.appendChild(summarySection);
 
             // --- CREATE METRICS / VISUALIZATION SECTION (using updated styles.contentSection) ---
-            const metricsSection = document.createElement('div'); metricsSection.id = METRICS_SECTION_ID; Object.assign(metricsSection.style, styles.contentSection.style); /* Add heading/text/placeholder */ /* ... */
-            const metricsHeading = document.createElement('h3'); Object.assign(metricsHeading.style, styles.contentSectionHeading.style); metricsHeading.textContent = "Analysis & Visualization"; metricsSection.appendChild(metricsHeading);
-            const metricsText = document.createElement('p'); Object.assign(metricsText.style, styles.contentText.style);
-            // (Simplified display logic)
-            if (selectedJob) { const selectedJobObj = jobs.find(job => job.Id?.toString() === selectedJob); const clientNameString = selectedClientData ? `${selectedClientData.ClientFirstName} ${selectedClientData.ClientLastName}` : 'Client'; const jobDesc = selectedJobObj ? (selectedJobObj.JobName || `ID: ${selectedJobObj.Id}`) : `ID: ${selectedJob}`; if (webhookStatus === 'sending') { metricsText.textContent = `Fetching analysis for: ${clientNameString} - ${jobDesc}...`; } else if (webhookStatus === 'error') { metricsText.textContent = `Error fetching analysis for: ${clientNameString} - ${jobDesc}.`; } else if (webhookStatus === 'success' && webhookResponse) { metricsText.textContent = `Analysis loaded for: ${clientNameString} - ${jobDesc}. Visualization below.`; } else { metricsText.textContent = `Ready to analyze: ${clientNameString} - ${jobDesc}.`; } }
-            else if (selectedClientData) { metricsText.textContent = `Please select a job for ${selectedClientData.ClientFirstName} ${selectedClientData.ClientLastName}.`; }
-            else { metricsText.textContent = "Please select a client and then a job to begin analysis."; }
-            metricsSection.appendChild(metricsText);
-            if (selectedJob && webhookStatus === 'success' && webhookResponse?.nodes && webhookResponse?.links) {
-                const graphInfoPlaceholder = document.createElement('div'); Object.assign(graphInfoPlaceholder.style, { marginTop: '20px', padding: '20px', border: '1px dashed rgba(87, 179, 192, 0.4)', borderRadius: '8px', textAlign: 'center', color: '#a7d3d8', fontSize: styles.contentText.style.fontSize }); graphInfoPlaceholder.textContent = '[ Graph Visualization Area ]'; metricsSection.appendChild(graphInfoPlaceholder);
+            const metricsSection = document.createElement('div');
+            metricsSection.id = METRICS_SECTION_ID;
+            metricsRef.current = metricsSection;
+            Object.assign(metricsSection.style, styles.contentSection.style);
+
+            const metricsHeading = document.createElement('h3');
+            Object.assign(metricsHeading.style, styles.contentSectionHeading.style);
+            metricsHeading.textContent = "Analysis & Visualization";
+            metricsSection.appendChild(metricsHeading);
+
+            const metricsText = document.createElement('p');
+            Object.assign(metricsText.style, styles.contentText.style);
+
+            // Status text based on selection & webhook status
+            if (selectedJob) {
+                const selectedJobObj = jobs.find(job => job.Id?.toString() === selectedJob);
+                const clientNameString = selectedClientData ? `${selectedClientData.ClientFirstName} ${selectedClientData.ClientLastName}` : 'Client';
+                const jobDesc = selectedJobObj ? (selectedJobObj.JobName || `ID: ${selectedJobObj.Id}`) : `ID: ${selectedJob}`;
+
+                if (webhookStatus === 'sending') {
+                    metricsText.textContent = `Fetching analysis for: ${clientNameString} - ${jobDesc}...`;
+                } else if (webhookStatus === 'error') {
+                    metricsText.textContent = `Error fetching analysis for: ${clientNameString} - ${jobDesc}.`;
+                } else if (webhookStatus === 'success' && webhookResponse) {
+                    metricsText.textContent = `Analysis loaded for: ${clientNameString} - ${jobDesc}. Visualization below.`;
+                } else {
+                    metricsText.textContent = `Ready to analyze: ${clientNameString} - ${jobDesc}.`;
+                }
+            } else if (selectedClientData) {
+                metricsText.textContent = `Please select a job for ${selectedClientData.ClientFirstName} ${selectedClientData.ClientLastName}.`;
+            } else {
+                metricsText.textContent = "Please select a client and then a job to begin analysis.";
             }
+            metricsSection.appendChild(metricsText);
+
+            // --- ADD GRAPH PLACEHOLDER (for 3D visualization) ---
+            // This is a critical change - we create a placeholder div that will be used 
+            // to attach the actual React 3D graph component
+            if (selectedJob && webhookStatus === 'success' && webhookResponse?.nodes && webhookResponse?.links) {
+                const graphContainer = document.createElement('div');
+                graphContainer.id = GRAPH_CONTAINER_ID; // Important: Use the constant ID
+                // Apply styling with proper z-index
+                Object.assign(graphContainer.style, styles.graphPlaceholder.style);
+
+                // Add text indicating this is where the graph will appear
+                const graphPlaceholderText = document.createElement('div');
+                graphPlaceholderText.textContent = '3D Graph Visualization Will Render Here';
+                graphPlaceholderText.style.color = '#a7d3d8';
+                graphPlaceholderText.style.fontSize = styles.contentText.style.fontSize;
+                graphPlaceholderText.style.textAlign = 'center';
+                graphPlaceholderText.style.position = 'absolute';
+                graphPlaceholderText.style.zIndex = '6';
+
+                graphContainer.appendChild(graphPlaceholderText);
+                metricsSection.appendChild(graphContainer);
+            }
+
             contentContainer.appendChild(metricsSection);
 
             // --- APPEND CONTENT CONTAINER to PANEL ---
@@ -424,41 +1316,254 @@ export default function Analysis_Home() {
             else throw new Error("Panel ref null before content append.");
 
             // --- Append Panel & Overlay to Body ---
-            overlay.appendChild(panel); document.body.appendChild(overlay);
+            overlay.appendChild(panel);
+            document.body.appendChild(overlay);
             document.body.style.overflow = 'hidden'; // Lock scroll
 
             // --- Apply animations ---
-            setTimeout(() => { /* ... (unchanged animation logic) ... */ if (overlayRef.current?.parentNode === document.body) { animateElement(panelRef.current, { opacity: '1' }, 0); const profileEl = panelRef.current?.querySelector('#profile-container'); if (profileEl) animateElement(profileEl, { opacity: '1', transform: 'translateX(0)' }, 150); const buttonsEl = panelRef.current?.querySelector('#button-stack'); if (buttonsEl) animateElement(buttonsEl, { opacity: '1', transform: 'translateX(0)' }, 150); const contentEl = panelRef.current?.querySelector('#content-container'); if (contentEl) animateElement(contentEl, { opacity: '1', transform: 'translateY(0)' }, 300); } }, 50);
+            setTimeout(() => {
+                if (overlayRef.current?.parentNode === document.body) {
+                    animateElement(panelRef.current, { opacity: '1' }, 0);
+                    const profileEl = panelRef.current?.querySelector('#profile-container');
+                    if (profileEl) animateElement(profileEl, { opacity: '1', transform: 'translateX(0)' }, 150);
+                    const buttonsEl = panelRef.current?.querySelector('#button-stack');
+                    if (buttonsEl) animateElement(buttonsEl, { opacity: '1', transform: 'translateX(0)' }, 150);
+                    const contentEl = panelRef.current?.querySelector('#content-container');
+                    if (contentEl) animateElement(contentEl, { opacity: '1', transform: 'translateY(0)' }, 300);
+                }
+            }, 50);
 
             window.addEventListener('resize', handleResize);
             console.log("Analysis_Home: MAIN PANEL UI structure complete.");
 
-        } catch (error) { /* ... (unchanged error handling) ... */
+        } catch (error) {
             console.error("Analysis_Home: CRITICAL ERROR during UI Effect!", error);
-            if (overlayRef.current?.parentNode) overlayRef.current.remove(); else if (overlay?.parentNode) overlay.remove(); else { const existing = document.querySelector(`.${MAIN_PANEL_OVERLAY_CLASS}`); if (existing) existing.remove(); }
-            overlayRef.current = null; panelRef.current = null; document.body.style.overflow = ''; window.removeEventListener('resize', handleResize); clearTimeout(resizeTimeout); setError("Failed to render dashboard UI."); return;
+            if (overlayRef.current?.parentNode) overlayRef.current.remove();
+            else if (overlay?.parentNode) overlay.remove();
+            else {
+                const existing = document.querySelector(`.${MAIN_PANEL_OVERLAY_CLASS}`);
+                if (existing) existing.remove();
+            }
+            overlayRef.current = null;
+            panelRef.current = null;
+            metricsRef.current = null;
+            document.body.style.overflow = '';
+            window.removeEventListener('resize', handleResize);
+            clearTimeout(resizeTimeout);
+            setError("Failed to render dashboard UI.");
+            return;
         }
 
         // --- Cleanup function for the MAIN PANEL UI Effect ---
-        return () => { /* ... (unchanged cleanup logic) ... */
+        return () => {
             console.log("Analysis_Home: MAIN PANEL UI Effect CLEANUP running.");
-            window.removeEventListener('resize', handleResize); clearTimeout(resizeTimeout);
+            window.removeEventListener('resize', handleResize);
+            clearTimeout(resizeTimeout);
+
             const mainOverlayToRemove = overlayRef.current;
-            if (mainOverlayToRemove?.parentNode) { console.log("   - Removing main panel overlay via ref."); mainOverlayToRemove.remove(); }
-            else { const existingFromQuery = document.querySelector(`.${MAIN_PANEL_OVERLAY_CLASS}`); if (existingFromQuery) { console.log("   - Removing main panel overlay via querySelector fallback."); existingFromQuery.remove(); } else { console.log("   - No main panel overlay found to remove."); } }
-            overlayRef.current = null; panelRef.current = null;
-            if (!document.body.classList.contains(REVIEW_OVERLAY_ACTIVE_CLASS)) { document.body.style.overflow = ''; console.log("   - Restoring body scroll (iframe overlay not active)."); }
-            else { console.log("   - Iframe overlay IS active, keeping scroll locked."); }
+            if (mainOverlayToRemove?.parentNode) {
+                console.log("   - Removing main panel overlay via ref.");
+                mainOverlayToRemove.remove();
+            } else {
+                const existingFromQuery = document.querySelector(`.${MAIN_PANEL_OVERLAY_CLASS}`);
+                if (existingFromQuery) {
+                    console.log("   - Removing main panel overlay via querySelector fallback.");
+                    existingFromQuery.remove();
+                } else {
+                    console.log("   - No main panel overlay found to remove.");
+                }
+            }
+
+            overlayRef.current = null;
+            panelRef.current = null;
+            metricsRef.current = null;
+
+            if (!document.body.classList.contains(REVIEW_OVERLAY_ACTIVE_CLASS)) {
+                document.body.style.overflow = '';
+                console.log("   - Restoring body scroll (iframe overlay not active).");
+            } else {
+                console.log("   - Iframe overlay IS active, keeping scroll locked.");
+            }
+
             console.log("   - Main panel cleanup finished.");
         };
-    }, [ // Dependencies list unchanged
+    }, [
         isLoggedIn, userData, loading, clientsLoading, jobsLoading, clientNames,
         selectedClient, selectedClientData, jobs, selectedJob, error,
         webhookStatus, webhookResponse,
         handleLogout, handleChatClick, handleHomeClick, handleClientSelect, handleJobSelect,
         getStyles,
-        isReviewOverlayVisible
+        isReviewOverlayVisible,
+        graphData, // Added dependency for 3D graph data
+        isGraphExpanded // Added dependency for graph expansion
     ]);
+
+    // ====================================
+    // GRAPH3D COMPONENT RENDERER
+    // ====================================
+    useEffect(() => {
+        // This effect runs when we have graphData and need to render the 3D force graph
+        console.log("Analysis_Home: Graph3D rendering effect running");
+
+        if (!graphData.nodes || !graphData.links || !graphData.nodes.length || !selectedJob || !metricsRef.current) {
+            console.log("   - No graph data or no metrics section available, skipping render.");
+            return;
+        }
+
+        if (isReviewOverlayVisible) {
+            console.log("   - Review overlay is visible, skipping graph render.");
+            return;
+        }
+
+        // Find the placeholder container in the DOM
+        const graphPlaceholder = document.getElementById(GRAPH_CONTAINER_ID);
+        if (!graphPlaceholder) {
+            console.warn(`   - Cannot find graph placeholder with ID ${GRAPH_CONTAINER_ID}`);
+            return;
+        }
+
+        try {
+            console.log("   - Creating React container for ForceGraph3D");
+
+            // Clear existing content from placeholder
+            graphPlaceholder.innerHTML = '';
+
+            // Create a container for the graph with proper styling
+            const graphContainer = document.createElement('div');
+            graphContainer.id = `${GRAPH_CONTAINER_ID}-react`;
+            graphContainer.style.width = '100%';
+            graphContainer.style.height = '100%';
+            graphContainer.style.position = 'relative';
+            graphContainer.style.zIndex = '20'; // Ensure proper z-index for visibility
+
+            // Add controls for the graph
+            const controlsContainer = document.createElement('div');
+            controlsContainer.style.position = 'absolute';
+            controlsContainer.style.top = '10px';
+            controlsContainer.style.right = '10px';
+            controlsContainer.style.display = 'flex';
+            controlsContainer.style.gap = '8px';
+            controlsContainer.style.zIndex = '25'; // Above graph
+
+            // Expand/Collapse button
+            const expandButton = document.createElement('button');
+            expandButton.textContent = isGraphExpanded ? 'Collapse' : 'Expand';
+            expandButton.style.padding = '4px 8px';
+            expandButton.style.fontSize = '12px';
+            expandButton.style.backgroundColor = 'rgba(13, 20, 24, 0.8)';
+            expandButton.style.color = '#a7d3d8';
+            expandButton.style.border = '1px solid rgba(87, 179, 192, 0.4)';
+            expandButton.style.borderRadius = '4px';
+            expandButton.style.cursor = 'pointer';
+            expandButton.addEventListener('click', () => {
+                setIsGraphExpanded(!isGraphExpanded);
+            });
+
+            // Reset camera button
+            const resetButton = document.createElement('button');
+            resetButton.textContent = 'Reset View';
+            resetButton.style.padding = '4px 8px';
+            resetButton.style.fontSize = '12px';
+            resetButton.style.backgroundColor = 'rgba(13, 20, 24, 0.8)';
+            resetButton.style.color = '#a7d3d8';
+            resetButton.style.border = '1px solid rgba(87, 179, 192, 0.4)';
+            resetButton.style.borderRadius = '4px';
+            resetButton.style.cursor = 'pointer';
+            resetButton.addEventListener('click', () => {
+                if (graphRef.current) {
+                    graphRef.current.cameraPosition(
+                        { x: 0, y: 0, z: 200 }, // new position
+                        { x: 0, y: 0, z: 0 },   // look at center
+                        1000                     // transition duration (ms)
+                    );
+                }
+            });
+
+            controlsContainer.appendChild(expandButton);
+            controlsContainer.appendChild(resetButton);
+            graphContainer.appendChild(controlsContainer);
+
+            // Add the container to the DOM
+            graphPlaceholder.appendChild(graphContainer);
+
+            // Update container dimensions based on expanded state
+            const containerHeight = isGraphExpanded ?
+                (window.innerWidth <= 768 ? '400px' : '500px') :
+                (window.innerWidth <= 768 ? '300px' : '400px');
+
+            graphPlaceholder.style.height = containerHeight;
+            graphPlaceholder.style.transition = 'height 0.5s ease-out';
+
+            // Use React's createRoot to render the ForceGraph3D component
+            import('react-dom/client').then(ReactDOM => {
+                console.log("   - Creating React root for ForceGraph3D");
+                const root = ReactDOM.createRoot(graphContainer);
+
+                // Render the ForceGraph3D component with enhanced configuration
+                root.render(
+                    <ForceGraph3D
+                        ref={graphRef}
+                        graphData={graphData}
+                        // Enhanced node label with more detailed information
+                        nodeLabel={node => `${node.name || node.id}${node.type ? ` (${node.type})` : ''}`}
+                        nodeColor={node => node.color}
+                        nodeVal={node => node.val}
+                        // Enhanced link styling
+                        linkLabel={link => link.label || link.type || 'connects to'}
+                        linkColor={link => link.color}
+                        backgroundColor="rgba(10, 15, 20, 0.1)" // Transparent background
+                        width={graphPlaceholder.clientWidth}
+                        height={graphPlaceholder.clientHeight}
+                        showNavInfo={true}
+                        enableNodeDrag={true}
+                        enableNavigationControls={true}
+                        linkWidth={link => link.value || 1}
+                        linkOpacity={0.7}
+                        nodeOpacity={0.9}
+                        nodeRelSize={5}
+                        // Improved warmup and cooldown for better initial layout
+                        warmupTicks={120}
+                        cooldownTime={2000}
+                        // Node interaction handler
+                        onNodeClick={node => {
+                            console.log('Clicked node:', node);
+                            // Future enhancement: Show node details panel
+                        }}
+                        // 15% more zoomed in camera starting position (modifying the default)
+                        cameraPosition={{ z: 170 }} // Default is ~200, reducing by 15%
+                        // Enhanced node resolution for better visuals
+                        nodeResolution={16}
+                        // Better link curvature for clarity in connections
+                        linkCurvature={0.2}
+                        // Dynamic forces to spread out the graph better
+                        d3AlphaDecay={0.02}
+                        d3VelocityDecay={0.3}
+                    />
+                );
+
+                console.log("   - ForceGraph3D component rendered successfully");
+            }).catch(error => {
+                console.error("   - Error rendering ForceGraph3D component:", error);
+            });
+
+        } catch (error) {
+            console.error("Error rendering 3D graph:", error);
+        }
+
+        // Cleanup function
+        return () => {
+            console.log("Analysis_Home: Graph3D render effect cleanup");
+            const graphContainer = document.getElementById(`${GRAPH_CONTAINER_ID}-react`);
+            if (graphContainer) {
+                try {
+                    graphContainer.remove();
+                    console.log("   - Removed React graph container");
+                } catch (error) {
+                    console.error("   - Error cleaning up graph container:", error);
+                }
+            }
+        };
+    }, [graphData, selectedJob, isReviewOverlayVisible, isGraphExpanded, windowDimensions]);
 
     // ====================================
     // CONDITIONAL JSX RENDERING (IFRAME OVERLAY)
@@ -505,5 +1610,5 @@ export default function Analysis_Home() {
     }
 
     // --- Default Return ---
-    return null; // useEffect handles main panel DOM
+    return null; // useEffect/useEffect handle DOM manipulation and graph rendering
 }
