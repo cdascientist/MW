@@ -173,7 +173,7 @@ TypesConfig conf/mime.types
 
 Install Dependancies:
 
-
+[Environment]::SetEnvironmentVariable("NODE_OPTIONS", "", "Process"); npm install --legacy-peer-deps
 cd mw.client
 npm list
 npm install --legacy-peer-deps
