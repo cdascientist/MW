@@ -77,4 +77,8 @@ public partial class WorkdayStepOneJob
 
     [Column("relational_graph")]
     public byte[]? RelationalGraph { get; set; }
+
+    [Column("hierarchical_structure")]
+    [StringLength(2055)]
+    public string? HierarchicalStructure { get; set; }
 }

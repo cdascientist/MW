@@ -10,6 +10,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Accord.MachineLearning" Version="3.8.0" />
+		<PackageReference Include="Accord.Math" Version="3.8.0" />
 		<PackageReference Include="Microsoft.AspNetCore.SpaProxy">
 			<Version>8.*-*</Version>
 		</PackageReference>
@@ -27,6 +29,7 @@
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
         <!-- <PackageReference Include="System.Text.Json" Version="8.0.*" /> -->
 		<PackageReference Include="System.Text.Json" Version="8.0.4" />
+		<PackageReference Include="TensorFlow.NET" Version="0.150.0" />
 	</ItemGroup>
 
 	<ItemGroup>
