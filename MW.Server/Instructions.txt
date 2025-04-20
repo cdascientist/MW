@@ -33,6 +33,7 @@ dotnet build
 To Update Or Install models:
 dotnet tool install --global dotnet-ef
 dotnet nuget locals all --clear
+
 dotnet ef dbcontext scaffold "server=basis-project-ef1e.g.aivencloud.com;port=13566;user=avnadmin;password=AVNS_wUH-gfFc3pf76IZ7l0Z;database=defaultdb;SSL Mode=Required" MySql.EntityFrameworkCore --output-dir Models --data-annotations --force --no-onconfiguring
 
 dotnet build

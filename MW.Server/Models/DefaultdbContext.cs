@@ -13,6 +13,8 @@ public partial class DefaultdbContext : DbContext
 
     public virtual DbSet<Client> Clients { get; set; }
 
+    public virtual DbSet<Modeldbinit> Modeldbinits { get; set; }
+
     public virtual DbSet<SearchResult> SearchResults { get; set; }
 
     public virtual DbSet<WorkdayStepOne> WorkdayStepOnes { get; set; }
@@ -22,6 +24,11 @@ public partial class DefaultdbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Client>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+        });
+
+        modelBuilder.Entity<Modeldbinit>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
         });
